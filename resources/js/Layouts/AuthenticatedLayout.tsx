@@ -17,6 +17,7 @@ import {
     Bell,
     LogOut,
     Menu,
+    ListCheck,
 } from "lucide-react";
 
 const menu = [
@@ -37,6 +38,19 @@ const menu = [
         icon: Shield,
         href: "backend.roles.index",
         active: "backend.roles.*",
+    },
+    {
+        label: "Login History",
+        icon: ListCheck,
+        // icon: History,
+        href: "backend.login-histories.index",
+        active: "backend.login-histories.*",
+    },
+    {
+        label: "Activity Log",
+        icon: ListCheck,
+        href: "backend.activity-logs.index",
+        active: "backend.activity-logs.*",
     },
     {
         label: "Products",

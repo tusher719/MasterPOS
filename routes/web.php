@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Backend\ActivityLogController;
+use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\ProfileController;
@@ -37,6 +39,9 @@ Route::middleware(['auth', 'verified'])
         Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
         Route::put('roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.permissions');
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+        Route::get('login-histories', [LoginHistoryController::class, 'index'])->name('login-histories.index');
+        Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
 
