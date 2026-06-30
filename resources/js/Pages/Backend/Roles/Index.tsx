@@ -4,6 +4,7 @@ import { Head, router, useForm } from "@inertiajs/react";
 import { RoleItem, PermissionGroups } from "@/types/role";
 import { FormEvent, useEffect, useState } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
+import { confirmAction } from "@/lib/confirm";
 
 export default function Index({
     roles,
@@ -55,8 +56,15 @@ export default function Index({
         );
     };
 
-    const handleDelete = (role: RoleItem) => {
-        if (confirm(`Role "${role.name}" ডিলিট করতে চাও?`)) {
+    const handleDelete = async (role: RoleItem) => {
+        const confirmed = await confirmAction({
+            title: "Delete this role?",
+            text: `Role "${role.name}" will be permanently deleted.`,
+            confirmButtonText: "Yes, delete",
+            icon: "error",
+        });
+
+        if (confirmed) {
             router.delete(route("backend.roles.destroy", role.id), {
                 onSuccess: () => setActiveRoleId(roles[0]?.id ?? null),
             });

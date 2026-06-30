@@ -6,6 +6,7 @@ import { PaginatedUsers, User } from "@/types/user";
 import { FormEvent, useState } from "react";
 import { Plus, Pencil, Archive, Search } from "lucide-react";
 import { toast } from "sonner";
+import { confirmAction } from "@/lib/confirm";
 
 export default function Index({
     users,
@@ -73,8 +74,14 @@ export default function Index({
         }
     };
 
-    const handleDelete = (user: User) => {
-        if (confirm(`${user.name} কে archive করতে চাও?`)) {
+    const handleDelete = async (user: User) => {
+        const confirmed = await confirmAction({
+            title: "Archive this user?",
+            text: `${user.name} will be archived.`,
+            confirmButtonText: "Yes, archive",
+        });
+
+        if (confirmed) {
             router.delete(route("backend.users.destroy", user.id));
         }
     };
