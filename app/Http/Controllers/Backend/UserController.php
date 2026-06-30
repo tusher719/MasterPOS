@@ -26,16 +26,8 @@ class UserController extends Controller
 
         return Inertia::render('Backend/Users/Index', [
             'users' => $users,
+            'roles' => \Spatie\Permission\Models\Role::pluck('name'),
             'filters' => request()->only('search'),
-        ]);
-    }
-
-    public function create()
-    {
-        $this->authorize('create', User::class);
-
-        return Inertia::render('Backend/Users/Create', [
-            'roles' => Role::pluck('name'),
         ]);
     }
 
@@ -54,16 +46,6 @@ class UserController extends Controller
         ActivityLogService::log('users', 'created', "User {$user->name} created", $user);
 
         return redirect()->route('backend.users.index')->with('success', 'User created successfully');
-    }
-
-    public function edit(User $user)
-    {
-        $this->authorize('update', $user);
-
-        return Inertia::render('Backend/Users/Edit', [
-            'user' => $user->load('roles'),
-            'roles' => Role::pluck('name'),
-        ]);
     }
 
     public function update(UpdateUserRequest $request, User $user)
