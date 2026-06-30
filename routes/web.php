@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,12 @@ Route::middleware(['auth', 'verified'])
     ->name('backend.')
     ->group(function () {
         Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
+
+        // Role Method
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::put('roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.permissions');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     });
 
 
