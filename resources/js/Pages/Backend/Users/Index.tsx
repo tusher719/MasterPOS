@@ -97,7 +97,7 @@ export default function Index({
                             Users
                         </h1>
                         <p className="text-sm text-gray-500">
-                            সকল admin/staff ইউজার ম্যানেজ করো
+                            Manage all admin/staff users
                         </p>
                     </div>
                     <button
@@ -116,7 +116,7 @@ export default function Index({
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="নাম দিয়ে খুঁজো..."
+                        placeholder="Search by name..."
                         className="w-full rounded-lg border-gray-300 py-2 pl-9 text-sm shadow-sm"
                     />
                 </form>
@@ -250,7 +250,7 @@ export default function Index({
                             Password{" "}
                             {editingUser && (
                                 <span className="text-xs text-gray-400">
-                                    (খালি রাখলে পরিবর্তন হবে না)
+                                    (Leave blank to keep unchanged)
                                 </span>
                             )}
                         </label>
