@@ -16,6 +16,11 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolePermissionSeeder::class);
+        $this->call(BusinessSettingSeeder::class);
+        $this->call(PaymentMethodSeeder::class);
+        $this->call(ExpenseCategorySeeder::class);
+        $this->call(InvestmentTypeSeeder::class);
+        $this->call(Step03PermissionSeeder::class);
 
         $admin = \App\Models\User::firstOrCreate(
             ['email' => 'admin@masterpos.test'],

@@ -4,6 +4,10 @@ use App\Http\Controllers\Backend\ActivityLogController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
+use App\Http\Controllers\Backend\SettingController;
+use App\Http\Controllers\Backend\PaymentMethodController;
+use App\Http\Controllers\Backend\ExpenseCategoryController;
+use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +46,37 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('login-histories', [LoginHistoryController::class, 'index'])->name('login-histories.index');
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+
+        // Business Settings
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [SettingController::class, 'index'])->name('index');
+            Route::post('/', [SettingController::class, 'update'])->name('update');
+            Route::post('/logo', [SettingController::class, 'uploadLogo'])->name('logo');
+        });
+
+        // Payment Methods
+        Route::prefix('payment-methods')->name('payment-methods.')->group(function () {
+            Route::get('/', [PaymentMethodController::class, 'index'])->name('index');
+            Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
+            Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+            Route::delete('/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('destroy');
+        });
+
+        // Expense Categories
+        Route::prefix('expense-categories')->name('expense-categories.')->group(function () {
+            Route::get('/', [ExpenseCategoryController::class, 'index'])->name('index');
+            Route::post('/', [ExpenseCategoryController::class, 'store'])->name('store');
+            Route::put('/{expenseCategory}', [ExpenseCategoryController::class, 'update'])->name('update');
+            Route::delete('/{expenseCategory}', [ExpenseCategoryController::class, 'destroy'])->name('destroy');
+        });
+
+        // Investment Types
+        Route::prefix('investment-types')->name('investment-types.')->group(function () {
+            Route::get('/', [InvestmentTypeController::class, 'index'])->name('index');
+            Route::post('/', [InvestmentTypeController::class, 'store'])->name('store');
+            Route::put('/{investmentType}', [InvestmentTypeController::class, 'update'])->name('update');
+            Route::delete('/{investmentType}', [InvestmentTypeController::class, 'destroy'])->name('destroy');
+        });
     });
 
 
