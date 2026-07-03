@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.5
-- Current Step: Step 05 — Notification System ✅ COMPLETE
+- Version: v1.6
+- Current Step: Step 06 — Supplier Management ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -85,7 +85,8 @@ MasterPOS/
 │ │ │ ├── ProductCategoryController.php
 │ │ │ ├── UnitController.php
 │ │ │ ├── ProductController.php
-│ │ │ └── NotificationController.php
+│ │ │ ├── NotificationController.php
+│ │ │ └── SupplierController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -95,7 +96,9 @@ MasterPOS/
 │ │ ├── StoreUnitRequest.php
 │ │ ├── UpdateUnitRequest.php
 │ │ ├── StoreProductRequest.php
-│ │ └── UpdateProductRequest.php
+│ │ ├── UpdateProductRequest.php
+│ │ ├── StoreSupplierRequest.php
+│ │ └── UpdateSupplierRequest.php
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
@@ -107,7 +110,8 @@ MasterPOS/
 │ │ ├── ProductCategory.php
 │ │ ├── Unit.php
 │ │ ├── Product.php
-│ │ └── ProductImage.php
+│ │ ├── ProductImage.php
+│ │ └── Supplier.php
 │ ├── Notifications/
 │ │ ├── LowStockNotification.php
 │ │ ├── NewSaleNotification.php
@@ -122,7 +126,8 @@ MasterPOS/
 │ │ ├── ProductCategoryPolicy.php
 │ │ ├── UnitPolicy.php
 │ │ ├── ProductPolicy.php
-│ │ └── NotificationPolicy.php
+│ │ ├── NotificationPolicy.php
+│ │ └── SupplierPolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
@@ -139,6 +144,7 @@ MasterPOS/
 │ ├── Step03PermissionSeeder.php
 │ ├── Step04PermissionSeeder.php
 │ ├── Step05PermissionSeeder.php
+│ ├── Step06PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
@@ -174,8 +180,13 @@ MasterPOS/
 │ │ │ └── \_components/
 │ │ │ ├── UnitTable.tsx
 │ │ │ └── UnitModal.tsx
-│ │ └── Notifications/
-│ │ └── Index.tsx
+│ │ ├── Notifications/
+│ │ │ └── Index.tsx
+│ │ └── Suppliers/
+│ │ ├── Index.tsx
+│ │ └── \_components/
+│ │ ├── SupplierTable.tsx
+│ │ └── SupplierModal.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -225,6 +236,12 @@ product_categories, units, products, product_images
 
 notifications → id(uuid), type, notifiable_type, notifiable_id,
 data(json), read_at(nullable), timestamps
+
+### Step 06 Tables
+
+suppliers → id, name, company, email(unique), phone, address,
+city, country(default Bangladesh), opening_balance(decimal 10,2),
+is_active(bool), timestamps, deleted_at
 
 ---
 
@@ -278,6 +295,14 @@ POST /backend/notifications/read-all → backend.notifications.read-all
 DELETE /backend/notifications/{id} → backend.notifications.destroy
 GET /backend/notifications/unread-count → backend.notifications.unread-count
 
+### Step 06 Routes
+
+GET /backend/suppliers → backend.suppliers.index
+POST /backend/suppliers → backend.suppliers.store
+PUT /backend/suppliers/{supplier} → backend.suppliers.update
+DELETE /backend/suppliers/{supplier} → backend.suppliers.destroy
+POST /backend/suppliers/{id}/restore → backend.suppliers.restore
+
 ---
 
 ## PERMISSIONS — REGISTERED
@@ -304,6 +329,10 @@ product.view, product.create, product.edit, product.delete
 
 notification.view, notification.delete
 
+### Step 06
+
+supplier.view, supplier.create, supplier.edit, supplier.delete, supplier.restore
+
 ---
 
 ## SEEDERS RUN
@@ -312,6 +341,7 @@ notification.view, notification.delete
 - Step03PermissionSeeder → Admin + Staff view-only
 - Step04PermissionSeeder → Admin (all), Staff (view-only)
 - Step05PermissionSeeder → Admin (all), Staff (view-only)
+- Step06PermissionSeeder → Admin (all), Staff (view-only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -327,7 +357,8 @@ notification.view, notification.delete
 Registers: UserPolicy, RolePolicy, SettingPolicy,
 PaymentMethodPolicy, ExpenseCategoryPolicy, InvestmentTypePolicy,
 ProductCategoryPolicy, UnitPolicy, ProductPolicy,
-NotificationPolicy (model: DatabaseNotification::class)
+NotificationPolicy (model: DatabaseNotification::class),
+SupplierPolicy
 Event listener: Login::class → RecordLoginHistory::class
 
 ### ActivityLogService.php
@@ -347,6 +378,11 @@ Usage: const ok = await confirmAction({ title, text, confirmButtonText })
 ### HandleInertiaRequests.php
 
 Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8)
+
+### SupplierController.php
+
+- Always passes 'can' array to Inertia::render() for permission-gated UI
+- Restore uses onlyTrashed()->findOrFail($id) — not route model binding
 
 ### Notification Classes (stub — triggers added in later steps)
 
@@ -377,10 +413,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 03: Business Settings ✅
 - Step 04: Product & Category Management ✅
 - Step 05: Notification System ✅
+- Step 06: Supplier Management ✅
 
 ## PENDING MODULES
 
-- Step 06: Supplier Management
 - Step 07: Purchase & Inventory
 - Step 08: Customer Management
 - Step 09: POS (Cart/Sale)
@@ -397,4 +433,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 06 — Supplier Management
+Step 07 — Purchase & Inventory

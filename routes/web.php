@@ -11,6 +11,7 @@ use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
+use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
@@ -138,6 +139,15 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
             ->name('notifications.unread-count');
+
+            // Step 06 — Supplier Management
+        Route::prefix('suppliers')->name('suppliers.')->group(function () {
+            Route::get('/', [SupplierController::class, 'index'])->name('index');
+            Route::post('/', [SupplierController::class, 'store'])->name('store');
+            Route::put('/{supplier}', [SupplierController::class, 'update'])->name('update');
+            Route::delete('/{supplier}', [SupplierController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/restore', [SupplierController::class, 'restore'])->name('restore');
+        });
     });
 
 

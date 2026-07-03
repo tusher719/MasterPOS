@@ -33,6 +33,7 @@ import {
     Building2,
     Trash2,
     CheckCheck,
+    Truck,
 } from "lucide-react";
 import { Notification, NotificationShared } from "@/types/notification";
 
@@ -125,7 +126,6 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
-
     // ── Products group ──
 
     {
@@ -151,6 +151,12 @@ const NAV_ITEMS: NavItem[] = [
                 active: "backend.units.*",
             },
         ],
+    },
+    {
+        label: "Suppliers",
+        icon: Truck,
+        href: "backend.suppliers.index",
+        active: "backend.suppliers.*",
     },
 
     // ── Placeholder / not-yet-implemented items ──
