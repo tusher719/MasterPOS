@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.3
-- Current Step: Step 03 — Business Settings ✅ COMPLETE
+- Version: v1.4
+- Current Step: Step 04 — Product & Category Management ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -30,6 +30,7 @@
 ## ABSOLUTE CODING RULES (apply to every file, every step)
 
 1. Create/Edit forms are ALWAYS in Modal — never separate pages
+   (Exception: Product Create/Edit are separate pages — form too complex)
 2. Toast notifications use sonner only
 3. Confirm dialogs use SweetAlert2 only
 4. All code comments and documentation: English only, never Bengali
@@ -61,6 +62,8 @@
 - Modal footer: border-t border-gray-100 px-5 py-4 flex justify-end gap-2
 - Toggle: custom inline-flex h-6 w-11 rounded-full (indigo-600 / gray-200)
 - Action buttons: rounded-md p-1.5 text-gray-400 hover:bg-gray-100 (edit) / hover:bg-red-50 hover:text-red-500 (delete)
+- Form sections: rounded-lg border border-gray-200 bg-white p-5 with section headers
+- Image uploader: grid-cols-4 thumbnail grid, border-2 indigo-500 for primary
 
 ---
 
@@ -69,26 +72,30 @@
 ```
 MasterPOS/
 ├── app/
-│   ├── Enums/
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Backend/         ← all admin controllers go here
-│   │   │   │   ├── UserController.php
-│   │   │   │   ├── RoleController.php
-│   │   │   │   ├── LoginHistoryController.php
-│   │   │   │   ├── ActivityLogController.php
-│   │   │   │   ├── SettingController.php
-│   │   │   │   ├── PaymentMethodController.php
-│   │   │   │   ├── ExpenseCategoryController.php
-│   │   │   │   └── InvestmentTypeController.php
-│   │   │   └── Api/             ← future REST API (empty now)
-│   │   ├── Requests/
-│   │   │   └── Backend/         ← ALL form requests go here
-│   │   │       ├── StoreUserRequest.php
-│   │   │       └── UpdateUserRequest.php
-│   │   └── Middleware/
-│   ├── Listeners/
-│   │   └── RecordLoginHistory.php
+│   │   │   └── Backend/
+│   │   │       ├── UserController.php
+│   │   │       ├── RoleController.php
+│   │   │       ├── LoginHistoryController.php
+│   │   │       ├── ActivityLogController.php
+│   │   │       ├── SettingController.php
+│   │   │       ├── PaymentMethodController.php
+│   │   │       ├── ExpenseCategoryController.php
+│   │   │       ├── InvestmentTypeController.php
+│   │   │       ├── ProductCategoryController.php
+│   │   │       ├── UnitController.php
+│   │   │       └── ProductController.php
+│   │   └── Requests/
+│   │       └── Backend/
+│   │           ├── StoreUserRequest.php
+│   │           ├── UpdateUserRequest.php
+│   │           ├── StoreProductCategoryRequest.php
+│   │           ├── UpdateProductCategoryRequest.php
+│   │           ├── StoreUnitRequest.php
+│   │           ├── UpdateUnitRequest.php
+│   │           ├── StoreProductRequest.php
+│   │           └── UpdateProductRequest.php
 │   ├── Models/
 │   │   ├── User.php
 │   │   ├── LoginHistory.php
@@ -96,81 +103,89 @@ MasterPOS/
 │   │   ├── BusinessSetting.php
 │   │   ├── PaymentMethod.php
 │   │   ├── ExpenseCategory.php
-│   │   └── InvestmentType.php
-│   ├── Notifications/           ← empty, used from Step 04
-│   ├── Observers/               ← empty, used later
+│   │   ├── InvestmentType.php
+│   │   ├── ProductCategory.php
+│   │   ├── Unit.php
+│   │   ├── Product.php
+│   │   └── ProductImage.php
 │   ├── Policies/
 │   │   ├── UserPolicy.php
 │   │   ├── RolePolicy.php
 │   │   ├── SettingPolicy.php
 │   │   ├── PaymentMethodPolicy.php
 │   │   ├── ExpenseCategoryPolicy.php
-│   │   └── InvestmentTypePolicy.php
+│   │   ├── InvestmentTypePolicy.php
+│   │   ├── ProductCategoryPolicy.php
+│   │   ├── UnitPolicy.php
+│   │   └── ProductPolicy.php
 │   ├── Providers/
-│   │   └── AppServiceProvider.php  ← policies + event listeners registered here
+│   │   └── AppServiceProvider.php
 │   └── Services/
 │       └── ActivityLogService.php
 ├── database/
 │   ├── migrations/
-│   ├── seeders/
-│   │   ├── DatabaseSeeder.php
-│   │   ├── RolePermissionSeeder.php
-│   │   ├── BusinessSettingSeeder.php
-│   │   ├── PaymentMethodSeeder.php
-│   │   ├── ExpenseCategorySeeder.php
-│   │   └── InvestmentTypeSeeder.php
-│   └── factories/
+│   └── seeders/
+│       ├── DatabaseSeeder.php
+│       ├── RolePermissionSeeder.php
+│       ├── BusinessSettingSeeder.php
+│       ├── PaymentMethodSeeder.php
+│       ├── ExpenseCategorySeeder.php
+│       ├── InvestmentTypeSeeder.php
+│       ├── Step03PermissionSeeder.php
+│       ├── Step04PermissionSeeder.php
+│       ├── UnitSeeder.php
+│       └── ProductCategorySeeder.php
 ├── resources/
 │   └── js/
-│       ├── app.tsx              ← Toaster from sonner added here
-│       ├── Components/
-│       │   ├── shared/          ← reusable components
-│       │   │   ├── DataTable.tsx
-│       │   │   └── Modal.tsx
-│       │   └── ui/              ← shadcn auto-generated (never edit manually)
-│       ├── hooks/
-│       │   └── useFlashToast.ts
-│       ├── Layouts/
-│       │   └── AuthenticatedLayout.tsx  ← sidebar + topbar layout
-│       ├── lib/
-│       │   ├── utils.ts         ← shadcn cn() utility
-│       │   └── confirm.ts       ← SweetAlert2 wrapper
 │       ├── Pages/
-│       │   └── Backend/         ← ALL admin pages go here
-│       │       ├── Users/
-│       │       │   └── Index.tsx
-│       │       ├── Roles/
-│       │       │   └── Index.tsx
-│       │       ├── LoginHistories/
-│       │       │   └── Index.tsx
-│       │       ├── ActivityLogs/
-│       │       │   └── Index.tsx
-│       │       └── Settings/    ← Step 03 pages go here
+│       │   └── Backend/
+│       │       ├── Users/Index.tsx
+│       │       ├── Roles/Index.tsx
+│       │       ├── LoginHistories/Index.tsx
+│       │       ├── ActivityLogs/Index.tsx
+│       │       ├── Settings/
+│       │       │   ├── Index.tsx
+│       │       │   ├── PaymentMethods.tsx
+│       │       │   ├── ExpenseCategories.tsx
+│       │       │   └── InvestmentTypes.tsx
+│       │       └── Products/
 │       │           ├── Index.tsx
-│       │           ├── PaymentMethods.tsx
-│       │           ├── ExpenseCategories.tsx
-│       │           └── InvestmentTypes.tsx
+│       │           ├── Create.tsx
+│       │           ├── Edit.tsx
+│       │           ├── _components/
+│       │           │   ├── ProductStatsCards.tsx
+│       │           │   ├── ProductTable.tsx
+│       │           │   ├── ProductFormFields.tsx
+│       │           │   └── ImageUploader.tsx
+│       │           ├── Categories/
+│       │           │   ├── Index.tsx
+│       │           │   └── _components/
+│       │           │       ├── CategoryTable.tsx
+│       │           │       └── CategoryModal.tsx
+│       │           └── Units/
+│       │               ├── Index.tsx
+│       │               └── _components/
+│       │                   ├── UnitTable.tsx
+│       │                   └── UnitModal.tsx
+│       ├── Components/shared/
+│       │   ├── DataTable.tsx
+│       │   └── Modal.tsx
+│       ├── hooks/useFlashToast.ts
+│       ├── Layouts/AuthenticatedLayout.tsx
+│       ├── lib/
+│       │   ├── utils.ts
+│       │   └── confirm.ts
 │       └── types/
 │           ├── user.d.ts
 │           ├── role.d.ts
 │           └── log.d.ts
-├── routes/
-│   └── web.php
-├── PROJECT_STATUS.md            ← this file
-├── PROJECT_OVERVIEW.md
-├── DATABASE_SCHEMA.md
-├── CHANGELOG.md
-└── API_REFERENCE.md
-```
+└── routes/web.php
 
 ---
 
 ## INERTIA PAGE RENDER RULE
-
-```
 Controller renders:  Inertia::render('Backend/Users/Index', [...])
 File must exist at:  resources/js/Pages/Backend/Users/Index.tsx
-```
 
 Capital B in Backend, capital first letter of each subfolder.
 shadcn components import from: @/components/ui/... (lowercase)
@@ -181,41 +196,38 @@ Custom shared components: @/Components/shared/... (uppercase C)
 ## DATABASE — COMPLETED TABLES
 
 ### Step 02 Tables
-
-```
-users              → id, name, email, phone, status(enum), avatar,
-                     email_verified_at, password, remember_token,
-                     deleted_at, timestamps
-login_histories    → id, user_id(FK), ip_address, user_agent,
-                     logged_in_at, timestamps
-activity_logs      → id, user_id(FK nullable), module, action,
-                     subject_type, subject_id, description,
-                     properties(json), timestamps
-```
-
-Spatie tables (auto): roles, permissions, model_has_roles,
+users, login_histories, activity_logs
+Spatie tables: roles, permissions, model_has_roles,
 model_has_permissions, role_has_permissions
 
 ### Step 03 Tables
+business_settings, payment_methods,
+expense_categories, investment_types
 
-```
-business_settings  → id, key(unique), value(text), group(varchar 50),
-                     timestamps
-payment_methods    → id, name, type(enum:cash,card,mobile_banking,other),
-                     is_active, sort_order(tinyint), deleted_at, timestamps
-expense_categories → id, name, description, color(varchar 7),
-                     is_active, deleted_at, timestamps
-investment_types   → id, name, description, is_active,
-                     deleted_at, timestamps
-```
+### Step 04 Tables
+product_categories → id, name, slug, parent_id(self-ref nullable),
+image, description, sort_order, is_active,
+deleted_at, timestamps
+units              → id, name, short_code(unique), is_active, timestamps
+products           → id, name, sku(unique), barcode(unique nullable),
+category_id(FK nullable), unit_id(FK nullable),
+cost_price decimal(10,2), sale_price decimal(10,2),
+is_taxable, tax_id(nullable),
+discount_type(enum nullable), discount_value(nullable),
+stock_qty decimal(10,2), low_stock_threshold decimal(10,2),
+min_sale_qty(nullable), has_variants(nullable),
+weight(nullable), weight_unit(nullable),
+is_featured(nullable), sort_order(nullable),
+meta_title(nullable), meta_description(nullable),
+description(nullable), is_active, deleted_at, timestamps
+product_images     → id, product_id(FK cascade), image_path,
+is_primary, sort_order, timestamps
 
 ---
 
 ## ROUTES — REGISTERED
 
 ### Step 02 Routes
-
-```
 GET    /backend/users                    → backend.users.index
 POST   /backend/users                    → backend.users.store
 PUT    /backend/users/{user}             → backend.users.update
@@ -226,107 +238,89 @@ PUT    /backend/roles/{role}/permissions → backend.roles.permissions
 DELETE /backend/roles/{role}             → backend.roles.destroy
 GET    /backend/login-histories          → backend.login-histories.index
 GET    /backend/activity-logs            → backend.activity-logs.index
-```
 
-### Step 03 Routes (may need fixes — see below)
+### Step 03 Routes
+GET/POST /backend/settings               → backend.settings.index/update
+POST     /backend/settings/logo          → backend.settings.logo
+GET/POST/PUT/DELETE /backend/payment-methods/{?}
+GET/POST/PUT/DELETE /backend/expense-categories/{?}
+GET/POST/PUT/DELETE /backend/investment-types/{?}
 
-```
-GET    /backend/settings                           → backend.settings.index
-POST   /backend/settings                           → backend.settings.update
-POST   /backend/settings/logo                      → backend.settings.logo
-GET    /backend/payment-methods                    → backend.payment-methods.index
-POST   /backend/payment-methods                    → backend.payment-methods.store
-PUT    /backend/payment-methods/{paymentMethod}    → backend.payment-methods.update
-DELETE /backend/payment-methods/{paymentMethod}    → backend.payment-methods.destroy
-GET    /backend/expense-categories                 → backend.expense-categories.index
-POST   /backend/expense-categories                 → backend.expense-categories.store
-PUT    /backend/expense-categories/{expenseCategory} → backend.expense-categories.update
-DELETE /backend/expense-categories/{expenseCategory} → backend.expense-categories.destroy
-GET    /backend/investment-types                   → backend.investment-types.index
-POST   /backend/investment-types                   → backend.investment-types.store
-PUT    /backend/investment-types/{investmentType}  → backend.investment-types.update
-DELETE /backend/investment-types/{investmentType}  → backend.investment-types.destroy
-```
+### Step 04 Routes
+GET    /backend/product-categories                → backend.product-categories.index
+POST   /backend/product-categories               → backend.product-categories.store
+PUT    /backend/product-categories/{productCategory} → backend.product-categories.update
+DELETE /backend/product-categories/{productCategory} → backend.product-categories.destroy
+GET    /backend/units                    → backend.units.index
+POST   /backend/units                    → backend.units.store
+PUT    /backend/units/{unit}             → backend.units.update
+DELETE /backend/units/{unit}             → backend.units.destroy
+GET    /backend/products                 → backend.products.index
+GET    /backend/products/create          → backend.products.create
+POST   /backend/products                 → backend.products.store
+GET    /backend/products/{product}/edit  → backend.products.edit
+PUT    /backend/products/{product}       → backend.products.update
+DELETE /backend/products/{product}       → backend.products.destroy
+DELETE /backend/products/{product}/images/{image}       → backend.products.images.destroy
+POST   /backend/products/{product}/images/{image}/primary → backend.products.images.primary
 
 ---
 
 ## PERMISSIONS — REGISTERED
 
 ### Step 02
-
 users.view, users.create, users.edit, users.delete, users.archive, users.restore
 roles.view, roles.create, roles.edit, roles.delete
 
 ### Step 03
-
 settings.view, settings.edit
 payment_method.view, payment_method.create, payment_method.edit, payment_method.delete
 expense_category.view, expense_category.create, expense_category.edit, expense_category.delete
 investment_type.view, investment_type.create, investment_type.edit, investment_type.delete
 
+### Step 04
+product_category.view, product_category.create, product_category.edit, product_category.delete
+unit.view, unit.create, unit.edit, unit.delete
+product.view, product.create, product.edit, product.delete
+
 ---
 
 ## SEEDERS RUN
 
-- RolePermissionSeeder → Admin role (all permissions), Staff role (empty)
-- Default admin: admin@masterpos.test / password
-- BusinessSettingSeeder → default key-value settings
-- PaymentMethodSeeder → Cash, Card, bKash, Nagad, Rocket
-- ExpenseCategorySeeder → 8 categories
-- InvestmentTypeSeeder → 6 types
+- RolePermissionSeeder → Admin (Step 02 permissions), Staff (empty)
+- Step03PermissionSeeder → Admin + Staff view-only
+- Step04PermissionSeeder → Admin (all), Staff (view-only)
+- BusinessSettingSeeder, PaymentMethodSeeder,
+  ExpenseCategorySeeder, InvestmentTypeSeeder
+- UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
+- ProductCategorySeeder → 4 parents + children
 
 ---
 
 ## KEY FILES — IMPORTANT IMPLEMENTATIONS
 
 ### AppServiceProvider.php
-
 Registers: UserPolicy, RolePolicy, SettingPolicy,
-PaymentMethodPolicy, ExpenseCategoryPolicy, InvestmentTypePolicy
+PaymentMethodPolicy, ExpenseCategoryPolicy, InvestmentTypePolicy,
+ProductCategoryPolicy, UnitPolicy, ProductPolicy
 Event listener: Login::class → RecordLoginHistory::class
 
-### ActivityLogService.php (app/Services/)
+### ActivityLogService.php
+Usage: ActivityLogService::log('module', 'action', 'description', $id, $properties)
 
-Usage: ActivityLogService::log('module', 'action', 'description', $model)
-
-### confirm.ts (resources/js/lib/)
-
+### confirm.ts
 Usage: const ok = await confirmAction({ title, text, confirmButtonText })
 
-### useFlashToast.ts (resources/js/hooks/)
+### ImageUploader.tsx
+- Supports existing images (edit mode) + new uploads
+- Max 8 images per product
+- Star icon to set primary, trash to remove
+- Primary image highlighted with indigo-500 border
 
-Used in AuthenticatedLayout — auto-shows sonner toast on flash messages
-
-### AuthenticatedLayout.tsx
-
-- Collapsible sidebar with lucide icons
-- Disabled (greyed) menu items for unimplemented routes
-- Bell icon placeholder (Step 04 notification)
-- User avatar + logout button in topbar
-
----
-
-## STEP 03 — KNOWN ISSUES (needs fixing in this chat)
-
-1. Form Requests placed in wrong folders
-    - Wrong: app/Http/Requests/Setting/...
-    - Wrong: app/Http/Requests/PaymentMethod/...
-    - Correct: app/Http/Requests/Backend/...
-2. AuthServiceProvider referenced but doesn't exist in Laravel 12
-    - Policies must be registered in AppServiceProvider via Gate::policy()
-3. SettingController ActivityLogService::log() called with wrong argument order
-    - Wrong: log('updated', 'BusinessSetting', null, [...])
-    - Correct: log('settings', 'updated', 'Settings updated', null, [...])
-4. Settings page React file path wrong
-    - Wrong: resources/js/pages/Settings/Index.tsx (lowercase p)
-    - Correct: resources/js/Pages/Backend/Settings/Index.tsx
-5. Inertia::render path wrong in SettingController
-    - Wrong: Inertia::render('Settings/Index', ...)
-    - Correct: Inertia::render('Backend/Settings/Index', ...)
-6. Same path issue for PaymentMethods, ExpenseCategories, InvestmentTypes
-7. Step03PermissionSeeder references 'super-admin' and 'admin' roles
-    - Actual roles in DB: 'Admin', 'Staff' (case sensitive)
-8. Sidebar has no links to Settings, Payment Methods, etc. yet
+### ProductFormFields.tsx
+- Sectioned form: Basic Info / Pricing / Stock / Shipping / POS & Display / SEO
+- Reusable Field + Toggle sub-components inside file
+- Used by both Create.tsx and Edit.tsx
 
 ---
 
@@ -335,21 +329,21 @@ Used in AuthenticatedLayout — auto-shows sonner toast on flash messages
 - Step 00: Project Standards ✅
 - Step 01: Project Foundation ✅
 - Step 02: Authentication & Permission ✅
-- Step 03: Business Settings ⚠️ (code generated, fixes needed)
+- Step 03: Business Settings ✅
+- Step 04: Product & Category Management ✅
 
 ## PENDING MODULES
 
-- Step 04: Notification System
-- Step 05: Product Module
-- Step 06: Inventory
-- Step 07: Customer
+- Step 05: Supplier Management
+- Step 06: Purchase & Inventory
+- Step 07: Customer Management
 - Step 08: POS (Cart/Sale)
-- Step 09: Invoice
+- Step 09: Invoice & Receipt
 - Step 10: Orders
-- Step 11: Expense
-- Step 12: Investment
+- Step 11: Expense Management
+- Step 12: Investment Management
 - Step 13: Profit Distribution
-- Step 14: Dashboard
+- Step 14: Dashboard & Analytics
 - Step 15: Reports
 - Step 16: Security Hardening
 - Step 17: Performance Optimization
@@ -357,4 +351,5 @@ Used in AuthenticatedLayout — auto-shows sonner toast on flash messages
 
 ## NEXT STEP
 
-Step 03 Fix → then Step 04: Notification System
+Step 05 — Supplier Management
+```

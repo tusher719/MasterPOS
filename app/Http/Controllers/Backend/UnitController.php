@@ -46,7 +46,7 @@ class UnitController extends Controller
             'unit',
             'created',
             "Unit '{$unit->name} ({$unit->short_code})' created",
-            $unit->id,
+            $unit,
             $unit->toArray()
         );
 
@@ -64,7 +64,7 @@ class UnitController extends Controller
             'unit',
             'updated',
             "Unit '{$unit->name} ({$unit->short_code})' updated",
-            $unit->id,
+            $unit,
             $unit->toArray()
         );
 
@@ -84,7 +84,7 @@ class UnitController extends Controller
             'unit',
             'deleted',
             "Unit '{$unit->name} ({$unit->short_code})' deleted",
-            $unit->id
+            $unit
         );
 
         $unit->delete();

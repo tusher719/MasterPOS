@@ -14,6 +14,7 @@ use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,24 +31,33 @@ class ProductController extends Controller
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
-            ->map(fn($product) => [
-                'id'                  => $product->id,
-                'name'                => $product->name,
-                'sku'                 => $product->sku,
-                'barcode'             => $product->barcode,
-                'category_id'         => $product->category_id,
-                'category_name'       => $product->category?->name,
-                'unit_id'             => $product->unit_id,
-                'unit_short_code'     => $product->unit?->short_code,
-                'cost_price'          => $product->cost_price,
-                'sale_price'          => $product->sale_price,
-                'stock_qty'           => $product->stock_qty,
-                'low_stock_threshold' => $product->low_stock_threshold,
-                'is_low_stock'        => $product->is_low_stock,
-                'is_featured'         => $product->is_featured,
-                'is_active'           => $product->is_active,
-                'primary_image'       => $product->primaryImage?->image_url,
-            ]);
+            ->map(function ($product) {
+                $primaryImageUrl = null;
+
+                if ($product->primaryImage?->image_path) {
+                    $primaryImageUrl = request()->getSchemeAndHttpHost() . request()->getBaseUrl()
+                        . '/storage/' . $product->primaryImage->image_path;
+                }
+
+                return [
+                    'id'                  => $product->id,
+                    'name'                => $product->name,
+                    'sku'                 => $product->sku,
+                    'barcode'             => $product->barcode,
+                    'category_id'         => $product->category_id,
+                    'category_name'       => $product->category?->name,
+                    'unit_id'             => $product->unit_id,
+                    'unit_short_code'     => $product->unit?->short_code,
+                    'cost_price'          => $product->cost_price,
+                    'sale_price'          => $product->sale_price,
+                    'stock_qty'           => $product->stock_qty,
+                    'low_stock_threshold' => $product->low_stock_threshold,
+                    'is_low_stock'        => $product->is_low_stock,
+                    'is_featured'         => $product->is_featured,
+                    'is_active'           => $product->is_active,
+                    'primary_image'       => $primaryImageUrl,
+                ];
+            });
 
         // Stats
         $stats = [
@@ -82,33 +92,42 @@ class ProductController extends Controller
             $data[$bool] = $request->boolean($bool, $bool === 'is_active');
         }
 
-        DB::transaction(function () use ($data, $request) {
-            $product = Product::create($data);
+        try {
+            DB::transaction(function () use ($data, $request) {
+                $product = Product::create($data);
 
-            // Handle image uploads
-            if ($request->hasFile('images')) {
-                $primaryIndex = (int) ($data['primary_image_index'] ?? 0);
+                // Handle image uploads
+                if ($request->hasFile('images')) {
+                    $primaryIndex = (int) ($data['primary_image_index'] ?? 0);
 
-                foreach ($request->file('images') as $index => $file) {
-                    $path = $file->store('products', 'public');
+                    foreach ($request->file('images') as $index => $file) {
+                        $path = $file->store('products', 'public');
 
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image_path' => $path,
-                        'is_primary' => $index === $primaryIndex,
-                        'sort_order' => $index,
-                    ]);
+                        ProductImage::create([
+                            'product_id' => $product->id,
+                            'image_path' => $path,
+                            'is_primary' => $index === $primaryIndex,
+                            'sort_order' => $index,
+                        ]);
+                    }
                 }
-            }
 
-            ActivityLogService::log(
-                'product',
-                'created',
-                "Product '{$product->name}' (SKU: {$product->sku}) created",
-                $product->id,
-                $product->toArray()
-            );
-        });
+                ActivityLogService::log(
+                    'product',
+                    'created',
+                    "Product '{$product->name}' (SKU: {$product->sku}) created",
+                    $product,
+                    $product->toArray()
+                );
+            });
+        } catch (\Throwable $e) {
+            Log::error('Product store failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'data' => $data,
+            ]);
+
+            return back()->withErrors(['error' => 'Something went wrong: ' . $e->getMessage()]);
+        }
 
         return redirect()
             ->route('backend.products.index')
@@ -149,7 +168,9 @@ class ProductController extends Controller
                 'is_active'           => $product->is_active,
                 'images'              => $product->images->map(fn($img) => [
                     'id'         => $img->id,
-                    'image_url'  => $img->image_url,
+                    'image_url'  => $img->image_path
+                        ? request()->getSchemeAndHttpHost() . request()->getBaseUrl() . '/storage/' . $img->image_path
+                        : null,
                     'is_primary' => $img->is_primary,
                     'sort_order' => $img->sort_order,
                 ]),
@@ -224,7 +245,7 @@ class ProductController extends Controller
                 'product',
                 'updated',
                 "Product '{$product->name}' (SKU: {$product->sku}) updated",
-                $product->id,
+                $product,
                 $product->toArray()
             );
         });
@@ -248,7 +269,7 @@ class ProductController extends Controller
                 'product',
                 'deleted',
                 "Product '{$product->name}' (SKU: {$product->sku}) deleted",
-                $product->id
+                $product
             );
 
             $product->delete(); // soft delete; images cascade

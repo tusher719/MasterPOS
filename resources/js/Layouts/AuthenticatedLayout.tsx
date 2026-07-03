@@ -117,6 +117,33 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
 
+    // ── Products group ──
+
+    {
+        label: "Catalogue",
+        icon: Package,
+        children: [
+            {
+                label: "Products",
+                icon: Package,
+                href: "backend.products.index",
+                active: "backend.products.*",
+            },
+            {
+                label: "Categories",
+                icon: Tag,
+                href: "backend.product-categories.index",
+                active: "backend.product-categories.*",
+            },
+            {
+                label: "Units",
+                icon: TrendingUp,
+                href: "backend.units.index",
+                active: "backend.units.*",
+            },
+        ],
+    },
+
     // ── Placeholder / not-yet-implemented items ──
     { label: "Products", icon: Package, active: "backend.products.*" },
     { label: "Inventory", icon: Boxes, active: "backend.inventory.*" },

@@ -71,7 +71,7 @@ class ProductCategoryController extends Controller
             'product_category',
             'created',
             "Product category '{$category->name}' created",
-            $category->id,
+            $category,
             $category->toArray()
         );
 
@@ -105,7 +105,7 @@ class ProductCategoryController extends Controller
             'product_category',
             'updated',
             "Product category '{$productCategory->name}' updated",
-            $productCategory->id,
+            $productCategory,
             $productCategory->toArray()
         );
 
@@ -135,7 +135,7 @@ class ProductCategoryController extends Controller
             'product_category',
             'deleted',
             "Product category '{$productCategory->name}' deleted",
-            $productCategory->id
+            $productCategory
         );
 
         $productCategory->delete();
