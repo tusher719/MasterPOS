@@ -8,6 +8,7 @@ use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
+use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\UnitController;
@@ -120,6 +121,23 @@ Route::middleware(['auth', 'verified'])
             ->name('products.images.destroy');
         Route::post('/products/{product}/images/{image}/primary', [ProductController::class, 'setPrimaryImage'])
             ->name('products.images.primary');
+
+            // ── Step 05: Notifications
+
+        Route::get('/notifications', [NotificationController::class, 'index'])
+            ->name('notifications.index');
+
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])
+            ->name('notifications.read');
+
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])
+            ->name('notifications.read-all');
+
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
+            ->name('notifications.destroy');
+
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+            ->name('notifications.unread-count');
     });
 
 

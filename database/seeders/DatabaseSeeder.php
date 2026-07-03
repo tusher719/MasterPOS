@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         $this->call(ProductCategorySeeder::class);
         $this->call(Step04PermissionSeeder::class);
 
+        // Notification
+        $this->call(NotificationSeeder::class);
+
         $admin = \App\Models\User::firstOrCreate(
             ['email' => 'admin@masterpos.test'],
             [

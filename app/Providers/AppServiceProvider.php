@@ -14,7 +14,9 @@ use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\InvestmentTypePolicy;
+use App\Policies\NotificationPolicy;
 use App\Policies\SettingPolicy;
+use Illuminate\Notifications\DatabaseNotification;
 use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
@@ -59,5 +61,8 @@ class AppServiceProvider extends ServiceProvider
             InvestmentType::class,
             InvestmentTypePolicy::class
         );
+
+        // ─── Notification Policies ─────────────────────────────────────────────────
+        Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
     }
 }
