@@ -1,5 +1,3 @@
-# PROJECT_STATUS.md
-
 # Master POS System — Persistent Context File
 
 # Paste this ENTIRE file at the start of every new chat.
@@ -9,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.0
-- Current Step: Step 03 — Business Settings (IN PROGRESS / needs fixes)
+- Version: v1.3
+- Current Step: Step 03 — Business Settings ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -20,7 +18,7 @@
 
 - Backend: Laravel 12
 - Frontend: React 18 + Inertia.js + TypeScript
-- Styling: Tailwind CSS v4 + shadcn/ui
+- Styling: Tailwind CSS (native utility classes)
 - Routing: Ziggy (route() helper in React)
 - Permissions: Spatie laravel-permission
 - Toast: sonner
@@ -33,17 +31,36 @@
 
 1. Create/Edit forms are ALWAYS in Modal — never separate pages
 2. Toast notifications use sonner only
-3. Confirm dialogs use SweetAlert2 only (via lib/confirm.ts helper)
+3. Confirm dialogs use SweetAlert2 only
 4. All code comments and documentation: English only, never Bengali
-5. Git commit messages: short, one line (e.g. "feat: add product module")
-6. Permission format: module.action (e.g. products.view, products.create)
-7. Route name format: backend.{module}.{action} (e.g. backend.products.index)
+5. Git commit messages: short, one line
+6. Permission format: module.action (e.g. products.view)
+7. Route name format: backend.{module}.{action}
 8. Money/price fields: decimal(10,2) — never float
-9. Status fields: Enum class — never raw strings
-10. ActivityLogService::log() must be called on every create/update/delete
-11. SweetAlert2 confirmButtonColor: '#ef4444' for delete, '#4f46e5' for others
-12. Every DB table must have: id, timestamps. Soft-deletable tables add: deleted_at
-13. STEP BY STEP ONLY — never write next module code unless explicitly asked
+9. ActivityLogService::log() on every create/update/delete
+10. SweetAlert2 confirmButtonColor: '#ef4444' for delete
+11. Every DB table: id, timestamps. Soft-deletable: add deleted_at
+12. STEP BY STEP ONLY — never write next module unless asked
+
+---
+
+## UI STANDARDS (never change)
+
+- All pages use AuthenticatedLayout wrapper
+- Native HTML elements only — NO shadcn/ui components in pages
+- Color scheme: gray-50/100/200/300/400/500/600/700/800 + indigo-600/700
+- Status badges: green-100/700 (active), gray-100/500 (inactive), amber-500 (warning)
+- Page header: text-2xl font-bold text-gray-800
+- Buttons: rounded-lg bg-indigo-600 text-white hover:bg-indigo-700
+- Tables: rounded-lg border border-gray-200 bg-white overflow-hidden
+- Table header: bg-gray-50 border-b border-gray-100 font-medium text-gray-500
+- Stats cards: rounded-lg border border-gray-200 bg-white p-4
+- Form inputs: rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500
+- Modals: fixed inset-0 z-50 bg-black/40 → centered max-w-md bg-white rounded-lg shadow-xl
+- Modal header: border-b border-gray-100 px-5 py-4
+- Modal footer: border-t border-gray-100 px-5 py-4 flex justify-end gap-2
+- Toggle: custom inline-flex h-6 w-11 rounded-full (indigo-600 / gray-200)
+- Action buttons: rounded-md p-1.5 text-gray-400 hover:bg-gray-100 (edit) / hover:bg-red-50 hover:text-red-500 (delete)
 
 ---
 

@@ -302,7 +302,7 @@ function BusinessTab({ settings }: Props) {
     const b = settings.business ?? {};
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(
-        b.business_logo ? `/storage/${b.business_logo}` : null,
+        b.business_logo_url ?? null,
     );
 
     const form = useForm({

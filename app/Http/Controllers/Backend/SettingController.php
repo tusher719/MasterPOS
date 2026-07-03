@@ -19,8 +19,16 @@ class SettingController extends Controller
     {
         abort_unless(optional(Auth::user())->can('settings.view'), 403);
 
+        $settings = BusinessSetting::getAllGrouped();
+
+        if (!empty($settings['business']['business_logo'])) {
+        $settings['business']['business_logo_url'] =
+            request()->getSchemeAndHttpHost() . request()->getBaseUrl()
+            . '/storage/' . $settings['business']['business_logo'];
+        }
+
         return Inertia::render('Backend/Settings/Index', [
-            'settings' => BusinessSetting::getAllGrouped(),
+            'settings' => $settings,
         ]);
     }
 
