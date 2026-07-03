@@ -22,6 +22,11 @@ class DatabaseSeeder extends Seeder
         $this->call(InvestmentTypeSeeder::class);
         $this->call(Step03PermissionSeeder::class);
 
+        // Step 04
+        $this->call(UnitSeeder::class);
+        $this->call(ProductCategorySeeder::class);
+        $this->call(Step04PermissionSeeder::class);
+
         $admin = \App\Models\User::firstOrCreate(
             ['email' => 'admin@masterpos.test'],
             [
