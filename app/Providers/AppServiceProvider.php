@@ -11,11 +11,14 @@ use App\Models\BusinessSetting;
 use App\Models\ExpenseCategory;
 use App\Models\InvestmentType;
 use App\Models\PaymentMethod;
+use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\InvestmentTypePolicy;
 use App\Policies\NotificationPolicy;
+use App\Policies\PaymentMethodPolicy;
+use App\Policies\PurchasePolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\SupplierPolicy;
 use Illuminate\Notifications\DatabaseNotification;
@@ -37,35 +40,22 @@ class AppServiceProvider extends ServiceProvider
         );
 
         // ─── Step 02 Policies ─────────────────────────────────────────────────
-        Gate::policy(
-            User::class,
-            \App\Policies\UserPolicy::class
-        );
-        Gate::policy(
-            Role::class,
-            \App\Policies\RolePolicy::class
-        );
+        Gate::policy(User::class, \App\Policies\UserPolicy::class);
+        Gate::policy(Role::class, \App\Policies\RolePolicy::class);
 
         // ─── Step 03 Policies ─────────────────────────────────────────────────
-        Gate::policy(
-            BusinessSetting::class,
-            SettingPolicy::class
-        );
-        Gate::policy(
-            PaymentMethod::class,
-            PaymentMethod::class
-        );
-        Gate::policy(
-            ExpenseCategory::class,
-            ExpenseCategoryPolicy::class
-        );
-        Gate::policy(
-            InvestmentType::class,
-            InvestmentTypePolicy::class
-        );
-        // ─── Notification Policies ─────────────────────────────────────────────────
+        Gate::policy(BusinessSetting::class,  SettingPolicy::class);
+        Gate::policy(PaymentMethod::class,    PaymentMethodPolicy::class);
+        Gate::policy(ExpenseCategory::class,  ExpenseCategoryPolicy::class);
+        Gate::policy(InvestmentType::class,   InvestmentTypePolicy::class);
+
+        // ─── Step 05 Policies ─────────────────────────────────────────────────
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
 
+        // ─── Step 06 Policies ─────────────────────────────────────────────────
         Gate::policy(Supplier::class, SupplierPolicy::class);
+
+        // ─── Step 07 Policies ─────────────────────────────────────────────────
+        Gate::policy(Purchase::class, PurchasePolicy::class);
     }
 }

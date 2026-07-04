@@ -26,4 +26,9 @@ class Supplier extends Model
         'is_active'       => 'boolean',
         'opening_balance' => 'decimal:2',
     ];
+
+    public function scopeActive($query)
+{
+    return $query->where('is_active', true);
+}
 }

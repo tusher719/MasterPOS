@@ -34,6 +34,7 @@ import {
     Trash2,
     CheckCheck,
     Truck,
+    ShoppingBag,
 } from "lucide-react";
 import { Notification, NotificationShared } from "@/types/notification";
 
@@ -157,6 +158,25 @@ const NAV_ITEMS: NavItem[] = [
         icon: Truck,
         href: "backend.suppliers.index",
         active: "backend.suppliers.*",
+    },
+
+    {
+        label: "Purchase & Inventory",
+        icon: Boxes,
+        children: [
+            {
+                label: "Suppliers",
+                icon: Truck,
+                href: "backend.suppliers.index",
+                active: "backend.suppliers.*",
+            },
+            {
+                label: "Purchases",
+                icon: ShoppingBag,
+                href: "backend.purchases.index",
+                active: "backend.purchases.*",
+            },
+        ],
     },
 
     // ── Placeholder / not-yet-implemented items ──

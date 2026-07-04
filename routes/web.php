@@ -11,6 +11,8 @@ use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
+use App\Http\Controllers\Backend\PurchaseController;
+use App\Http\Controllers\Backend\PurchasePaymentController;
 use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\ProfileController;
@@ -148,6 +150,58 @@ Route::middleware(['auth', 'verified'])
             Route::delete('/{supplier}', [SupplierController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/restore', [SupplierController::class, 'restore'])->name('restore');
         });
+
+        // ── Purchases ─────────────────────────────────────────────────────────────
+
+        // Bulk action — must be before {purchase} to avoid route conflict
+        Route::post('purchases/bulk-action', [PurchaseController::class, 'bulkAction'])
+            ->name('purchases.bulk-action');
+
+        // Restore — uses plain id, not route model binding (soft deleted records)
+        Route::post('purchases/{id}/restore', [PurchaseController::class, 'restore'])
+            ->name('purchases.restore');
+
+        // Duplicate
+        Route::post('purchases/{purchase}/duplicate', [PurchaseController::class, 'duplicate'])
+            ->name('purchases.duplicate');
+
+        // Standard resource routes
+        Route::get('purchases',                 [PurchaseController::class, 'index'])
+            ->name('purchases.index');
+
+        Route::get('purchases/create',          [PurchaseController::class, 'create'])
+            ->name('purchases.create');
+
+        Route::post('purchases',                [PurchaseController::class, 'store'])
+            ->name('purchases.store');
+
+        Route::get('purchases/{purchase}',      [PurchaseController::class, 'show'])
+            ->name('purchases.show');
+
+        Route::get('purchases/{purchase}/edit', [PurchaseController::class, 'edit'])
+            ->name('purchases.edit');
+
+        Route::put('purchases/{purchase}',      [PurchaseController::class, 'update'])
+            ->name('purchases.update');
+
+        Route::delete('purchases/{purchase}',   [PurchaseController::class, 'destroy'])
+            ->name('purchases.destroy');
+
+        // ── Purchase Payments ─────────────────────────────────────────────────────
+
+        Route::get('purchases/{purchase}/payments',
+            [PurchasePaymentController::class, 'index'])
+            ->name('purchases.payments.index');
+
+        Route::post('purchases/{purchase}/payments',
+            [PurchasePaymentController::class, 'store'])
+            ->name('purchases.payments.store');
+
+        Route::delete('purchases/{purchase}/payments/{payment}',
+            [PurchasePaymentController::class, 'destroy'])
+            ->name('purchases.payments.destroy');
+
+
     });
 
 

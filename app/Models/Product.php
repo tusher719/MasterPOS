@@ -85,4 +85,19 @@ class Product extends Model
     {
         return $this->stock_qty <= $this->low_stock_threshold;
     }
+
+    public function purchaseItems()
+    {
+        return $this->hasMany(PurchaseItem::class);
+    }
+
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function scopeActive($query)
+{
+    return $query->where('is_active', true);
+}
 }

@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.6
-- Current Step: Step 06 — Supplier Management ✅ COMPLETE
+- Version: v1.7
+- Current Step: Step 07 — Purchase & Inventory ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -31,6 +31,7 @@
 
 1. Create/Edit forms are ALWAYS in Modal — never separate pages
    (Exception: Product Create/Edit are separate pages — form too complex)
+   (Exception: Purchase Create/Edit are separate pages — form too complex)
 2. Toast notifications use sonner only
 3. Confirm dialogs use SweetAlert2 only
 4. All code comments and documentation: English only, never Bengali
@@ -42,6 +43,12 @@
 10. SweetAlert2 confirmButtonColor: '#ef4444' for delete
 11. Every DB table: id, timestamps. Soft-deletable: add deleted_at
 12. STEP BY STEP ONLY — never write next module unless asked
+13. Policies registered via Gate::policy() in AppServiceProvider only
+14. Restore uses onlyTrashed()->findOrFail($id) — not route model binding
+15. can array always passed from controller to Inertia::render()
+16. Large pages split into \_components/ subfolder
+17. Bulk actions authorized via Auth::user()->hasPermissionTo() directly
+    (Gate::denies() with class-level policy unreliable)
 
 ---
 
@@ -86,7 +93,9 @@ MasterPOS/
 │ │ │ ├── UnitController.php
 │ │ │ ├── ProductController.php
 │ │ │ ├── NotificationController.php
-│ │ │ └── SupplierController.php
+│ │ │ ├── SupplierController.php
+│ │ │ ├── PurchaseController.php
+│ │ │ └── PurchasePaymentController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -98,7 +107,10 @@ MasterPOS/
 │ │ ├── StoreProductRequest.php
 │ │ ├── UpdateProductRequest.php
 │ │ ├── StoreSupplierRequest.php
-│ │ └── UpdateSupplierRequest.php
+│ │ ├── UpdateSupplierRequest.php
+│ │ ├── StorePurchaseRequest.php
+│ │ ├── UpdatePurchaseRequest.php
+│ │ └── StorePurchasePaymentRequest.php
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
@@ -111,7 +123,11 @@ MasterPOS/
 │ │ ├── Unit.php
 │ │ ├── Product.php
 │ │ ├── ProductImage.php
-│ │ └── Supplier.php
+│ │ ├── Supplier.php
+│ │ ├── Purchase.php
+│ │ ├── PurchaseItem.php
+│ │ ├── PurchasePayment.php
+│ │ └── StockMovement.php
 │ ├── Notifications/
 │ │ ├── LowStockNotification.php
 │ │ ├── NewSaleNotification.php
@@ -127,11 +143,13 @@ MasterPOS/
 │ │ ├── UnitPolicy.php
 │ │ ├── ProductPolicy.php
 │ │ ├── NotificationPolicy.php
-│ │ └── SupplierPolicy.php
+│ │ ├── SupplierPolicy.php
+│ │ └── PurchasePolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
-│ └── ActivityLogService.php
+│ ├── ActivityLogService.php
+│ └── PurchaseStockService.php
 ├── database/
 │ ├── migrations/
 │ └── seeders/
@@ -145,6 +163,7 @@ MasterPOS/
 │ ├── Step04PermissionSeeder.php
 │ ├── Step05PermissionSeeder.php
 │ ├── Step06PermissionSeeder.php
+│ ├── Step07PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
@@ -182,11 +201,25 @@ MasterPOS/
 │ │ │ └── UnitModal.tsx
 │ │ ├── Notifications/
 │ │ │ └── Index.tsx
-│ │ └── Suppliers/
+│ │ ├── Suppliers/
+│ │ │ ├── Index.tsx
+│ │ │ └── \_components/
+│ │ │ ├── SupplierTable.tsx
+│ │ │ └── SupplierModal.tsx
+│ │ └── Purchases/
 │ │ ├── Index.tsx
+│ │ ├── Create.tsx
+│ │ ├── Edit.tsx
+│ │ ├── Show.tsx
 │ │ └── \_components/
-│ │ ├── SupplierTable.tsx
-│ │ └── SupplierModal.tsx
+│ │ ├── PurchaseStatsCards.tsx
+│ │ ├── PurchaseTable.tsx
+│ │ ├── PurchaseFormFields.tsx
+│ │ ├── PurchaseFilters.tsx
+│ │ ├── BulkActionBar.tsx
+│ │ ├── StatusBadge.tsx
+│ │ ├── PaymentModal.tsx
+│ │ └── PaymentsListModal.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -232,6 +265,13 @@ expense_categories, investment_types
 
 product_categories, units, products, product_images
 
+**products table actual column names (critical):**
+
+- cost_price (NOT purchase_price, NOT buying_price)
+- stock_qty (NOT stock_quantity)
+- low_stock_threshold (NOT low_stock_alert)
+- sale_price, is_active, deleted_at
+
 ### Step 05 Tables
 
 notifications → id(uuid), type, notifiable_type, notifiable_id,
@@ -242,6 +282,39 @@ data(json), read_at(nullable), timestamps
 suppliers → id, name, company, email(unique), phone, address,
 city, country(default Bangladesh), opening_balance(decimal 10,2),
 is_active(bool), timestamps, deleted_at
+
+### Step 07 Tables
+
+purchases → id, supplier_id(FK restrict), reference_no(unique),
+purchase_date, purchase_status(enum: draft/ordered/received/
+partial_received/cancelled default:draft), subtotal(dec10,2),
+discount(dec10,2 default 0), tax(dec10,2 default 0),
+shipping_cost(dec10,2 default 0), grand_total(dec10,2),
+paid_amount(dec10,2 default 0), due_amount(dec10,2),
+payment_status(enum: paid/partial/due default:due),
+note(text nullable), created_by(FK users restrict),
+updated_by(FK users nullable nullOnDelete),
+timestamps, deleted_at
+
+purchase_items → id, purchase_id(FK purchases cascadeDelete),
+product_id(FK products restrict), quantity(int unsigned),
+unit_cost(dec10,2), subtotal(dec10,2), timestamps
+
+purchase_payments → id, purchase_id(FK purchases cascadeDelete),
+payment_method_id(FK nullable nullOnDelete), amount(dec10,2),
+payment_date, reference(varchar nullable), note(text nullable),
+created_by(FK users restrict), timestamps
+
+stock_movements → id, product_id(FK restrict),
+reference_type(varchar nullable), reference_id(bigint nullable),
+type(enum: purchase/sale/return/adjustment/transfer),
+quantity(int), before_quantity(int), after_quantity(int),
+unit_cost(dec10,2 nullable), note(text nullable),
+created_by(FK nullable nullOnDelete), timestamps
+indexes: (reference_type, reference_id), product_id, type
+
+products table additions (Step 07 migration):
+last_purchase_price(dec10,2 nullable), average_cost(dec10,2 default 0)
 
 ---
 
@@ -303,6 +376,22 @@ PUT /backend/suppliers/{supplier} → backend.suppliers.update
 DELETE /backend/suppliers/{supplier} → backend.suppliers.destroy
 POST /backend/suppliers/{id}/restore → backend.suppliers.restore
 
+### Step 07 Routes
+
+POST /backend/purchases/bulk-action → backend.purchases.bulk-action
+POST /backend/purchases/{id}/restore → backend.purchases.restore
+POST /backend/purchases/{purchase}/duplicate → backend.purchases.duplicate
+GET /backend/purchases → backend.purchases.index
+GET /backend/purchases/create → backend.purchases.create
+POST /backend/purchases → backend.purchases.store
+GET /backend/purchases/{purchase} → backend.purchases.show
+GET /backend/purchases/{purchase}/edit → backend.purchases.edit
+PUT /backend/purchases/{purchase} → backend.purchases.update
+DELETE /backend/purchases/{purchase} → backend.purchases.destroy
+GET /backend/purchases/{purchase}/payments → backend.purchases.payments.index
+POST /backend/purchases/{purchase}/payments → backend.purchases.payments.store
+DELETE /backend/purchases/{purchase}/payments/{payment} → backend.purchases.payments.destroy
+
 ---
 
 ## PERMISSIONS — REGISTERED
@@ -333,6 +422,11 @@ notification.view, notification.delete
 
 supplier.view, supplier.create, supplier.edit, supplier.delete, supplier.restore
 
+### Step 07
+
+purchase.view, purchase.create, purchase.edit, purchase.delete,
+purchase.restore, purchase.payment
+
 ---
 
 ## SEEDERS RUN
@@ -342,6 +436,7 @@ supplier.view, supplier.create, supplier.edit, supplier.delete, supplier.restore
 - Step04PermissionSeeder → Admin (all), Staff (view-only)
 - Step05PermissionSeeder → Admin (all), Staff (view-only)
 - Step06PermissionSeeder → Admin (all), Staff (view-only)
+- Step07PermissionSeeder → Admin (all), Staff (purchase.view only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -355,15 +450,17 @@ supplier.view, supplier.create, supplier.edit, supplier.delete, supplier.restore
 ### AppServiceProvider.php
 
 Registers: UserPolicy, RolePolicy, SettingPolicy,
-PaymentMethodPolicy, ExpenseCategoryPolicy, InvestmentTypePolicy,
+PaymentMethodPolicy (NOT PaymentMethod::class — was a bug, now fixed),
+ExpenseCategoryPolicy, InvestmentTypePolicy,
 ProductCategoryPolicy, UnitPolicy, ProductPolicy,
 NotificationPolicy (model: DatabaseNotification::class),
-SupplierPolicy
+SupplierPolicy, PurchasePolicy (NOT PaymentMethodPolicy — was a bug, now fixed)
 Event listener: Login::class → RecordLoginHistory::class
 
 ### ActivityLogService.php
 
-Usage: ActivityLogService::log('module', 'action', 'description', $id, $properties)
+Usage: ActivityLogService::log('module', 'action', 'description', $model, $properties)
+Note: pass $model object, not $model->id
 
 ### confirm.ts
 
@@ -384,9 +481,72 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Always passes 'can' array to Inertia::render() for permission-gated UI
 - Restore uses onlyTrashed()->findOrFail($id) — not route model binding
 
-### Notification Classes (stub — triggers added in later steps)
+### PurchaseController.php
 
-- LowStockNotification → triggered in Step 07
+- Bulk actions use Auth::user()->hasPermissionTo() directly — NOT Gate::denies()
+- Restore uses onlyTrashed()->findOrFail($id)
+- Always passes 'can' array + 'paymentMethods' to Index and Show renders
+- Stock only applied when purchase_status = received or partial_received
+
+### PurchasePaymentController.php
+
+- index() returns JSON when request()->wantsJson() (axios modal fetch from Index page)
+- Falls back to full Inertia Show page render for direct browser visit
+- Must pass all required Show page props (purchaseStatuses, paymentStatuses,
+  paymentMethods, can) in the Inertia fallback
+
+### PurchaseStockService.php
+
+- Uses stock_qty column (decimal) — always cast to (int) before math
+- Uses low_stock_threshold column (NOT low_stock_alert)
+- applyStock() → stock in when status = received/partial_received
+- reverseStock() → stock out on soft delete or status change away from trigger
+- syncStock() → item-level diff on update
+- calculateAverageCost() → weighted average formula
+- checkLowStock() → fires LowStockNotification if stock_qty ≤ low_stock_threshold
+
+### PurchasePolicy.php
+
+- Has before() hook for class-level bulk abilities
+- BUT bulk actions in controller use hasPermissionTo() directly (Gate unreliable)
+
+### Product.php
+
+- scopeActive() → where('is_active', true)
+- Actual price column: cost_price
+- Actual stock column: stock_qty
+- Actual threshold column: low_stock_threshold
+
+### Supplier.php
+
+- scopeActive() → where('is_active', true)
+
+### PurchaseTable.tsx
+
+- canEdit: can.edit && !isDeleted && !isCancelled && !isReceived
+- canPay: can.payment && !isDeleted && due_amount > 0 && payment_status !== 'paid'
+- Record Payment → fires onRecordPayment(purchase) callback → opens PaymentModal inline
+- View Payments → fires onViewPayments(purchase) callback → axios fetch → PaymentsListModal
+
+### Index.tsx (Purchases)
+
+- openPaymentsModal() uses axios.get() with Accept: application/json header
+- PaymentModal opened inline (no page redirect) via setPaymentModal(purchase)
+
+### PurchaseFormFields.tsx
+
+- onItemChange signature: (index: number, updates: Partial<PurchaseItemRow>) → object form
+- handleProductSelect auto-fills unit_cost from product.cost_price
+- Shows current stock_qty next to each product row
+
+### PaymentModal.tsx
+
+- "Full Due" and "Half" quick fill buttons
+- amount capped at purchase.due_amount
+
+### Notification Classes
+
+- LowStockNotification → triggered in Step 07 (PurchaseStockService)
 - NewSaleNotification → triggered in Step 09
 - NewExpenseNotification → triggered in Step 12
 
@@ -414,10 +574,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 04: Product & Category Management ✅
 - Step 05: Notification System ✅
 - Step 06: Supplier Management ✅
+- Step 07: Purchase & Inventory ✅
 
 ## PENDING MODULES
 
-- Step 07: Purchase & Inventory
 - Step 08: Customer Management
 - Step 09: POS (Cart/Sale)
 - Step 10: Invoice & Receipt
@@ -433,4 +593,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 07 — Purchase & Inventory
+Step 08 — Customer Management
