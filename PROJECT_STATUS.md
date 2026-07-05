@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.7
-- Current Step: Step 07 — Purchase & Inventory ✅ COMPLETE
+- Version: v1.8
+- Current Step: Step 08 — Customer Management ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -49,6 +49,14 @@
 16. Large pages split into \_components/ subfolder
 17. Bulk actions authorized via Auth::user()->hasPermissionTo() directly
     (Gate::denies() with class-level policy unreliable)
+18. Policy methods that only check permission (no model instance needed)
+    must NOT have a model parameter — e.g. edit(User $user): bool
+    (adding Customer $customer causes ArgumentCountError when called
+    with class string from controller)
+19. Route::resource() inside a named group (->name('backend.')) must NOT
+    use ->names([]) with 'backend.' prefix — group adds it automatically.
+    Restore route also must use ->name('customers.restore') not
+    ->name('backend.customers.restore')
 
 ---
 
@@ -71,6 +79,8 @@
 - Action buttons: rounded-md p-1.5 text-gray-400 hover:bg-gray-100 (edit) / hover:bg-red-50 hover:text-red-500 (delete)
 - Form sections: rounded-lg border border-gray-200 bg-white p-5 with section headers
 - Image uploader: grid-cols-4 thumbnail grid, border-2 indigo-500 for primary
+- Sidebar nav group labels must be unique — no two groups share the same label
+  (duplicate labels cause React key collision warnings)
 
 ---
 
@@ -95,7 +105,8 @@ MasterPOS/
 │ │ │ ├── NotificationController.php
 │ │ │ ├── SupplierController.php
 │ │ │ ├── PurchaseController.php
-│ │ │ └── PurchasePaymentController.php
+│ │ │ ├── PurchasePaymentController.php
+│ │ │ └── CustomerController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -110,7 +121,9 @@ MasterPOS/
 │ │ ├── UpdateSupplierRequest.php
 │ │ ├── StorePurchaseRequest.php
 │ │ ├── UpdatePurchaseRequest.php
-│ │ └── StorePurchasePaymentRequest.php
+│ │ ├── StorePurchasePaymentRequest.php
+│ │ ├── StoreCustomerRequest.php
+│ │ └── UpdateCustomerRequest.php
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
@@ -127,7 +140,8 @@ MasterPOS/
 │ │ ├── Purchase.php
 │ │ ├── PurchaseItem.php
 │ │ ├── PurchasePayment.php
-│ │ └── StockMovement.php
+│ │ ├── StockMovement.php
+│ │ └── Customer.php
 │ ├── Notifications/
 │ │ ├── LowStockNotification.php
 │ │ ├── NewSaleNotification.php
@@ -144,7 +158,8 @@ MasterPOS/
 │ │ ├── ProductPolicy.php
 │ │ ├── NotificationPolicy.php
 │ │ ├── SupplierPolicy.php
-│ │ └── PurchasePolicy.php
+│ │ ├── PurchasePolicy.php
+│ │ └── CustomerPolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
@@ -164,6 +179,7 @@ MasterPOS/
 │ ├── Step05PermissionSeeder.php
 │ ├── Step06PermissionSeeder.php
 │ ├── Step07PermissionSeeder.php
+│ ├── Step08PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
@@ -206,20 +222,25 @@ MasterPOS/
 │ │ │ └── \_components/
 │ │ │ ├── SupplierTable.tsx
 │ │ │ └── SupplierModal.tsx
-│ │ └── Purchases/
+│ │ ├── Purchases/
+│ │ │ ├── Index.tsx
+│ │ │ ├── Create.tsx
+│ │ │ ├── Edit.tsx
+│ │ │ ├── Show.tsx
+│ │ │ └── \_components/
+│ │ │ ├── PurchaseStatsCards.tsx
+│ │ │ ├── PurchaseTable.tsx
+│ │ │ ├── PurchaseFormFields.tsx
+│ │ │ ├── PurchaseFilters.tsx
+│ │ │ ├── BulkActionBar.tsx
+│ │ │ ├── StatusBadge.tsx
+│ │ │ ├── PaymentModal.tsx
+│ │ │ └── PaymentsListModal.tsx
+│ │ └── Customers/
 │ │ ├── Index.tsx
-│ │ ├── Create.tsx
-│ │ ├── Edit.tsx
-│ │ ├── Show.tsx
 │ │ └── \_components/
-│ │ ├── PurchaseStatsCards.tsx
-│ │ ├── PurchaseTable.tsx
-│ │ ├── PurchaseFormFields.tsx
-│ │ ├── PurchaseFilters.tsx
-│ │ ├── BulkActionBar.tsx
-│ │ ├── StatusBadge.tsx
-│ │ ├── PaymentModal.tsx
-│ │ └── PaymentsListModal.tsx
+│ │ ├── CustomerTable.tsx
+│ │ └── CustomerModal.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -316,6 +337,13 @@ indexes: (reference_type, reference_id), product_id, type
 products table additions (Step 07 migration):
 last_purchase_price(dec10,2 nullable), average_cost(dec10,2 default 0)
 
+### Step 08 Tables
+
+customers → id, name, email(unique nullable), phone(nullable),
+address(text nullable), city(nullable), country(default Bangladesh),
+opening_balance(decimal 10,2 default 0), is_active(bool default true),
+timestamps, deleted_at
+
 ---
 
 ## ROUTES — REGISTERED
@@ -392,6 +420,14 @@ GET /backend/purchases/{purchase}/payments → backend.purchases.payments.index
 POST /backend/purchases/{purchase}/payments → backend.purchases.payments.store
 DELETE /backend/purchases/{purchase}/payments/{payment} → backend.purchases.payments.destroy
 
+### Step 08 Routes
+
+GET /backend/customers → backend.customers.index
+POST /backend/customers → backend.customers.store
+PUT /backend/customers/{customer} → backend.customers.update
+DELETE /backend/customers/{customer} → backend.customers.destroy
+POST /backend/customers/{id}/restore → backend.customers.restore
+
 ---
 
 ## PERMISSIONS — REGISTERED
@@ -427,6 +463,10 @@ supplier.view, supplier.create, supplier.edit, supplier.delete, supplier.restore
 purchase.view, purchase.create, purchase.edit, purchase.delete,
 purchase.restore, purchase.payment
 
+### Step 08
+
+customer.view, customer.create, customer.edit, customer.delete, customer.restore
+
 ---
 
 ## SEEDERS RUN
@@ -437,6 +477,7 @@ purchase.restore, purchase.payment
 - Step05PermissionSeeder → Admin (all), Staff (view-only)
 - Step06PermissionSeeder → Admin (all), Staff (view-only)
 - Step07PermissionSeeder → Admin (all), Staff (purchase.view only)
+- Step08PermissionSeeder → Admin (all), Staff (customer.view only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -454,7 +495,8 @@ PaymentMethodPolicy (NOT PaymentMethod::class — was a bug, now fixed),
 ExpenseCategoryPolicy, InvestmentTypePolicy,
 ProductCategoryPolicy, UnitPolicy, ProductPolicy,
 NotificationPolicy (model: DatabaseNotification::class),
-SupplierPolicy, PurchasePolicy (NOT PaymentMethodPolicy — was a bug, now fixed)
+SupplierPolicy, PurchasePolicy (NOT PaymentMethodPolicy — was a bug, now fixed),
+CustomerPolicy
 Event listener: Login::class → RecordLoginHistory::class
 
 ### ActivityLogService.php
@@ -480,6 +522,14 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 - Always passes 'can' array to Inertia::render() for permission-gated UI
 - Restore uses onlyTrashed()->findOrFail($id) — not route model binding
+
+### CustomerController.php
+
+- Same pattern as SupplierController
+- Always passes 'can' array to Inertia::render()
+- Restore uses onlyTrashed()->findOrFail($id)
+- Stats: total, active, inactive, total_balance (sum of opening_balance)
+- Filters: search (name/email/phone/city), status, trashed
 
 ### PurchaseController.php
 
@@ -510,6 +560,13 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Has before() hook for class-level bulk abilities
 - BUT bulk actions in controller use hasPermissionTo() directly (Gate unreliable)
 
+### CustomerPolicy.php
+
+- Policy methods do NOT have model instance parameter (edit, delete)
+- Correct: edit(User $user): bool — NOT edit(User $user, Customer $customer)
+- Reason: controller calls can('edit', Customer::class) with class string,
+  not a model instance — adding instance param causes ArgumentCountError
+
 ### Product.php
 
 - scopeActive() → where('is_active', true)
@@ -518,6 +575,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Actual threshold column: low_stock_threshold
 
 ### Supplier.php
+
+- scopeActive() → where('is_active', true)
+
+### Customer.php
 
 - scopeActive() → where('is_active', true)
 
@@ -575,10 +636,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 05: Notification System ✅
 - Step 06: Supplier Management ✅
 - Step 07: Purchase & Inventory ✅
+- Step 08: Customer Management ✅
 
 ## PENDING MODULES
 
-- Step 08: Customer Management
 - Step 09: POS (Cart/Sale)
 - Step 10: Invoice & Receipt
 - Step 11: Orders
@@ -593,4 +654,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 08 — Customer Management
+Step 09 — POS (Cart/Sale)

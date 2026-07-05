@@ -14,13 +14,18 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->nullable()->unique();
+            $table->string('email')->nullable();
             $table->string('phone')->nullable();
+            $table->string('whatsapp')->nullable();
             $table->text('address')->nullable();
             $table->string('city')->nullable();
             $table->string('country')->default('Bangladesh');
             $table->decimal('opening_balance', 10, 2)->default(0);
             $table->boolean('is_active')->default(true);
+            // Social media
+            $table->string('facebook')->nullable();
+            $table->string('instagram')->nullable();
+            $table->string('tiktok')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

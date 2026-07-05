@@ -6,11 +6,15 @@ interface Customer {
     name: string;
     email: string | null;
     phone: string | null;
+    whatsapp: string | null;
     address: string | null;
     city: string | null;
     country: string;
     opening_balance: string;
     is_active: boolean;
+    facebook: string | null;
+    instagram: string | null;
+    tiktok: string | null;
     deleted_at: string | null;
     created_at: string;
 }
@@ -25,11 +29,15 @@ interface FormData {
     name: string;
     email: string;
     phone: string;
+    whatsapp: string;
     address: string;
     city: string;
     country: string;
     opening_balance: string;
     is_active: boolean;
+    facebook: string;
+    instagram: string;
+    tiktok: string;
     [key: string]: string | boolean;
 }
 
@@ -39,11 +47,15 @@ export default function CustomerModal({ mode, customer, onClose }: Props) {
             name: customer?.name ?? "",
             email: customer?.email ?? "",
             phone: customer?.phone ?? "",
+            whatsapp: customer?.whatsapp ?? "",
             address: customer?.address ?? "",
             city: customer?.city ?? "",
             country: customer?.country ?? "Bangladesh",
             opening_balance: customer?.opening_balance ?? "0",
             is_active: customer?.is_active ?? true,
+            facebook: customer?.facebook ?? "",
+            instagram: customer?.instagram ?? "",
+            tiktok: customer?.tiktok ?? "",
         });
 
     function handleSubmit(e: React.FormEvent) {
@@ -67,7 +79,7 @@ export default function CustomerModal({ mode, customer, onClose }: Props) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
                     <h2 className="text-base font-semibold text-gray-800">
@@ -83,7 +95,12 @@ export default function CustomerModal({ mode, customer, onClose }: Props) {
 
                 {/* Body */}
                 <form onSubmit={handleSubmit}>
-                    <div className="space-y-4 px-5 py-4 max-h-[70vh] overflow-y-auto">
+                    <div className="space-y-4 px-5 py-4 max-h-[72vh] overflow-y-auto">
+                        {/* ── Basic Info ── */}
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Basic Info
+                        </p>
+
                         {/* Name */}
                         <div>
                             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -126,25 +143,46 @@ export default function CustomerModal({ mode, customer, onClose }: Props) {
                             )}
                         </div>
 
-                        {/* Phone */}
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Phone
-                            </label>
-                            <input
-                                type="text"
-                                value={data.phone}
-                                onChange={(e) =>
-                                    setData("phone", e.target.value)
-                                }
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                placeholder="+880 1XXX-XXXXXX"
-                            />
-                            {errors.phone && (
-                                <p className="mt-1 text-xs text-red-500">
-                                    {errors.phone}
-                                </p>
-                            )}
+                        {/* Phone + WhatsApp */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.phone}
+                                    onChange={(e) =>
+                                        setData("phone", e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="+880 1XXX-XXXXXX"
+                                />
+                                {errors.phone && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.phone}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    WhatsApp
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.whatsapp}
+                                    onChange={(e) =>
+                                        setData("whatsapp", e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="+880 1XXX-XXXXXX"
+                                />
+                                {errors.whatsapp && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.whatsapp}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         {/* City + Country */}
@@ -234,8 +272,76 @@ export default function CustomerModal({ mode, customer, onClose }: Props) {
                             )}
                         </div>
 
-                        {/* Status Toggle */}
-                        <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5">
+                        {/* ── Social Media ── */}
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 pt-1">
+                            Social Media
+                        </p>
+
+                        {/* Facebook */}
+                        <div>
+                            <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Facebook
+                            </label>
+                            <input
+                                type="text"
+                                value={data.facebook}
+                                onChange={(e) =>
+                                    setData("facebook", e.target.value)
+                                }
+                                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                placeholder="https://facebook.com/username"
+                            />
+                            {errors.facebook && (
+                                <p className="mt-1 text-xs text-red-500">
+                                    {errors.facebook}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Instagram + TikTok */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    Instagram
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.instagram}
+                                    onChange={(e) =>
+                                        setData("instagram", e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="@username"
+                                />
+                                {errors.instagram && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.instagram}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">
+                                    TikTok
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.tiktok}
+                                    onChange={(e) =>
+                                        setData("tiktok", e.target.value)
+                                    }
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="@username"
+                                />
+                                {errors.tiktok && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.tiktok}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* ── Status ── */}
+                        <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 mt-1">
                             <div>
                                 <p className="text-sm font-medium text-gray-700">
                                     Active Status

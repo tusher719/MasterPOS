@@ -14,10 +14,14 @@ class Customer extends Model
         'name',
         'email',
         'phone',
+        'whatsapp',
         'address',
         'city',
         'country',
         'opening_balance',
+        'facebook',
+        'instagram',
+        'tiktok',
         'is_active',
     ];
 
