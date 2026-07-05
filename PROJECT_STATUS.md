@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.9
-- Current Step: Step 09 — POS (Cart/Sale) ✅ COMPLETE
+- Version: v2.0
+- Current Step: Step 10 — Invoice & Receipt ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -24,6 +24,7 @@
 - Toast: sonner
 - Confirm dialog: SweetAlert2
 - Icons: lucide-react
+- PDF: barryvdh/laravel-dompdf
 
 ---
 
@@ -68,6 +69,12 @@
     via onTransitionEnd, not directly
 24. SaleController::index() eager loads 'images' relation and maps
     image_path column (NOT 'path') for product images
+25. InvoiceController uses abort_unless(hasPermissionTo()) directly —
+    no Gate::policy() registration needed (Sale::class already bound to SalePolicy)
+26. PDF Blade template uses public_path('storage/...') for logo —
+    DomPDF requires server filesystem path, not URL
+27. DomPDF does NOT support CSS Grid — use flexbox or HTML tables in
+    pdf/invoice.blade.php only
 
 ---
 
@@ -120,7 +127,8 @@ MasterPOS/
 │ │ │ ├── PurchaseController.php
 │ │ │ ├── PurchasePaymentController.php
 │ │ │ ├── CustomerController.php
-│ │ │ └── SaleController.php
+│ │ │ ├── SaleController.php
+│ │ │ └── InvoiceController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -177,7 +185,8 @@ MasterPOS/
 │ │ ├── SupplierPolicy.php
 │ │ ├── PurchasePolicy.php
 │ │ ├── CustomerPolicy.php
-│ │ └── SalePolicy.php
+│ │ ├── SalePolicy.php
+│ │ └── InvoicePolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
@@ -200,10 +209,14 @@ MasterPOS/
 │ ├── Step07PermissionSeeder.php
 │ ├── Step08PermissionSeeder.php
 │ ├── Step09PermissionSeeder.php
+│ ├── Step10PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
 ├── resources/
+│ ├── views/
+│ │ └── pdf/
+│ │ └── invoice.blade.php
 │ └── js/
 │ ├── Pages/
 │ │ └── Backend/
@@ -261,22 +274,28 @@ MasterPOS/
 │ │ │ └── \_components/
 │ │ │ ├── CustomerTable.tsx
 │ │ │ └── CustomerModal.tsx
-│ │ └── POS/
-│ │ ├── Index.tsx
-│ │ ├── \_components/
-│ │ │ ├── ProductSearch.tsx
-│ │ │ ├── ProductGrid.tsx
-│ │ │ ├── ProductDetailModal.tsx
-│ │ │ ├── CartSidebar.tsx
-│ │ │ ├── CartItem.tsx
-│ │ │ ├── CheckoutPanel.tsx
-│ │ │ └── ReceiptModal.tsx
-│ │ └── Sales/
+│ │ ├── POS/
+│ │ │ ├── Index.tsx
+│ │ │ ├── \_components/
+│ │ │ │ ├── ProductSearch.tsx
+│ │ │ │ ├── ProductGrid.tsx
+│ │ │ │ ├── ProductDetailModal.tsx
+│ │ │ │ ├── CartSidebar.tsx
+│ │ │ │ ├── CartItem.tsx
+│ │ │ │ ├── CheckoutPanel.tsx
+│ │ │ │ └── ReceiptModal.tsx
+│ │ │ └── Sales/
+│ │ │ ├── Index.tsx
+│ │ │ ├── Show.tsx
+│ │ │ └── \_components/
+│ │ │ ├── SaleStatsCards.tsx
+│ │ │ └── SaleTable.tsx
+│ │ └── Invoices/
 │ │ ├── Index.tsx
 │ │ ├── Show.tsx
 │ │ └── \_components/
-│ │ ├── SaleStatsCards.tsx
-│ │ └── SaleTable.tsx
+│ │ ├── InvoiceTable.tsx
+│ │ └── InvoicePrintView.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -398,6 +417,11 @@ subtotal(dec10,2), timestamps
 
 Reference format: SL-YYYYMMDD-XXXX (e.g. SL-20250705-0001)
 
+### Step 10 Tables
+
+No new tables — Invoice module reuses sales + sale_items +
+business_settings tables.
+
 ---
 
 ## ROUTES — REGISTERED
@@ -484,12 +508,18 @@ POST /backend/customers/{id}/restore → backend.customers.restore
 
 ### Step 09 Routes
 
-GET /backend/pos → backend.pos.index (POS Terminal)
+GET /backend/pos → backend.pos.index
 POST /backend/pos/sales → backend.pos.sales.store
-GET /backend/pos/sales → backend.pos.sales.index (Sales History)
-GET /backend/pos/sales/{sale} → backend.pos.sales.show (Receipt)
+GET /backend/pos/sales → backend.pos.sales.index
+GET /backend/pos/sales/{sale} → backend.pos.sales.show
 DELETE /backend/pos/sales/{sale} → backend.pos.sales.destroy
 POST /backend/pos/sales/{id}/restore → backend.pos.sales.restore
+
+### Step 10 Routes
+
+GET /backend/invoices → backend.invoices.index
+GET /backend/invoices/{sale} → backend.invoices.show
+GET /backend/invoices/{sale}/pdf → backend.invoices.pdf
 
 ---
 
@@ -534,6 +564,10 @@ customer.view, customer.create, customer.edit, customer.delete, customer.restore
 
 sale.view, sale.create, sale.delete, sale.restore
 
+### Step 10
+
+invoice.view, invoice.print
+
 ---
 
 ## SEEDERS RUN
@@ -546,6 +580,7 @@ sale.view, sale.create, sale.delete, sale.restore
 - Step07PermissionSeeder → Admin (all), Staff (purchase.view only)
 - Step08PermissionSeeder → Admin (all), Staff (customer.view only)
 - Step09PermissionSeeder → Admin (all), Staff (sale.view + sale.create)
+- Step10PermissionSeeder → Admin (all), Staff (invoice.view only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -564,6 +599,8 @@ ProductCategoryPolicy, UnitPolicy, ProductPolicy,
 NotificationPolicy (model: DatabaseNotification::class),
 SupplierPolicy, PurchasePolicy, CustomerPolicy, SalePolicy
 Event listener: Login::class → RecordLoginHistory::class
+Note: InvoicePolicy NOT registered here — InvoiceController uses
+abort_unless(hasPermissionTo()) directly
 
 ### ActivityLogService.php
 
@@ -605,6 +642,23 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - salesList() → renders Backend/POS/Sales/Index
 - show() → renders Backend/POS/Sales/Show
 - All Gate::allows() used for can array (not Auth::user()->can())
+
+### InvoiceController.php
+
+- No policy registration — uses abort_unless(hasPermissionTo()) directly
+- index() → paginated list with filters (search/payment_status/date_from/date_to)
+- show() → single invoice with business settings, renders Backend/Invoices/Show
+- pdf() → DomPDF download via resources/views/pdf/invoice.blade.php
+- withTrashed() on all queries — voided invoices still visible in list
+- Stats: total, paid, partial, due (all withTrashed)
+
+### pdf/invoice.blade.php
+
+- Uses DejaVu Sans font (DomPDF Unicode support)
+- Logo loaded via public_path('storage/...') — NOT URL
+- CSS Grid NOT used — flexbox + HTML tables only (DomPDF limitation)
+- currency_symbol from BusinessSetting, fallback '৳'
+- Discount/tax rows conditional — only shown when value > 0
 
 ### SaleStockService.php
 
@@ -667,6 +721,24 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Print button → window.print()
 - New Sale button → handleNewSale()
 
+### Invoices/Index.tsx
+
+- Stats cards: total, paid, partial, due
+- Filters: search (reference_no/customer name), payment_status, date_from, date_to
+- Voided invoices shown with red background + VOIDED badge
+- Walk-in customer shown as italic "Walk-in Customer"
+- PDF download button: visible only when can.print + not voided
+
+### Invoices/Show.tsx
+
+- Business logo, name, address from BusinessSetting
+- Invoice number = reference_no (font-mono, indigo)
+- Bill To block + Payment Method
+- Itemized table: name, SKU, qty, unit price, discount, subtotal
+- Totals: subtotal → discount → tax → grand total → paid → due
+- Print CSS via <style> tag — @media print hides nav/sidebar/action bar
+- Download PDF button: can.print + not deleted_at
+
 ### PurchaseController.php
 
 - Bulk actions use Auth::user()->hasPermissionTo() directly
@@ -685,9 +757,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ### AuthenticatedLayout.tsx
 
-- NAV_ITEMS includes Point of Sale group with POS Terminal + Sales History
-- Old placeholder items (Products, Inventory, Customers, POS, etc.)
-  have been REMOVED to prevent duplicate key warnings
+- NAV_ITEMS includes:
+    - Point of Sale group: POS Terminal + Sales History
+    - Invoices group: Invoice List
+- FileText icon imported from lucide-react for Invoices group
 
 ---
 
@@ -703,10 +776,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 07: Purchase & Inventory ✅
 - Step 08: Customer Management ✅
 - Step 09: POS (Cart/Sale) ✅
+- Step 10: Invoice & Receipt ✅
 
 ## PENDING MODULES
 
-- Step 10: Invoice & Receipt
 - Step 11: Orders
 - Step 12: Expense Management
 - Step 13: Investment Management
@@ -719,4 +792,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 10 — Invoice & Receipt
+Step 11 — Orders

@@ -77,15 +77,13 @@ class InvoiceController extends Controller
             'items.product:id,name,sku',
         ]);
 
-        $business = BusinessSetting::first();
-
         $can = [
             'print' => $this->userHasPermission('invoice.print'),
         ];
 
         return Inertia::render('Backend/Invoices/Show', [
             'sale'     => $sale,
-            'business' => $business,
+            'business' => $this->resolveBusinessProfile(),
             'can'      => $can,
         ]);
     }
@@ -102,16 +100,37 @@ class InvoiceController extends Controller
             'items.product:id,name,sku',
         ]);
 
-        $business = BusinessSetting::first();
-
         $pdf = Pdf::loadView('pdf.invoice', [
             'sale'     => $sale,
-            'business' => $business,
+            'business' => $this->resolveBusinessProfile(),
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Invoice-' . $sale->reference_no . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * Build a flat business profile array from the key-value
+     * business_settings store (groups: business, currency).
+     */
+    private function resolveBusinessProfile(): array
+    {
+        $business = BusinessSetting::getGroup('business');
+        $currency = BusinessSetting::getGroup('currency');
+
+        $logoPath = $business['business_logo'] ?? null;
+
+        return [
+            'business_name'     => $business['business_name'] ?? config('app.name'),
+            'email'             => $business['business_email'] ?? null,
+            'phone'             => $business['business_phone'] ?? null,
+            'address'           => $business['business_address'] ?? null,
+            'logo'              => $logoPath,
+            'currency_symbol'   => $currency['currency_symbol'] ?? '৳',
+            'currency_position' => $currency['currency_position'] ?? 'before',
+            'decimal_places'    => (int) ($currency['decimal_places'] ?? 2),
+        ];
     }
 
     /**
