@@ -14,6 +14,7 @@ use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\PurchaseController;
 use App\Http\Controllers\Backend\PurchasePaymentController;
+use App\Http\Controllers\Backend\SaleController;
 use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\ProfileController;
@@ -202,9 +203,33 @@ Route::middleware(['auth', 'verified'])
             [PurchasePaymentController::class, 'destroy'])
             ->name('purchases.payments.destroy');
 
-            // Customers
-            Route::post('customers/{id}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
-            Route::resource('customers', CustomerController::class)->except(['create', 'show', 'edit'])->parameters(['customers' => 'customer']);
+        // Customers
+        Route::post('customers/{id}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+        Route::resource('customers', CustomerController::class)->except(['create', 'show', 'edit'])->parameters(['customers' => 'customer']);
+
+            // ── Step 09: POS (Cart/Sale) ──────────────────────────────────────
+        Route::prefix('pos')->group(function () {
+
+            // POS Terminal
+            Route::get('/', [SaleController::class, 'index'])
+                ->name('pos.index');
+
+            // Sales CRUD
+            Route::post('/sales', [SaleController::class, 'store'])
+                ->name('pos.sales.store');
+
+            Route::post('/sales/{id}/restore', [SaleController::class, 'restore'])
+                ->name('pos.sales.restore');
+
+            Route::get('/sales', [SaleController::class, 'salesList'])
+                ->name('pos.sales.index');
+
+            Route::get('/sales/{sale}', [SaleController::class, 'show'])
+                ->name('pos.sales.show');
+
+            Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])
+                ->name('pos.sales.destroy');
+        });
 
     });
 

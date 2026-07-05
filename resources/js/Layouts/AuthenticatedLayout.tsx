@@ -185,6 +185,25 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
 
+    {
+        label: "Point of Sale",
+        icon: ShoppingCart,
+        children: [
+            {
+                label: "POS Terminal",
+                icon: ShoppingCart,
+                href: "backend.pos.index",
+                active: "backend.pos.index*",
+            },
+            {
+                label: "Sales History",
+                icon: ShoppingBag,
+                href: "backend.pos.sales.index",
+                active: "backend.pos.sales*",
+            },
+        ],
+    },
+
     // ── Placeholder / not-yet-implemented items ──
     { label: "Products", icon: Package, active: "backend.products.*" },
     { label: "Inventory", icon: Boxes, active: "backend.inventory.*" },

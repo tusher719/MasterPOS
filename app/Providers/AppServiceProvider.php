@@ -12,6 +12,7 @@ use App\Models\ExpenseCategory;
 use App\Models\InvestmentType;
 use App\Models\PaymentMethod;
 use App\Models\Purchase;
+use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Policies\ExpenseCategoryPolicy;
@@ -19,6 +20,7 @@ use App\Policies\InvestmentTypePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\PurchasePolicy;
+use App\Policies\SalePolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\SupplierPolicy;
 use Illuminate\Notifications\DatabaseNotification;
@@ -57,5 +59,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 07 Policies ─────────────────────────────────────────────────
         Gate::policy(Purchase::class, PurchasePolicy::class);
+
+        // ─── Step 08 Policies ─────────────────────────────────────────────────
+        Gate::policy(Sale::class, SalePolicy::class);
     }
 }
