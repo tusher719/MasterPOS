@@ -153,12 +153,6 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
-    {
-        label: "Suppliers",
-        icon: Truck,
-        href: "backend.suppliers.index",
-        active: "backend.suppliers.*",
-    },
 
     {
         label: "Purchase & Inventory",
@@ -175,6 +169,18 @@ const NAV_ITEMS: NavItem[] = [
                 icon: ShoppingBag,
                 href: "backend.purchases.index",
                 active: "backend.purchases.*",
+            },
+        ],
+    },
+    {
+        label: "Customerss",
+        icon: Users,
+        children: [
+            {
+                label: "Customers",
+                icon: Users,
+                href: "backend.customers.index",
+                active: "backend.customers.*",
             },
         ],
     },

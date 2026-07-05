@@ -33,6 +33,8 @@ use App\Policies\ProductPolicy;
 // Events & Listeners
 use Illuminate\Auth\Events\Login;
 use App\Listeners\RecordLoginHistory;
+use App\Models\Customer;
+use App\Policies\CustomerPolicy;
 use Illuminate\Support\Facades\Event;
 
 class AppServiceProvider extends ServiceProvider
@@ -59,5 +61,7 @@ class AppServiceProvider extends ServiceProvider
 
         // --- Event Listeners ---
         Event::listen(Login::class, RecordLoginHistory::class);
+
+        Gate::policy(Customer::class, CustomerPolicy::class);
     }
 }

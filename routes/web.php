@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Backend\ActivityLogController;
+use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
@@ -201,6 +202,9 @@ Route::middleware(['auth', 'verified'])
             [PurchasePaymentController::class, 'destroy'])
             ->name('purchases.payments.destroy');
 
+            // Customers
+            Route::post('customers/{id}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+            Route::resource('customers', CustomerController::class)->except(['create', 'show', 'edit'])->parameters(['customers' => 'customer']);
 
     });
 
