@@ -125,48 +125,52 @@ export default function ProductGrid({ products, onAddToCart }: Props) {
                                 )}
                             </div>
 
-                            {/* ── Product Info ── */}
-                            <p className="line-clamp-2 text-xs font-medium text-gray-800 leading-tight">
-                                {product.name}
-                            </p>
-
-                            {product.sku && (
-                                <p className="mt-0.5 text-xs text-gray-400">
-                                    {product.sku}
+                            <div className="flex items-center gap-2">
+                                {/* ── Product Info ── */}
+                                <p className="line-clamp-2 text-xs font-medium text-gray-800 leading-tight">
+                                    {product.name}
                                 </p>
-                            )}
 
-                            {/* ── Price ── */}
-                            <p className="mt-1.5 text-sm font-bold text-indigo-600 transition-colors group-hover:text-indigo-700">
-                                ৳{product.sale_price.toFixed(2)}
-                            </p>
-
-                            {/* ── Stock Badge ── */}
-                            <div className="mt-1.5">
-                                {outOfStock ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
-                                        Out of Stock
-                                    </span>
-                                ) : isLowStock ? (
-                                    <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-600">
-                                        <AlertTriangle size={10} />
-                                        Low: {product.stock_qty}
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                        Stock: {product.stock_qty}
-                                    </span>
+                                {product.sku && (
+                                    <p className="mt-0.5 text-xs text-gray-400">
+                                        ({product.sku})
+                                    </p>
                                 )}
                             </div>
 
-                            {/* ── Out of Stock Overlay ── */}
-                            {outOfStock && (
-                                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60">
-                                    <span className="rounded-full bg-red-500 px-2 py-1 text-xs font-bold text-white">
-                                        Out of Stock
-                                    </span>
+                            <div className="flex items-center gap-2">
+                                {/* ── Price ── */}
+                                <p className="mt-1.5 text-sm font-bold text-indigo-600 transition-colors group-hover:text-indigo-700">
+                                    ৳{product.sale_price.toFixed(2)}
+                                </p>
+
+                                {/* ── Stock Badge ── */}
+                                <div className="mt-1.5">
+                                    {outOfStock ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
+                                            Out of Stock
+                                        </span>
+                                    ) : isLowStock ? (
+                                        <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-600">
+                                            <AlertTriangle size={10} />
+                                            Low: {product.stock_qty}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                            Stock: {product.stock_qty}
+                                        </span>
+                                    )}
                                 </div>
-                            )}
+
+                                {/* ── Out of Stock Overlay ── */}
+                                {outOfStock && (
+                                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60">
+                                        <span className="rounded-full bg-red-500 px-2 py-1 text-xs font-bold text-white">
+                                            Out of Stock
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* ── Added-to-cart Corner Badge (doesn't cover the card) ── */}
                             {isPulsing && (

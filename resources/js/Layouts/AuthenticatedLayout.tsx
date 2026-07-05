@@ -203,14 +203,21 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
+    {
+        label: "Invoices",
+        icon: FileText,
+        children: [
+            {
+                label: "Invoice List",
+                icon: FileText,
+                href: "backend.invoices.index",
+                active: "backend.invoices*",
+            },
+        ],
+    },
 
     // ── Placeholder / not-yet-implemented items ──
-    { label: "Products", icon: Package, active: "backend.products.*" },
-    { label: "Inventory", icon: Boxes, active: "backend.inventory.*" },
-    { label: "Customers", icon: UserCircle, active: "backend.customers.*" },
-    { label: "POS", icon: ShoppingCart, active: "backend.pos.*" },
     { label: "Orders", icon: FileText, active: "backend.orders.*" },
-    { label: "Invoices", icon: Receipt, active: "backend.invoices.*" },
     { label: "Expenses", icon: Wallet, active: "backend.expenses.*" },
     {
         label: "Investments",

@@ -4,6 +4,7 @@ import { Eye, Trash2, RotateCcw } from "lucide-react";
 import { confirmAction } from "@/lib/confirm";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
+import { formatDateTime } from "@/lib/formatDateTime";
 
 interface Customer {
     id: number;
@@ -146,7 +147,7 @@ export default function SaleTable({ sales, can }: Props) {
 
                                 {/* Date */}
                                 <td className="px-4 py-3 text-gray-600">
-                                    {sale.sale_date}
+                                    {formatDateTime(sale.sale_date)}
                                 </td>
 
                                 {/* Customer */}

@@ -9,6 +9,7 @@ use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
+use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
@@ -229,6 +230,13 @@ Route::middleware(['auth', 'verified'])
 
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])
                 ->name('pos.sales.destroy');
+        });
+
+        // ─── Step 10: Invoices ────────────────────────────────────────────────────
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/', [InvoiceController::class, 'index'])->name('index');
+            Route::get('/{sale}', [InvoiceController::class, 'show'])->name('show');
+            Route::get('/{sale}/pdf', [InvoiceController::class, 'pdf'])->name('pdf');
         });
 
     });

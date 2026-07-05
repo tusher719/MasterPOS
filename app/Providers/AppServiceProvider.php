@@ -17,6 +17,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\InvestmentTypePolicy;
+use App\Policies\InvoicePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\PurchasePolicy;
@@ -62,5 +63,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 08 Policies ─────────────────────────────────────────────────
         Gate::policy(Sale::class, SalePolicy::class);
+
+        // ─── Step 10 Policies ─────────────────────────────────────────────────
+        Gate::policy(Sale::class . '@invoice', InvoicePolicy::class);
     }
 }

@@ -7,8 +7,8 @@
 ## PROJECT IDENTITY
 
 - Name: Master POS System
-- Version: v1.8
-- Current Step: Step 08 — Customer Management ✅ COMPLETE
+- Version: v1.9
+- Current Step: Step 09 — POS (Cart/Sale) ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -57,6 +57,17 @@
     use ->names([]) with 'backend.' prefix — group adds it automatically.
     Restore route also must use ->name('customers.restore') not
     ->name('backend.customers.restore')
+20. SaleController::store() returns response()->json([id, reference_no])
+    — NOT redirect() — because POS Index uses axios.post() for checkout
+21. ProductGrid Product interface includes: barcode, description, weight,
+    weight_unit, is_featured, is_taxable, discount_type, discount_value,
+    min_sale_qty, images (string[]) — fetched via eager load in SaleController
+22. ProductDetailModal exists at POS/\_components/ProductDetailModal.tsx
+    — shows image slider, price with discount, stock, add to cart button
+23. CartItem has leave animation — onRemove called after CSS transition ends
+    via onTransitionEnd, not directly
+24. SaleController::index() eager loads 'images' relation and maps
+    image_path column (NOT 'path') for product images
 
 ---
 
@@ -81,6 +92,8 @@
 - Image uploader: grid-cols-4 thumbnail grid, border-2 indigo-500 for primary
 - Sidebar nav group labels must be unique — no two groups share the same label
   (duplicate labels cause React key collision warnings)
+- POS Terminal uses full viewport height layout (h-[calc(100vh-64px)])
+  with 3-column split: product grid | cart | checkout panel
 
 ---
 
@@ -106,7 +119,8 @@ MasterPOS/
 │ │ │ ├── SupplierController.php
 │ │ │ ├── PurchaseController.php
 │ │ │ ├── PurchasePaymentController.php
-│ │ │ └── CustomerController.php
+│ │ │ ├── CustomerController.php
+│ │ │ └── SaleController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -123,7 +137,8 @@ MasterPOS/
 │ │ ├── UpdatePurchaseRequest.php
 │ │ ├── StorePurchasePaymentRequest.php
 │ │ ├── StoreCustomerRequest.php
-│ │ └── UpdateCustomerRequest.php
+│ │ ├── UpdateCustomerRequest.php
+│ │ └── StoreSaleRequest.php
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
@@ -141,7 +156,9 @@ MasterPOS/
 │ │ ├── PurchaseItem.php
 │ │ ├── PurchasePayment.php
 │ │ ├── StockMovement.php
-│ │ └── Customer.php
+│ │ ├── Customer.php
+│ │ ├── Sale.php
+│ │ └── SaleItem.php
 │ ├── Notifications/
 │ │ ├── LowStockNotification.php
 │ │ ├── NewSaleNotification.php
@@ -159,12 +176,14 @@ MasterPOS/
 │ │ ├── NotificationPolicy.php
 │ │ ├── SupplierPolicy.php
 │ │ ├── PurchasePolicy.php
-│ │ └── CustomerPolicy.php
+│ │ ├── CustomerPolicy.php
+│ │ └── SalePolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
 │ ├── ActivityLogService.php
-│ └── PurchaseStockService.php
+│ ├── PurchaseStockService.php
+│ └── SaleStockService.php
 ├── database/
 │ ├── migrations/
 │ └── seeders/
@@ -180,6 +199,7 @@ MasterPOS/
 │ ├── Step06PermissionSeeder.php
 │ ├── Step07PermissionSeeder.php
 │ ├── Step08PermissionSeeder.php
+│ ├── Step09PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
@@ -236,11 +256,27 @@ MasterPOS/
 │ │ │ ├── StatusBadge.tsx
 │ │ │ ├── PaymentModal.tsx
 │ │ │ └── PaymentsListModal.tsx
-│ │ └── Customers/
+│ │ ├── Customers/
+│ │ │ ├── Index.tsx
+│ │ │ └── \_components/
+│ │ │ ├── CustomerTable.tsx
+│ │ │ └── CustomerModal.tsx
+│ │ └── POS/
 │ │ ├── Index.tsx
+│ │ ├── \_components/
+│ │ │ ├── ProductSearch.tsx
+│ │ │ ├── ProductGrid.tsx
+│ │ │ ├── ProductDetailModal.tsx
+│ │ │ ├── CartSidebar.tsx
+│ │ │ ├── CartItem.tsx
+│ │ │ ├── CheckoutPanel.tsx
+│ │ │ └── ReceiptModal.tsx
+│ │ └── Sales/
+│ │ ├── Index.tsx
+│ │ ├── Show.tsx
 │ │ └── \_components/
-│ │ ├── CustomerTable.tsx
-│ │ └── CustomerModal.tsx
+│ │ ├── SaleStatsCards.tsx
+│ │ └── SaleTable.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -344,6 +380,24 @@ address(text nullable), city(nullable), country(default Bangladesh),
 opening_balance(decimal 10,2 default 0), is_active(bool default true),
 timestamps, deleted_at
 
+### Step 09 Tables
+
+sales → id, reference_no(unique), customer_id(FK nullable nullOnDelete),
+sale_date(date), subtotal(dec10,2), discount(dec10,2 default 0),
+tax(dec10,2 default 0), grand_total(dec10,2),
+paid_amount(dec10,2 default 0), due_amount(dec10,2),
+payment_status(enum: paid/partial/due default:due),
+payment_method_id(FK nullable nullOnDelete),
+note(text nullable), created_by(FK users restrict),
+timestamps, deleted_at
+
+sale_items → id, sale_id(FK sales cascadeDelete),
+product_id(FK products restrict), quantity(int unsigned),
+unit_price(dec10,2), discount(dec10,2 default 0),
+subtotal(dec10,2), timestamps
+
+Reference format: SL-YYYYMMDD-XXXX (e.g. SL-20250705-0001)
+
 ---
 
 ## ROUTES — REGISTERED
@@ -428,6 +482,15 @@ PUT /backend/customers/{customer} → backend.customers.update
 DELETE /backend/customers/{customer} → backend.customers.destroy
 POST /backend/customers/{id}/restore → backend.customers.restore
 
+### Step 09 Routes
+
+GET /backend/pos → backend.pos.index (POS Terminal)
+POST /backend/pos/sales → backend.pos.sales.store
+GET /backend/pos/sales → backend.pos.sales.index (Sales History)
+GET /backend/pos/sales/{sale} → backend.pos.sales.show (Receipt)
+DELETE /backend/pos/sales/{sale} → backend.pos.sales.destroy
+POST /backend/pos/sales/{id}/restore → backend.pos.sales.restore
+
 ---
 
 ## PERMISSIONS — REGISTERED
@@ -467,6 +530,10 @@ purchase.restore, purchase.payment
 
 customer.view, customer.create, customer.edit, customer.delete, customer.restore
 
+### Step 09
+
+sale.view, sale.create, sale.delete, sale.restore
+
 ---
 
 ## SEEDERS RUN
@@ -478,6 +545,7 @@ customer.view, customer.create, customer.edit, customer.delete, customer.restore
 - Step06PermissionSeeder → Admin (all), Staff (view-only)
 - Step07PermissionSeeder → Admin (all), Staff (purchase.view only)
 - Step08PermissionSeeder → Admin (all), Staff (customer.view only)
+- Step09PermissionSeeder → Admin (all), Staff (sale.view + sale.create)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -491,12 +559,10 @@ customer.view, customer.create, customer.edit, customer.delete, customer.restore
 ### AppServiceProvider.php
 
 Registers: UserPolicy, RolePolicy, SettingPolicy,
-PaymentMethodPolicy (NOT PaymentMethod::class — was a bug, now fixed),
-ExpenseCategoryPolicy, InvestmentTypePolicy,
+PaymentMethodPolicy, ExpenseCategoryPolicy, InvestmentTypePolicy,
 ProductCategoryPolicy, UnitPolicy, ProductPolicy,
 NotificationPolicy (model: DatabaseNotification::class),
-SupplierPolicy, PurchasePolicy (NOT PaymentMethodPolicy — was a bug, now fixed),
-CustomerPolicy
+SupplierPolicy, PurchasePolicy, CustomerPolicy, SalePolicy
 Event listener: Login::class → RecordLoginHistory::class
 
 ### ActivityLogService.php
@@ -526,103 +592,102 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 ### CustomerController.php
 
 - Same pattern as SupplierController
-- Always passes 'can' array to Inertia::render()
-- Restore uses onlyTrashed()->findOrFail($id)
 - Stats: total, active, inactive, total_balance (sum of opening_balance)
 - Filters: search (name/email/phone/city), status, trashed
 
+### SaleController.php
+
+- index() eager loads Product with 'images' relation, maps image_path (NOT 'path')
+- store() returns response()->json([id, reference_no]) — NOT redirect()
+  (POS Index uses axios.post() for checkout, needs JSON response)
+- destroy() reverses stock via SaleStockService::reverseStock()
+- restore() re-applies stock via SaleStockService::reApplyStock()
+- salesList() → renders Backend/POS/Sales/Index
+- show() → renders Backend/POS/Sales/Show
+- All Gate::allows() used for can array (not Auth::user()->can())
+
+### SaleStockService.php
+
+- applyStock() → deduct stock_qty per item, log stock_movements type:sale
+- reverseStock() → restore stock on void, log type:return
+- reApplyStock() → re-deduct on restore, log type:sale
+- checkLowStock() → fires LowStockNotification if stock_qty ≤ low_stock_threshold
+
+### SalePolicy.php
+
+- delete() and restore() have NO model instance parameter
+  (controller calls can('delete', Sale::class) with class string)
+
+### Sale.php
+
+- generateReference() → SL-YYYYMMDD-XXXX format
+- scopeActive() → whereNull('deleted_at')
+- Relations: customer (withTrashed), paymentMethod (withTrashed),
+  creator (withTrashed), items (hasMany SaleItem)
+
+### SaleItem.php
+
+- Relations: sale, product (withTrashed)
+
+### POS/Index.tsx
+
+- 3-column layout: ProductGrid | CartSidebar | CheckoutPanel
+- axios.post() for checkout (not Inertia router)
+- ReceiptModal shown after successful sale (built from cart state + response)
+- handleNewSale() clears all state + router.reload({ only: ['products'] })
+
+### POS/\_components/ProductGrid.tsx
+
+- Product interface includes: barcode, description, weight, weight_unit,
+  is_featured, is_taxable, discount_type, discount_value, min_sale_qty,
+  image (string|null), images (string[])
+- Info button (ℹ) opens ProductDetailModal on click (stopPropagation)
+- Click on card → handleAdd() with pulse animation
+
+### POS/\_components/ProductDetailModal.tsx
+
+- Image slider with prev/next chevrons + dot indicators
+- Shows discounted price when discount_type/discount_value set
+- Add to Cart button → onAddToCart + onClose
+
+### POS/\_components/CartItem.tsx
+
+- Leave animation: setIsLeaving(true) → CSS transition → onTransitionEnd calls onRemove()
+- Per-item discount input capped at unit_price × quantity
+
+### POS/\_components/CheckoutPanel.tsx
+
+- Customer/PaymentMethod select, discount/tax inputs
+- Quick fill: Full / Half / None buttons for paid amount
+- paymentStatus computed: paid/partial/due
+
+### POS/\_components/ReceiptModal.tsx
+
+- Shows after successful sale
+- Print button → window.print()
+- New Sale button → handleNewSale()
+
 ### PurchaseController.php
 
-- Bulk actions use Auth::user()->hasPermissionTo() directly — NOT Gate::denies()
+- Bulk actions use Auth::user()->hasPermissionTo() directly
 - Restore uses onlyTrashed()->findOrFail($id)
-- Always passes 'can' array + 'paymentMethods' to Index and Show renders
 - Stock only applied when purchase_status = received or partial_received
-
-### PurchasePaymentController.php
-
-- index() returns JSON when request()->wantsJson() (axios modal fetch from Index page)
-- Falls back to full Inertia Show page render for direct browser visit
-- Must pass all required Show page props (purchaseStatuses, paymentStatuses,
-  paymentMethods, can) in the Inertia fallback
 
 ### PurchaseStockService.php
 
-- Uses stock_qty column (decimal) — always cast to (int) before math
+- Uses stock_qty column — always cast to (int) before math
 - Uses low_stock_threshold column (NOT low_stock_alert)
-- applyStock() → stock in when status = received/partial_received
-- reverseStock() → stock out on soft delete or status change away from trigger
-- syncStock() → item-level diff on update
-- calculateAverageCost() → weighted average formula
-- checkLowStock() → fires LowStockNotification if stock_qty ≤ low_stock_threshold
-
-### PurchasePolicy.php
-
-- Has before() hook for class-level bulk abilities
-- BUT bulk actions in controller use hasPermissionTo() directly (Gate unreliable)
-
-### CustomerPolicy.php
-
-- Policy methods do NOT have model instance parameter (edit, delete)
-- Correct: edit(User $user): bool — NOT edit(User $user, Customer $customer)
-- Reason: controller calls can('edit', Customer::class) with class string,
-  not a model instance — adding instance param causes ArgumentCountError
 
 ### Product.php
 
 - scopeActive() → where('is_active', true)
-- Actual price column: cost_price
-- Actual stock column: stock_qty
-- Actual threshold column: low_stock_threshold
+- Actual columns: cost_price, stock_qty, low_stock_threshold
 
-### Supplier.php
+### AuthenticatedLayout.tsx
 
-- scopeActive() → where('is_active', true)
-
-### Customer.php
-
-- scopeActive() → where('is_active', true)
-
-### PurchaseTable.tsx
-
-- canEdit: can.edit && !isDeleted && !isCancelled && !isReceived
-- canPay: can.payment && !isDeleted && due_amount > 0 && payment_status !== 'paid'
-- Record Payment → fires onRecordPayment(purchase) callback → opens PaymentModal inline
-- View Payments → fires onViewPayments(purchase) callback → axios fetch → PaymentsListModal
-
-### Index.tsx (Purchases)
-
-- openPaymentsModal() uses axios.get() with Accept: application/json header
-- PaymentModal opened inline (no page redirect) via setPaymentModal(purchase)
-
-### PurchaseFormFields.tsx
-
-- onItemChange signature: (index: number, updates: Partial<PurchaseItemRow>) → object form
-- handleProductSelect auto-fills unit_cost from product.cost_price
-- Shows current stock_qty next to each product row
-
-### PaymentModal.tsx
-
-- "Full Due" and "Half" quick fill buttons
-- amount capped at purchase.due_amount
-
-### Notification Classes
-
-- LowStockNotification → triggered in Step 07 (PurchaseStockService)
-- NewSaleNotification → triggered in Step 09
-- NewExpenseNotification → triggered in Step 12
-
-### ImageUploader.tsx
-
-- Supports existing images (edit mode) + new uploads
-- Max 8 images per product
-- Star icon to set primary, trash to remove
-- Primary image highlighted with indigo-500 border
-
-### ProductFormFields.tsx
-
-- Sectioned form: Basic Info / Pricing / Stock / Shipping / POS & Display / SEO
-- Reusable Field + Toggle sub-components inside file
-- Used by both Create.tsx and Edit.tsx
+- NAV_ITEMS includes Point of Sale group with POS Terminal + Sales History
+- Old placeholder items (Products, Inventory, Customers, POS, etc.)
+  have been REMOVED to prevent duplicate key warnings
 
 ---
 
@@ -637,10 +702,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 06: Supplier Management ✅
 - Step 07: Purchase & Inventory ✅
 - Step 08: Customer Management ✅
+- Step 09: POS (Cart/Sale) ✅
 
 ## PENDING MODULES
 
-- Step 09: POS (Cart/Sale)
 - Step 10: Invoice & Receipt
 - Step 11: Orders
 - Step 12: Expense Management
@@ -654,4 +719,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 09 — POS (Cart/Sale)
+Step 10 — Invoice & Receipt
