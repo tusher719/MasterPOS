@@ -8,6 +8,7 @@ use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
+use App\Http\Controllers\Backend\ExpenseController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\InvoiceController;
@@ -248,6 +249,26 @@ Route::middleware(['auth', 'verified'])
             Route::delete('/{id}', [HoldOrderController::class, 'destroy'])->name('destroy');
             Route::post('/{id}/resume', [HoldOrderController::class, 'resume'])->name('resume');
             Route::post('/{id}/release', [HoldOrderController::class, 'release'])->name('release');
+        });
+
+        // -----------------------------------------------------------------------
+        // Expenses
+        // -----------------------------------------------------------------------
+        Route::prefix('expenses')->name('expenses.')->group(function () {
+            Route::post('bulk-action', [ExpenseController::class, 'bulkAction'])
+                ->name('bulk-action');
+            Route::post('{id}/restore', [ExpenseController::class, 'restore'])
+                ->name('restore');
+            Route::get('/', [ExpenseController::class, 'index'])
+                ->name('index');
+            Route::post('/', [ExpenseController::class, 'store'])
+                ->name('store');
+            Route::get('{expense}', [ExpenseController::class, 'show'])
+                ->name('show');
+            Route::put('{expense}', [ExpenseController::class, 'update'])
+                ->name('update');
+            Route::delete('{expense}', [ExpenseController::class, 'destroy'])
+                ->name('destroy');
         });
 
     });

@@ -215,10 +215,21 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
+    {
+        label: "Finance",
+        icon: Wallet,
+        children: [
+            {
+                label: "Expenses",
+                icon: Receipt,
+                href: "backend.expenses.index",
+                active: "backend.expenses.*",
+            },
+        ],
+    },
 
     // ── Placeholder / not-yet-implemented items ──
     { label: "Orders", icon: FileText, active: "backend.orders.*" },
-    { label: "Expenses", icon: Wallet, active: "backend.expenses.*" },
     {
         label: "Investments",
         icon: TrendingUp,

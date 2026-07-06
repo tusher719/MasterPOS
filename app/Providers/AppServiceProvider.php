@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\RecordLoginHistory;
 use App\Models\BusinessSetting;
+use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\HoldOrder;
 use App\Models\InvestmentType;
@@ -17,6 +18,7 @@ use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Policies\ExpenseCategoryPolicy;
+use App\Policies\ExpensePolicy;
 use App\Policies\HoldOrderPolicy;
 use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvoicePolicy;
@@ -71,5 +73,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 11 Policies ─────────────────────────────────────────────────
         Gate::policy(HoldOrder::class, HoldOrderPolicy::class);
+
+        // ─── Step 11 Policies ─────────────────────────────────────────────────
+        Gate::policy(Expense::class, ExpensePolicy::class);
     }
 }
