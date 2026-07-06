@@ -1,5 +1,5 @@
 import React from "react";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { Pause, ShoppingCart, Trash2 } from "lucide-react";
 import CartItem, { CartItemRow } from "./CartItem";
 
 interface Props {
@@ -8,6 +8,9 @@ interface Props {
     onRemoveItem: (productId: number) => void;
     onClearCart: () => void;
     subtotal: number;
+    onHoldOrder: () => void;
+    isHolding: boolean;
+    cartHasItems: boolean;
 }
 
 export default function CartSidebar({
@@ -16,6 +19,9 @@ export default function CartSidebar({
     onRemoveItem,
     onClearCart,
     subtotal,
+    onHoldOrder,
+    isHolding,
+    cartHasItems,
 }: Props) {
     return (
         <div className="flex h-full flex-col">
@@ -100,9 +106,30 @@ export default function CartSidebar({
                             {items.reduce((s, i) => s + i.quantity, 0)} items)
                         </span>
                         <span className="font-bold text-gray-800">
-                            ৳{subtotal.toFixed(2)}
+                            ৳{Number(subtotal).toFixed(2)}
                         </span>
                     </div>
+                </div>
+            )}
+
+            {/* ── Hold Order Actions ── */}
+            {cartHasItems && (
+                <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+                    {/* Compact Button */}
+                    <button
+                        onClick={onHoldOrder}
+                        disabled={isHolding}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg
+                        border border-blue-300 bg-white px-4 py-2
+                        text-sm font-medium text-blue-700
+                        hover:bg-blue-50 transition-colors
+                        disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <Pause className="h-4 w-4 text-blue-600" />
+                        <span>
+                            {isHolding ? "Holding…" : "Hold Current Order"}
+                        </span>
+                    </button>
                 </div>
             )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import CartSidebar from "./_components/CartSidebar";
 import { CartItemRow } from "./_components/CartItem";
 import CheckoutPanel from "./_components/CheckoutPanel";
 import ReceiptModal from "./_components/ReceiptModal";
+import HoldOrdersDrawer, { HoldOrder } from "./_components/HoldOrdersDrawer";
 
 export interface Customer {
     id: number;
@@ -61,6 +62,7 @@ export default function POSIndex({
         });
     }, [products, search, selectedCategory]);
 
+    // ── Cart ─────────────────────────────────────────────────────────
     const [cartItems, setCartItems] = useState<CartItemRow[]>([]);
 
     const handleAddToCart = (product: Product) => {
@@ -114,13 +116,12 @@ export default function POSIndex({
         setCartItems((prev) => prev.filter((i) => i.product_id !== productId));
     };
 
-    const handleClearCart = () => setCartItems([]);
-
     const subtotal = useMemo(
         () => cartItems.reduce((sum, i) => sum + i.subtotal, 0),
         [cartItems],
     );
 
+    // ── Checkout state ───────────────────────────────────────────────
     const [customerId, setCustomerId] = useState<number | null>(null);
     const [paymentMethodId, setPaymentMethodId] = useState<number | null>(null);
     const [discount, setDiscount] = useState(0);
@@ -146,6 +147,137 @@ export default function POSIndex({
 
     const [receiptSale, setReceiptSale] = useState<any>(null);
 
+    // ── Hold Orders state ────────────────────────────────────────────
+    const [showHoldDrawer, setShowHoldDrawer] = useState(false);
+    const [resumedHoldOrderId, setResumedHoldOrderId] = useState<number | null>(
+        null,
+    );
+    const [holdCount, setHoldCount] = useState(0);
+    const [isHolding, setIsHolding] = useState(false);
+
+    useEffect(() => {
+        fetchHoldCount();
+    }, []);
+
+    const fetchHoldCount = async () => {
+        try {
+            const res = await axios.get(
+                route("backend.pos.hold-orders.index"),
+                { params: { per_page: 1 } },
+            );
+            setHoldCount(res.data.total ?? 0);
+        } catch {
+            // silent fail — not critical
+        }
+    };
+
+    const handleReleaseHoldOrder = async () => {
+        if (!resumedHoldOrderId) return;
+        try {
+            await axios.post(
+                route("backend.pos.hold-orders.release", resumedHoldOrderId),
+            );
+        } catch {
+            // silent — best effort
+        } finally {
+            setResumedHoldOrderId(null);
+        }
+    };
+
+    // Clear cart manually — release the resumed hold order first, if any
+    const handleClearCart = async () => {
+        if (resumedHoldOrderId) {
+            await handleReleaseHoldOrder();
+        }
+        setCartItems([]);
+        setCustomerId(null);
+        setDiscount(0);
+        setTax(0);
+    };
+
+    const handleHoldOrder = async () => {
+        if (cartItems.length === 0) return;
+
+        setIsHolding(true);
+        try {
+            const payload = {
+                customer_id: customerId,
+                note: note || "",
+                subtotal,
+                discount,
+                tax,
+                grand_total: grandTotal,
+                items: cartItems.map((item) => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    discount: item.discount,
+                    subtotal: item.subtotal,
+                })),
+            };
+
+            await axios.post(route("backend.pos.hold-orders.store"), payload);
+
+            toast.success("Order held successfully.");
+            fetchHoldCount();
+
+            // Fresh hold (not a resumed one) — just clear the working cart
+            setCartItems([]);
+            setCustomerId(null);
+            setDiscount(0);
+            setTax(0);
+            setNote("");
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? "Failed to hold order.";
+            toast.error(msg);
+        } finally {
+            setIsHolding(false);
+        }
+    };
+
+    const handleResumeHoldOrder = (holdOrder: HoldOrder) => {
+        // Restore cart from the hold order.
+        // NOTE: holdOrder.items comes from the API with Laravel decimal-cast
+        // fields (unit_price, discount, subtotal) serialized as STRINGS.
+        // These must be normalized to Number() here — otherwise the later
+        // `cartItems.reduce((sum, i) => sum + i.subtotal, 0)` in this
+        // component does string concatenation instead of addition, which
+        // breaks subtotal/grandTotal/dueAmount everywhere downstream.
+        setCartItems(
+            holdOrder.items.map((item) => {
+                // Defensive: if the backend ever sends the raw `unit`
+                // relation object instead of its name string, unwrap it
+                // here so the UI never renders "[object Object]".
+                const rawUnit: any = item.unit;
+                const unitName =
+                    rawUnit && typeof rawUnit === "object"
+                        ? (rawUnit.name ?? null)
+                        : rawUnit;
+
+                return {
+                    product_id: item.product_id,
+                    name: item.name,
+                    unit_price: Number(item.unit_price),
+                    quantity: Number(item.quantity),
+                    discount: Number(item.discount),
+                    subtotal: Number(item.subtotal),
+                    stock_qty: item.stock_qty,
+                    unit: unitName,
+                };
+            }),
+        );
+
+        setCustomerId(holdOrder.customer?.id ?? null);
+        setDiscount(Number(holdOrder.discount));
+        setTax(Number(holdOrder.tax));
+        setNote(holdOrder.note ?? "");
+        setResumedHoldOrderId(holdOrder.id);
+
+        setShowHoldDrawer(false);
+        toast.success("Hold order resumed. Complete checkout to convert.");
+    };
+
+    // ── Checkout submit ──────────────────────────────────────────────
     const handleCheckout = async () => {
         if (!can.create) {
             toast.error("You do not have permission to create sales.");
@@ -199,6 +331,22 @@ export default function POSIndex({
             });
 
             toast.success("Sale completed successfully!");
+
+            // After a successful sale — delete the resumed hold order, if any
+            if (resumedHoldOrderId) {
+                try {
+                    await axios.delete(
+                        route(
+                            "backend.pos.hold-orders.destroy",
+                            resumedHoldOrderId,
+                        ),
+                    );
+                    setResumedHoldOrderId(null);
+                    fetchHoldCount();
+                } catch {
+                    // silent — hold order cleanup is non-critical
+                }
+            }
         } catch (error: any) {
             if (error.response?.status === 422) {
                 const errors = error.response.data.errors;
@@ -221,6 +369,7 @@ export default function POSIndex({
         setTax(0);
         setPaidAmount(0);
         setNote("");
+        setResumedHoldOrderId(null);
         router.reload({ only: ["products"] });
     };
 
@@ -229,13 +378,33 @@ export default function POSIndex({
             <Head title="POS Terminal" />
             <div className="flex h-[calc(100vh-64px)] overflow-hidden">
                 <div className="flex flex-1 flex-col overflow-hidden border-r border-gray-200 bg-gray-50">
-                    <div className="border-b border-gray-200 bg-white px-5 py-4">
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            POS Terminal
-                        </h1>
-                        <p className="mt-0.5 text-sm text-gray-500">
-                            {filteredProducts.length} products available
-                        </p>
+                    <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800">
+                                POS Terminal
+                            </h1>
+                            <p className="mt-0.5 text-sm text-gray-500">
+                                {filteredProducts.length} products available
+                            </p>
+                        </div>
+
+                        {/* Hold Orders Drawer Trigger */}
+                        <button
+                            onClick={() => setShowHoldDrawer(true)}
+                            className="relative flex items-center gap-1.5 rounded-lg border border-gray-200
+                                       bg-white px-3 py-1.5 text-sm font-medium text-gray-600
+                                       hover:bg-gray-50 transition-colors"
+                        >
+                            <span>Held Orders</span>
+                            {holdCount > 0 && (
+                                <span
+                                    className="flex h-5 min-w-5 items-center justify-center rounded-full
+                                                 bg-amber-500 px-1 text-xs font-bold text-white"
+                                >
+                                    {holdCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
                     <div className="border-b border-gray-200 bg-white px-5 py-3">
                         <ProductSearch
@@ -261,6 +430,9 @@ export default function POSIndex({
                         onRemoveItem={handleRemoveItem}
                         onClearCart={handleClearCart}
                         subtotal={subtotal}
+                        onHoldOrder={handleHoldOrder}
+                        isHolding={isHolding}
+                        cartHasItems={cartItems.length > 0}
                     />
                 </div>
 
@@ -306,6 +478,15 @@ export default function POSIndex({
                     onNewSale={handleNewSale}
                 />
             )}
+
+            {/* Hold Orders Drawer */}
+            <HoldOrdersDrawer
+                open={showHoldDrawer}
+                onClose={() => setShowHoldDrawer(false)}
+                onResume={handleResumeHoldOrder}
+                onCountChange={setHoldCount}
+                resumedHoldOrderId={resumedHoldOrderId}
+            />
         </AuthenticatedLayout>
     );
 }

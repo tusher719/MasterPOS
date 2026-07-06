@@ -65,6 +65,15 @@ export default function CheckoutPanel({
     onNoteChange,
     onCheckout,
 }: Props) {
+    // Laravel decimal-cast columns arrive as strings via JSON — normalize
+    // everything to numbers here so downstream math/.toFixed() never breaks.
+    const subtotalNum = Number(subtotal);
+    const discountNum = Number(discount);
+    const taxNum = Number(tax);
+    const grandTotalNum = Number(grandTotal);
+    const dueAmountNum = Number(dueAmount);
+    const paidAmountNum = Number(paidAmount);
+
     return (
         <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
             {/* ── Customer Select ── */}
@@ -124,8 +133,8 @@ export default function CheckoutPanel({
                     <input
                         type="number"
                         min={0}
-                        max={subtotal}
-                        value={discount || ""}
+                        max={subtotalNum}
+                        value={discountNum || ""}
                         onChange={(e) =>
                             onDiscountChange(parseFloat(e.target.value) || 0)
                         }
@@ -141,7 +150,7 @@ export default function CheckoutPanel({
                     <input
                         type="number"
                         min={0}
-                        value={tax || ""}
+                        value={taxNum || ""}
                         onChange={(e) =>
                             onTaxChange(parseFloat(e.target.value) || 0)
                         }
@@ -156,23 +165,23 @@ export default function CheckoutPanel({
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
                     <span>Subtotal</span>
-                    <span>৳{subtotal.toFixed(2)}</span>
+                    <span>৳{subtotalNum.toFixed(2)}</span>
                 </div>
-                {discount > 0 && (
+                {discountNum > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                         <span>Discount</span>
-                        <span>- ৳{discount.toFixed(2)}</span>
+                        <span>- ৳{discountNum.toFixed(2)}</span>
                     </div>
                 )}
-                {tax > 0 && (
+                {taxNum > 0 && (
                     <div className="flex justify-between text-sm text-gray-600">
                         <span>Tax</span>
-                        <span>+ ৳{tax.toFixed(2)}</span>
+                        <span>+ ৳{taxNum.toFixed(2)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-800">
                     <span>Grand Total</span>
-                    <span>৳{grandTotal.toFixed(2)}</span>
+                    <span>৳{grandTotalNum.toFixed(2)}</span>
                 </div>
             </div>
 
@@ -185,7 +194,7 @@ export default function CheckoutPanel({
                     {/* Quick fill buttons */}
                     <div className="flex gap-1">
                         <button
-                            onClick={() => onPaidAmountChange(grandTotal)}
+                            onClick={() => onPaidAmountChange(grandTotalNum)}
                             className="rounded px-2 py-0.5 text-xs bg-green-100 text-green-700 hover:bg-green-200"
                         >
                             Full
@@ -193,7 +202,7 @@ export default function CheckoutPanel({
                         <button
                             onClick={() =>
                                 onPaidAmountChange(
-                                    parseFloat((grandTotal / 2).toFixed(2)),
+                                    parseFloat((grandTotalNum / 2).toFixed(2)),
                                 )
                             }
                             className="rounded px-2 py-0.5 text-xs bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -211,8 +220,8 @@ export default function CheckoutPanel({
                 <input
                     type="number"
                     min={0}
-                    max={grandTotal}
-                    value={paidAmount || ""}
+                    max={grandTotalNum}
+                    value={paidAmountNum || ""}
                     onChange={(e) =>
                         onPaidAmountChange(parseFloat(e.target.value) || 0)
                     }
@@ -227,7 +236,7 @@ export default function CheckoutPanel({
                 <div className="flex justify-between text-sm text-gray-600">
                     <span>Due Amount</span>
                     <span className="font-semibold text-gray-800">
-                        ৳{dueAmount.toFixed(2)}
+                        ৳{dueAmountNum.toFixed(2)}
                     </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -265,7 +274,7 @@ export default function CheckoutPanel({
             >
                 {processing
                     ? "Processing..."
-                    : `Complete Sale — ৳${grandTotal.toFixed(2)}`}
+                    : `Complete Sale — ৳${grandTotalNum.toFixed(2)}`}
             </button>
         </div>
     );

@@ -8,6 +8,7 @@ use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
+use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
@@ -237,6 +238,16 @@ Route::middleware(['auth', 'verified'])
             Route::get('/', [InvoiceController::class, 'index'])->name('index');
             Route::get('/{sale}', [InvoiceController::class, 'show'])->name('show');
             Route::get('/{sale}/pdf', [InvoiceController::class, 'pdf'])->name('pdf');
+        });
+
+        // ─── Hold Orders ──────────────────────────────────────────────────
+        Route::prefix('pos/hold-orders')->name('pos.hold-orders.')->group(function () {
+            Route::get('/', [HoldOrderController::class, 'index'])->name('index');
+            Route::post('/', [HoldOrderController::class, 'store'])->name('store');
+            Route::put('/{id}', [HoldOrderController::class, 'update'])->name('update');
+            Route::delete('/{id}', [HoldOrderController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/resume', [HoldOrderController::class, 'resume'])->name('resume');
+            Route::post('/{id}/release', [HoldOrderController::class, 'release'])->name('release');
         });
 
     });

@@ -21,19 +21,23 @@ interface Props {
 export default function CartItem({ item, onUpdate, onRemove }: Props) {
     const [isLeaving, setIsLeaving] = useState(false);
 
+    const unitPrice = Number(item.unit_price);
+    const itemSubtotal = Number(item.subtotal);
+    const itemDiscount = Number(item.discount);
+
     const handleQtyChange = (delta: number) => {
         const newQty = item.quantity + delta;
         if (newQty < 1) return;
         if (newQty > item.stock_qty) return;
-        const subtotal = item.unit_price * newQty - item.discount;
+        const subtotal = unitPrice * newQty - itemDiscount;
         onUpdate({ quantity: newQty, subtotal: Math.max(0, subtotal) });
     };
 
     const handleDiscountChange = (value: string) => {
         const discount = parseFloat(value) || 0;
-        const maxDiscount = item.unit_price * item.quantity;
+        const maxDiscount = unitPrice * item.quantity;
         const capped = Math.min(discount, maxDiscount);
-        const subtotal = item.unit_price * item.quantity - capped;
+        const subtotal = unitPrice * item.quantity - capped;
         onUpdate({ discount: capped, subtotal: Math.max(0, subtotal) });
     };
 
@@ -66,7 +70,7 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                             {item.name}
                         </p>
                         <p className="text-xs text-gray-400">
-                            ৳{item.unit_price.toFixed(2)}
+                            ৳{unitPrice.toFixed(2)}
                             {item.unit ? ` / ${item.unit}` : ""}
                         </p>
                     </div>
@@ -99,7 +103,7 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                                 const qty = parseInt(e.target.value) || 1;
                                 const capped = Math.min(qty, item.stock_qty);
                                 const subtotal =
-                                    item.unit_price * capped - item.discount;
+                                    unitPrice * capped - itemDiscount;
                                 onUpdate({
                                     quantity: capped,
                                     subtotal: Math.max(0, subtotal),
@@ -125,7 +129,7 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                             <input
                                 type="number"
                                 min={0}
-                                max={item.unit_price * item.quantity}
+                                max={unitPrice * item.quantity}
                                 value={item.discount || ""}
                                 onChange={(e) =>
                                     handleDiscountChange(e.target.value)
@@ -143,7 +147,7 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                         className="text-sm font-semibold text-indigo-600 transition-all"
                         style={{ animation: "cartItemIn 0.2s ease-out" }}
                     >
-                        ৳{item.subtotal.toFixed(2)}
+                        ৳{itemSubtotal.toFixed(2)}
                     </span>
                 </div>
             </div>
