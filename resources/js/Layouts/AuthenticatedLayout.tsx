@@ -227,14 +227,21 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
+    {
+        label: "Investments",
+        icon: FileText,
+        children: [
+            {
+                label: "Investments",
+                icon: TrendingUp,
+                href: "backend.investments.index",
+                active: "backend.investments.*",
+            },
+        ],
+    },
 
     // ── Placeholder / not-yet-implemented items ──
     { label: "Orders", icon: FileText, active: "backend.orders.*" },
-    {
-        label: "Investments",
-        icon: TrendingUp,
-        active: "backend.investments.*",
-    },
     { label: "Reports", icon: BarChart3, active: "backend.reports.*" },
 ];
 

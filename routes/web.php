@@ -10,6 +10,7 @@ use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\ExpenseController;
 use App\Http\Controllers\Backend\HoldOrderController;
+use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
@@ -270,6 +271,13 @@ Route::middleware(['auth', 'verified'])
             Route::delete('{expense}', [ExpenseController::class, 'destroy'])
                 ->name('destroy');
         });
+
+        // Step 13: Investment Management
+        Route::post('investments/{id}/restore', [InvestmentController::class, 'restore'])
+            ->name('investments.restore');
+
+        Route::resource('investments', InvestmentController::class)
+            ->only(['index', 'store', 'show', 'update', 'destroy']);
 
     });
 
