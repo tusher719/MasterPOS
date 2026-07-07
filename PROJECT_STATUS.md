@@ -8,7 +8,7 @@
 
 - Name: Master POS System
 - Version: v2.0
-- Current Step: Step 12 — Expense Management ✅ COMPLETE
+- Current Step: Step 14 — Profit Distribution ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -33,6 +33,8 @@
 1. Create/Edit forms are ALWAYS in Modal — never separate pages
    (Exception: Product Create/Edit are separate pages — form too complex)
    (Exception: Purchase Create/Edit are separate pages — form too complex)
+   (Exception: ProfitDistribution Create/Edit are separate pages — multi-step
+   calculate-preview flow is too complex for a modal)
 2. Toast notifications use sonner only
 3. Confirm dialogs use SweetAlert2 only
 4. All code comments and documentation: English only, never Bengali
@@ -97,19 +99,57 @@
     fields from API to Number() — Laravel decimal-cast columns arrive
     as strings in JSON; string concatenation breaks subtotal math.
     Also defensively unwraps unit relation object → name string.
-34. ExpenseCategory model uses $table = 'expense_categories' explicitly.
-    The old migration file was named 'create_expense_categoryes_table'
-    (typo) — a second correct table 'expense_categories' exists with
-    the real data. ExpenseCategory model has NO SoftDeletes trait —
-    deleted_at column exists in table but model does not use it.
-35. Expense attachment uploads to storage/app/public/expenses/ disk:public.
-    Model has attachment_url and attachment_mime accessors.
-    Show page: image MIME → inline preview; pdf/doc → download link.
-    Update: old file deleted from disk when new file uploaded or
-    remove_attachment flag sent.
-36. ExpenseController uses AuthorizesRequests trait + $this->authorize()
-    for all policy checks. bulkAction() uses hasPermissionTo() directly
-    (Rule 17). Export hook point documented as comment in controller.
+34. InvestmentController uses Gate::allows() directly (abort_unless pattern)
+    — NOT $this->authorize() — consistent with ExpenseController pattern.
+    Policy registered in AppServiceProvider: Gate::policy(Investment::class,
+    InvestmentPolicy::class)
+35. Investment::attachment_url is an Eloquent accessor — must be explicitly
+    appended via $investment->append(['attachment_url']) in index() paginator
+    collection, otherwise JSON serialization drops it and the edit modal
+    cannot preview the existing file.
+36. InvestmentController::show() passes 'investmentTypes' prop so the
+    InvestmentModal opened from Show.tsx has the dropdown options available.
+37. Paginator meta destructuring must use safe fallbacks in TypeScript:
+    const data = investments.data ?? [];
+    const meta = investments.meta ?? {};
+    const links = investments.links ?? [];
+    Direct destructure crashes when meta is undefined on first render.
+38. Export routes use GET /backend/investments/export/{format} where
+    format ∈ ['csv', 'excel', 'pdf']. Export route declared BEFORE
+    resource() to prevent {investment} swallowing 'export' segment.
+    CSV is native (no package). Excel requires maatwebsite/excel.
+    PDF reuses barryvdh/laravel-dompdf with separate Blade template.
+    Shared filter logic extracted to private buildExportQuery(Request).
+39. ProfitDistributionController uses optional(Auth::user())->can()
+    pattern (NOT Auth::user()->hasPermissionTo()) — safer for nullable
+    auth context. Gate::policy() registered in AppServiceProvider.
+40. ProfitDistribution::generateDistributionNo() must be called inside
+    DB::transaction() with lockForUpdate() — prevents race condition on
+    concurrent store() requests. Format: PD-YYYY-000001. withTrashed()
+    included so deleted records' numbers are never reused.
+41. ProfitDistribution financial fields (total_revenue, total_cogs, etc.)
+    are SNAPSHOTS — written once at store(), never recalculated from DB.
+    Edit page has explicit "Recalculate" button that calls calculate-preview
+    and replaces snapshot values + items array together.
+42. Edit.tsx date fields must use toDateInputValue() helper — Laravel
+    'date' cast returns full ISO datetime string ("2026-07-05T00:00:00Z");
+    slicing to [0,10] gives "YYYY-MM-DD" required by <input type="date">.
+    Without this, date inputs render blank on edit page load.
+43. ProfitDistributionItem has NO softDeletes — cascadeOnDelete from
+    parent. Payment tracking fields (payment_status, payment_method,
+    transaction_reference, paid_by, paid_at) are updated via separate
+    PATCH route after distribution is approved/distributed.
+44. calculatePreview() sums ALL expenses in period (no status filter) —
+    expenses table has no approval workflow/status column.
+45. confirmAction() in Index.tsx handlers must use .then() pattern, NOT
+    async/await — Inertia router callbacks (onSuccess/onError/onFinish)
+    are incompatible with async event handlers in some React versions.
+46. Shared TypeScript types for ProfitDistribution module extracted to:
+    resources/js/types/profit-distribution.d.ts
+    Exports: Distribution, DistributionStats, DistributionPermissions
+47. ItemData / PreviewItem interfaces require index signature
+    [key: string]: string | number | null — needed for TypeScript strict
+    mode when items array is passed through Inertia router.post() payload.
 
 ---
 
@@ -119,7 +159,7 @@
 - Native HTML elements only — NO shadcn/ui components in pages
 - Color scheme: gray-50/100/200/300/400/500/600/700/800 + indigo-600/700
 - Status badges: green-100/700 (active), gray-100/500 (inactive),
-  amber-100/700 (processing), amber-500 (warning)
+  amber-100/700 (processing/withdrawn), amber-500 (warning)
 - Page header: text-2xl font-bold text-gray-800
 - Buttons: rounded-lg bg-indigo-600 text-white hover:bg-indigo-700
 - Tables: rounded-lg border border-gray-200 bg-white overflow-hidden
@@ -142,8 +182,16 @@
   with 3-column split: product grid | cart | checkout panel
 - Sidebar nav group labels must be unique — no two groups share the same
   label (duplicate labels cause React key collision warnings)
-- Expense Show page: 3-column layout (lg:grid-cols-3) —
-  left 2 cols: core info + attachment; right 1 col: system info + quick stats
+- Show/Detail pages: 2-column layout (lg:grid-cols-3) — main content
+  takes lg:col-span-2, sidebar (Record Info + Actions) takes 1 col
+- ProfitDistribution status badges:
+  draft → bg-gray-100 text-gray-600
+  approved → bg-amber-100 text-amber-700
+  distributed → bg-green-100 text-green-700
+- ProfitDistributionItem payment badges:
+  pending → bg-amber-100 text-amber-700
+  paid → bg-green-100 text-green-700
+  cancelled → bg-red-100 text-red-700
 
 ---
 
@@ -151,6 +199,8 @@
 
 MasterPOS/
 ├── app/
+│ ├── Exports/
+│ │ └── InvestmentExport.php
 │ ├── Http/
 │ │ ├── Controllers/
 │ │ │ └── Backend/
@@ -173,7 +223,9 @@ MasterPOS/
 │ │ │ ├── SaleController.php
 │ │ │ ├── InvoiceController.php
 │ │ │ ├── HoldOrderController.php
-│ │ │ └── ExpenseController.php
+│ │ │ ├── ExpenseController.php
+│ │ │ ├── InvestmentController.php
+│ │ │ └── ProfitDistributionController.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -195,14 +247,18 @@ MasterPOS/
 │ │ ├── StoreHoldOrderRequest.php
 │ │ ├── UpdateHoldOrderRequest.php
 │ │ ├── StoreExpenseRequest.php
-│ │ └── UpdateExpenseRequest.php
+│ │ ├── UpdateExpenseRequest.php
+│ │ ├── StoreInvestmentRequest.php
+│ │ ├── UpdateInvestmentRequest.php
+│ │ ├── StoreProfitDistributionRequest.php
+│ │ └── UpdateProfitDistributionRequest.php
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
 │ │ ├── ActivityLog.php
 │ │ ├── BusinessSetting.php
 │ │ ├── PaymentMethod.php
-│ │ ├── ExpenseCategory.php ← NO SoftDeletes, $table='expense_categories'
+│ │ ├── ExpenseCategory.php
 │ │ ├── InvestmentType.php
 │ │ ├── ProductCategory.php
 │ │ ├── Unit.php
@@ -218,7 +274,14 @@ MasterPOS/
 │ │ ├── SaleItem.php
 │ │ ├── HoldOrder.php
 │ │ ├── HoldOrderItem.php
-│ │ └── Expense.php
+│ │ ├── Expense.php
+│ │ ├── Investment.php
+│ │ ├── ProfitDistribution.php
+│ │ └── ProfitDistributionItem.php
+│ ├── Notifications/
+│ │ ├── LowStockNotification.php
+│ │ ├── NewSaleNotification.php
+│ │ └── NewExpenseNotification.php
 │ ├── Policies/
 │ │ ├── UserPolicy.php
 │ │ ├── RolePolicy.php
@@ -236,7 +299,9 @@ MasterPOS/
 │ │ ├── SalePolicy.php
 │ │ ├── InvoicePolicy.php
 │ │ ├── HoldOrderPolicy.php
-│ │ └── ExpensePolicy.php
+│ │ ├── ExpensePolicy.php
+│ │ ├── InvestmentPolicy.php
+│ │ └── ProfitDistributionPolicy.php
 │ ├── Providers/
 │ │ └── AppServiceProvider.php
 │ └── Services/
@@ -262,13 +327,16 @@ MasterPOS/
 │ ├── Step10PermissionSeeder.php
 │ ├── Step11PermissionSeeder.php
 │ ├── Step12PermissionSeeder.php
+│ ├── Step13PermissionSeeder.php
+│ ├── Step14PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
 ├── resources/
 │ ├── views/
 │ │ └── pdf/
-│ │ └── invoice.blade.php
+│ │ ├── invoice.blade.php
+│ │ └── investments_export.blade.php
 │ └── js/
 │ ├── Pages/
 │ │ └── Backend/
@@ -348,13 +416,28 @@ MasterPOS/
 │ │ │ └── \_components/
 │ │ │ ├── InvoiceTable.tsx
 │ │ │ └── InvoicePrintView.tsx
-│ │ └── Expenses/
+│ │ ├── Expenses/
+│ │ │ ├── Index.tsx
+│ │ │ ├── Show.tsx
+│ │ │ └── \_components/
+│ │ │ ├── ExpenseStatsCards.tsx
+│ │ │ ├── ExpenseTable.tsx
+│ │ │ └── ExpenseModal.tsx
+│ │ ├── Investments/
+│ │ │ ├── Index.tsx
+│ │ │ ├── Show.tsx
+│ │ │ └── \_components/
+│ │ │ ├── InvestmentStatsCards.tsx
+│ │ │ ├── InvestmentTable.tsx
+│ │ │ └── InvestmentModal.tsx
+│ │ └── ProfitDistributions/
 │ │ ├── Index.tsx
+│ │ ├── Create.tsx
+│ │ ├── Edit.tsx
 │ │ ├── Show.tsx
 │ │ └── \_components/
-│ │ ├── ExpenseStatsCards.tsx
-│ │ ├── ExpenseTable.tsx
-│ │ └── ExpenseModal.tsx
+│ │ ├── ProfitDistributionStatsCards.tsx
+│ │ └── ProfitDistributionTable.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -367,7 +450,8 @@ MasterPOS/
 │ ├── user.d.ts
 │ ├── role.d.ts
 │ ├── log.d.ts
-│ └── notification.d.ts
+│ ├── notification.d.ts
+│ └── profit-distribution.d.ts
 └── routes/web.php
 
 ---
@@ -500,16 +584,65 @@ Reference format: HO-YYYYMMDD-XXXX (e.g. HO-20250705-0001)
 
 ### Step 12 Tables
 
-expenses → id, reference_no(unique), title(varchar),
-expense_category_id(FK expense_categories restrict),
-payment_method_id(FK payment_methods nullable nullOnDelete),
-amount(decimal 10,2), expense_date(date),
+expenses → id, expense_category_id(FK restrict),
+payment_method_id(FK nullable nullOnDelete),
+title, amount(dec10,2), expense_date(date),
 reference(varchar nullable), attachment(varchar nullable),
-note(text nullable), created_by(FK users restrict),
+note(text nullable), status(enum: pending/approved/rejected
+default:pending), created_by(FK users restrict),
 updated_by(FK users nullable nullOnDelete),
 timestamps, deleted_at
 
-Reference format: EX-YYYYMMDD-XXXX (e.g. EX-20260706-0001)
+### Step 13 Tables
+
+investments → id, investment_type_id(FK restrict),
+title(varchar), investor_name(varchar),
+amount(decimal 10,2), investment_date(date),
+reference(varchar nullable), attachment(varchar nullable),
+note(text nullable), status(enum: active/withdrawn default:active),
+created_by(FK users restrict),
+updated_by(FK users nullable nullOnDelete),
+timestamps, deleted_at
+
+Attachment stored at: storage/app/public/investments/
+Accepted types: jpg, jpeg, png, gif, webp, pdf, doc, docx, xlsx (max 5MB)
+
+### Step 14 Tables
+
+profit_distributions → id, distribution_no(varchar unique),
+title(varchar), distribution_date(date),
+period_start(date), period_end(date),
+total_revenue(dec10,2 default 0), total_cogs(dec10,2 default 0),
+total_expenses(dec10,2 default 0), total_investment(dec10,2 default 0),
+gross_profit(dec10,2 default 0), net_profit(dec10,2 default 0),
+distribution_percent(dec5,2 default 100),
+distributable_amount(dec10,2 default 0),
+status(enum: draft/approved/distributed default:draft),
+is_locked(bool default false),
+note(text nullable),
+approved_by(FK users nullable nullOnDelete),
+approved_at(timestamp nullable),
+distributed_by(FK users nullable nullOnDelete),
+distributed_at(timestamp nullable),
+created_by(FK users restrict),
+updated_by(FK users nullable nullOnDelete),
+timestamps, deleted_at
+
+profit_distribution_items → id,
+profit_distribution_id(FK profit_distributions cascadeDelete),
+investment_id(FK investments restrict),
+investor_name(varchar), investment_title(varchar),
+investment_type(varchar), invested_amount(dec10,2),
+share_percent(dec8,4), share_amount(dec10,2),
+payment_status(enum: pending/paid/cancelled default:pending),
+payment_method(varchar nullable),
+transaction_reference(varchar nullable),
+paid_by(FK users nullable nullOnDelete),
+paid_at(timestamp nullable),
+note(text nullable), timestamps
+❌ NO deleted_at — cascadeOnDelete from parent
+
+Distribution No format: PD-YYYY-000001
 
 ---
 
@@ -621,13 +754,44 @@ POST /backend/pos/hold-orders/{id}/release → backend.pos.hold-orders.release
 
 ### Step 12 Routes
 
-POST /backend/expenses/bulk-action → backend.expenses.bulk-action
-POST /backend/expenses/{id}/restore → backend.expenses.restore
 GET /backend/expenses → backend.expenses.index
 POST /backend/expenses → backend.expenses.store
 GET /backend/expenses/{expense} → backend.expenses.show
 PUT /backend/expenses/{expense} → backend.expenses.update
 DELETE /backend/expenses/{expense} → backend.expenses.destroy
+POST /backend/expenses/{id}/restore → backend.expenses.restore
+
+### Step 13 Routes
+
+GET /backend/investments/export/{format} → backend.investments.export
+POST /backend/investments/{id}/restore → backend.investments.restore
+GET /backend/investments → backend.investments.index
+POST /backend/investments → backend.investments.store
+GET /backend/investments/{investment} → backend.investments.show
+PUT /backend/investments/{investment} → backend.investments.update
+DELETE /backend/investments/{investment} → backend.investments.destroy
+
+Note: export + restore declared BEFORE resource() to prevent
+{investment} wildcard swallowing those segments.
+
+### Step 14 Routes
+
+GET /backend/profit-distributions/calculate-preview → backend.profit-distributions.calculate-preview
+POST /backend/profit-distributions/{id}/approve → backend.profit-distributions.approve
+POST /backend/profit-distributions/{id}/distribute → backend.profit-distributions.distribute
+POST /backend/profit-distributions/{id}/restore → backend.profit-distributions.restore
+PATCH /backend/profit-distributions/{profit_distribution}/items/{item}/payment
+→ backend.profit-distributions.items.payment
+GET /backend/profit-distributions → backend.profit-distributions.index
+GET /backend/profit-distributions/create → backend.profit-distributions.create
+POST /backend/profit-distributions → backend.profit-distributions.store
+GET /backend/profit-distributions/{profit_distribution} → backend.profit-distributions.show
+GET /backend/profit-distributions/{profit_distribution}/edit → backend.profit-distributions.edit
+PUT /backend/profit-distributions/{profit_distribution} → backend.profit-distributions.update
+DELETE /backend/profit-distributions/{profit_distribution} → backend.profit-distributions.destroy
+
+Note: calculate-preview, approve, distribute, restore, items.payment
+all declared BEFORE resource() to prevent wildcard swallowing.
 
 ---
 
@@ -684,6 +848,18 @@ hold_order.view, hold_order.create, hold_order.edit, hold_order.delete
 
 expense.view, expense.create, expense.edit, expense.delete, expense.restore
 
+### Step 13
+
+investment.view, investment.create, investment.edit, investment.delete, investment.restore
+
+### Step 14
+
+profit_distribution.view, profit_distribution.create, profit_distribution.edit,
+profit_distribution.delete, profit_distribution.restore, profit_distribution.approve
+
+Staff: profit_distribution.view only
+Admin: all
+
 ---
 
 ## SEEDERS RUN
@@ -698,7 +874,9 @@ expense.view, expense.create, expense.edit, expense.delete, expense.restore
 - Step09PermissionSeeder → Admin (all), Staff (sale.view + sale.create)
 - Step10PermissionSeeder → Admin (all), Staff (invoice.view only)
 - Step11PermissionSeeder → Admin (all), Staff (view + create + edit)
-- Step12PermissionSeeder → Admin (all), Staff (view + create)
+- Step12PermissionSeeder → Admin (all), Staff (expense.view only)
+- Step13PermissionSeeder → Admin (all), Staff (investment.view only)
+- Step14PermissionSeeder → Admin (all), Staff (profit_distribution.view only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -717,7 +895,9 @@ ProductCategoryPolicy, UnitPolicy, ProductPolicy,
 NotificationPolicy (model: DatabaseNotification::class),
 SupplierPolicy, PurchasePolicy, CustomerPolicy, SalePolicy,
 HoldOrderPolicy (model: HoldOrder::class),
-ExpensePolicy (model: Expense::class)
+ExpensePolicy (model: Expense::class),
+InvestmentPolicy (model: Investment::class),
+ProfitDistributionPolicy (model: ProfitDistribution::class)
 Event listener: Login::class → RecordLoginHistory::class
 Note: InvoicePolicy NOT registered here — InvoiceController uses
 abort_unless(hasPermissionTo()) directly
@@ -730,6 +910,8 @@ Note: pass $model object, not $model->id
 ### confirm.ts
 
 Usage: const ok = await confirmAction({ title, text, confirmButtonText })
+Note: In Index page handlers use .then() pattern — NOT async/await
+(Inertia router callback compatibility)
 
 ### NotificationController.php
 
@@ -741,41 +923,6 @@ Usage: const ok = await confirmAction({ title, text, confirmButtonText })
 
 Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8)
 
-### ExpenseController.php
-
-- Uses AuthorizesRequests trait + $this->authorize()
-- index(): paginate + 5 filters (search/category/payment/date range/amount range)
-    - stats (today/this_month/this_year/all_time) + eager load category+paymentMethod+creator
-- store(): FormData upload, generateReference(), ActivityLogService with title+amount+category
-- show(): eager load category+paymentMethod+creator+updater, passes categories+paymentMethods
-  for Edit modal on Show page
-- update(): swap attachment (delete old → store new), remove_attachment flag support
-- destroy(): soft delete
-- restore(): onlyTrashed()->findOrFail()
-- bulkAction(): bulk delete/restore via hasPermissionTo()
-- Export hook: commented stub for future CSV export via fputcsv()
-
-### Expense.php
-
-- generateReference() → EX-YYYYMMDD-XXXX format
-- attachment_url accessor → asset('storage/...') or null
-- attachment_mime accessor → MIME type string from file extension
-- Relations: category, paymentMethod (withTrashed), creator (withTrashed),
-  updater (withTrashed)
-- SoftDeletes trait ✅
-
-### ExpenseCategory.php
-
-- $table = 'expense_categories' (explicit — old migration had typo 'expense_categoryes')
-- NO SoftDeletes trait (deleted_at column exists in table but not used by model)
-
-### Expenses/Show.tsx
-
-- 3-col layout: left 2 cols (core info + attachment), right 1 col (system info + quick stats)
-- Attachment: image → inline preview; pdf → red icon; doc → blue icon; all → download link
-- Edit modal opens ExpenseModal with full expense data
-- Delete → confirmAction → router.delete → redirect to index
-
 ### HoldOrderController.php
 
 - Uses AuthorizesRequests trait + $this->authorize() — NOT abort_unless()
@@ -785,11 +932,80 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - item map includes: stock_qty, unit (product.unit.name string), image (first image_path)
 - store() → DB transaction, creates hold_order + items, ActivityLogService::log
 - update() → $this->authorize('edit', $holdOrder) — 'edit' passed explicitly
-  because policy method is named edit(), not update()
+  because policy method is named edit(), not update(). Laravel maps authorize('update') → update()
+  automatically, but our policy has no update() method — it has edit().
+  Passing the wrong ability name causes silent 403.
 - update() → replaces all items (delete + recreate) inside DB transaction
 - resume() → markAsProcessing(), returns full item data for cart restore
 - release() → markAsActive() (checkout cancelled or failed)
 - destroy() → ActivityLogService::log() BEFORE delete(), then hard delete
+
+### InvestmentController.php
+
+- Uses Gate::allows() + abort_unless() — NOT $this->authorize()
+- Policy registered: Gate::policy(Investment::class, InvestmentPolicy::class)
+- index() appends attachment_url accessor via $investment->append(['attachment_url'])
+  on paginator collection — required so edit modal can preview existing file
+- show() passes 'investmentTypes' prop for the edit modal dropdown
+- export() handles csv (native StreamedResponse), excel (maatwebsite),
+  pdf (dompdf + resources/views/pdf/investments_export.blade.php)
+- buildExportQuery() private method — shared filter logic for all 3 formats
+- update() handles remove_attachment flag via elseif branch
+
+### Investment.php
+
+- attachment_url accessor: returns asset('storage/' . $this->attachment)
+- attachment_extension accessor: pathinfo PATHINFO_EXTENSION
+- isAttachmentImage(): checks extension against jpg/jpeg/png/gif/webp
+- Relations: investmentType, creator (withTrashed), updater (withTrashed)
+- Scopes: scopeActive(), scopeWithdrawn()
+- SoftDeletes trait — has deleted_at
+
+### InvestmentExport.php (app/Exports/)
+
+- Implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+- Constructor receives Request — applies same filter logic as index()
+- Requires: composer require maatwebsite/excel
+
+### ProfitDistributionController.php
+
+- Uses optional(Auth::user())->can() — NOT hasPermissionTo() directly
+- Policy registered: Gate::policy(ProfitDistribution::class, ProfitDistributionPolicy::class)
+- calculatePreview() → GET + JSON; sums ALL expenses (no status filter);
+  COGS via JOIN sale_items × products.average_cost
+- store() → DB::transaction() wraps generateDistributionNo() + insert
+- update() → items delete + recreate (same as HoldOrder pattern)
+- approve() → calls $distribution->approve(Auth::id()) — sets is_locked=true
+- distribute() → calls $distribution->distribute(Auth::id())
+- updateItemPayment() → PATCH; only pending→paid or pending→cancelled
+- show() → appends paid_items_count, pending_items_count, total_paid_amount
+- restore() → onlyTrashed()->findOrFail() — Rule #14
+
+### ProfitDistribution.php
+
+- generateDistributionNo() → PD-YYYY-000001; withTrashed() included;
+  must be called inside DB::transaction() with lockForUpdate()
+- approve() → status=approved, is_locked=true, approved_by, approved_at
+- distribute() → status=distributed, distributed_by, distributed_at
+- Accessors: paid_items_count, pending_items_count, total_paid_amount
+  (must be appended in controller via ->append([...]))
+- Relations: items, creator/updater/approver/distributor (all withTrashed)
+- SoftDeletes — has deleted_at
+
+### ProfitDistributionItem.php
+
+- No SoftDeletes — cascadeOnDelete from parent
+- markAsPaid(userId, method, reference) — payment_status=paid + audit
+- markAsCancelled() — payment_status=cancelled
+- investment() relation → withTrashed() for ledger JOIN compatibility
+- paidByUser() relation → withTrashed()
+
+### Edit.tsx (ProfitDistributions)
+
+- toDateInputValue() helper — slices ISO datetime to YYYY-MM-DD for
+  <input type="date"> compatibility (Laravel date cast quirk)
+- Recalculate button replaces all snapshot fields + items together
+- is_locked guard at top — renders Lock screen instead of form
 
 ### SaleController.php
 
@@ -803,6 +1019,18 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - No policy registration — uses abort_unless(hasPermissionTo()) directly
 - withTrashed() on all queries — voided invoices still visible
 - pdf() → DomPDF download via resources/views/pdf/invoice.blade.php
+
+### pdf/invoice.blade.php
+
+- DejaVu Sans font, public_path() for logo, flexbox/tables only (no Grid)
+
+### SaleStockService.php
+
+- applyStock() / reverseStock() / reApplyStock() / checkLowStock()
+
+### SalePolicy.php
+
+- delete() and restore() have NO model instance parameter
 
 ---
 
@@ -821,11 +1049,11 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 10: Invoice & Receipt ✅
 - Step 11: Hold Orders ✅
 - Step 12: Expense Management ✅
+- Step 13: Investment Management ✅
+- Step 14: Profit Distribution ✅
 
 ## PENDING MODULES
 
-- Step 13: Investment Management
-- Step 14: Profit Distribution
 - Step 15: Dashboard & Analytics
 - Step 16: Reports
 - Step 17: Security Hardening
@@ -834,4 +1062,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 13 — Investment Management
+Step 15 — Dashboard & Analytics

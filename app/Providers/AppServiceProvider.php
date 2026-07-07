@@ -14,6 +14,7 @@ use App\Models\HoldOrder;
 use App\Models\Investment;
 use App\Models\InvestmentType;
 use App\Models\PaymentMethod;
+use App\Models\ProfitDistribution;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
@@ -26,6 +27,7 @@ use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentMethodPolicy;
+use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
 use App\Policies\SalePolicy;
 use App\Policies\SettingPolicy;
@@ -81,5 +83,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 13 Policies ─────────────────────────────────────────────────
         Gate::policy(Investment::class, InvestmentPolicy::class);
+
+        // ─── Step 13 Policies ─────────────────────────────────────────────────
+        Gate::policy(ProfitDistribution::class, ProfitDistributionPolicy::class);
     }
 }

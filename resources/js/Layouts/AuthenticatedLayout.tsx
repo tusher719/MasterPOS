@@ -35,6 +35,7 @@ import {
     CheckCheck,
     Truck,
     ShoppingBag,
+    PieChart,
 } from "lucide-react";
 import { Notification, NotificationShared } from "@/types/notification";
 
@@ -173,7 +174,7 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
-        label: "Customerss",
+        label: "Customers",
         icon: Users,
         children: [
             {
@@ -229,13 +230,19 @@ const NAV_ITEMS: NavItem[] = [
     },
     {
         label: "Investments",
-        icon: FileText,
+        icon: TrendingUp,
         children: [
             {
                 label: "Investments",
                 icon: TrendingUp,
                 href: "backend.investments.index",
                 active: "backend.investments.*",
+            },
+            {
+                label: "Profit Distributions",
+                icon: PieChart,
+                href: "backend.profit-distributions.index",
+                active: "backend.profit-distributions.*",
             },
         ],
     },
