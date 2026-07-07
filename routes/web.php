@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Backend\ActivityLogController;
 use App\Http\Controllers\Backend\CustomerController;
+use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
@@ -313,6 +314,16 @@ Route::middleware(['auth', 'verified'])
             ->name('profit-distributions.update');
         Route::delete('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'destroy'])
             ->name('profit-distributions.destroy');
+
+        // ─────────────────────────────────────────────────────────────
+        // Step 15 — Dashboard & Analytics
+        // data route declared BEFORE resource to prevent wildcard clash
+        // ─────────────────────────────────────────────────────────────
+        Route::get('dashboard/data', [DashboardController::class, 'data'])
+            ->name('dashboard.data');
+
+        Route::get('dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard.index');
 
     });
 

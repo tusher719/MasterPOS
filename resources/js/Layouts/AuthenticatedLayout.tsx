@@ -36,6 +36,7 @@ import {
     Truck,
     ShoppingBag,
     PieChart,
+    Gauge,
 } from "lucide-react";
 import { Notification, NotificationShared } from "@/types/notification";
 
@@ -55,6 +56,12 @@ const NAV_ITEMS: NavItem[] = [
         icon: LayoutDashboard,
         href: "dashboard",
         active: "dashboard*",
+    },
+    {
+        label: "Backend Dashboard",
+        icon: Gauge,
+        href: "backend.dashboard.index",
+        active: "backend.dashboard*",
     },
 
     // ── User Management group ──
