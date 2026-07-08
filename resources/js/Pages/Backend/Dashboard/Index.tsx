@@ -6,6 +6,8 @@ import PeriodFilter from "./_components/PeriodFilter";
 import FinancialSummary from "./_components/FinancialSummary";
 import SalesChart from "./_components/SalesChart";
 import SalesAnalytics from "./_components/SalesAnalytics";
+import ExpenseBreakdown from "./_components/ExpenseBreakdown";
+import SalesAnalyticsChart from "./_components/SalesAnalyticsChart";
 import InventoryPanel from "./_components/InventoryPanel";
 import CustomerAnalytics from "./_components/CustomerAnalytics";
 import ProductAnalytics from "./_components/ProductAnalytics";
@@ -280,23 +282,41 @@ export default function DashboardIndex() {
                     )}
                 </Section>
 
-                {/* ── Charts row ── */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                {/* ── Charts Row ── */}
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                    {/* Sales Chart */}
+                    <div className="xl:col-span-2">
                         <Section
-                            title="Sales & expense trend"
+                            title="Sales & Expense Trend"
                             loading={loading}
                         >
                             {data && <SalesChart charts={data.charts} />}
                         </Section>
                     </div>
-                    <div>
-                        <Section title="Sales analytics" loading={loading}>
+
+                    {/* Payment Overview */}
+                    <div className="xl:row-span-2">
+                        <Section title="Payment Overview" loading={loading}>
                             {data && (
                                 <SalesAnalytics
                                     analytics={data.sales_analytics}
-                                    charts={data.charts}
                                 />
+                            )}
+                        </Section>
+                    </div>
+
+                    {/* Expense Breakdown */}
+                    <div>
+                        <Section title="Expense Breakdown" loading={loading}>
+                            {data && <ExpenseBreakdown charts={data.charts} />}
+                        </Section>
+                    </div>
+
+                    {/* Sales Analytics Chart */}
+                    <div>
+                        <Section title="Sales Analytics" loading={loading}>
+                            {data && (
+                                <SalesAnalyticsChart charts={data.charts} />
                             )}
                         </Section>
                     </div>

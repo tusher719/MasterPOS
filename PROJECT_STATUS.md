@@ -8,7 +8,7 @@
 
 - Name: Master POS System
 - Version: v2.0
-- Current Step: Step 14 — Profit Distribution ✅ COMPLETE
+- Current Step: Step 15 — Dashboard & Analytics ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -25,6 +25,7 @@
 - Confirm dialog: SweetAlert2
 - Icons: lucide-react
 - PDF: barryvdh/laravel-dompdf
+- Charts: recharts (no install needed — bundled)
 
 ---
 
@@ -150,6 +151,21 @@
 47. ItemData / PreviewItem interfaces require index signature
     [key: string]: string | number | null — needed for TypeScript strict
     mode when items array is passed through Inertia router.post() payload.
+48. Dashboard uses a single AJAX endpoint GET /backend/dashboard/data
+    that returns ALL data in one response — no multiple fetch calls.
+    Frontend fetches via native fetch() with Accept: application/json.
+    Period filter triggers re-fetch; loading state shows Skeleton per Section.
+49. Dashboard chart granularity is auto: daily for ≤60 day ranges,
+    monthly for >60 days. recharts ComposedChart used for Sales trend
+    (Bar + Line), PieChart for payment breakdown and expense category.
+50. Dashboard ActivityLog::with('user:id,name') requires user() BelongsTo
+    relation on ActivityLog model with withTrashed() — add if missing.
+51. Dashboard components split into \_components/ — Index.tsx imports all,
+    passes typed props. All types exported from Index.tsx for reuse.
+52. NeedsAttention panel only renders when at least one count > 0 —
+    returns null otherwise to avoid empty amber box on healthy systems.
+53. Dashboard data route declared BEFORE resource routes to prevent
+    wildcard swallowing: route('backend.dashboard.data') must come first.
 
 ---
 
@@ -192,6 +208,15 @@
   pending → bg-amber-100 text-amber-700
   paid → bg-green-100 text-green-700
   cancelled → bg-red-100 text-red-700
+- Dashboard Section wrapper: rounded-lg border border-gray-200 bg-white
+  with border-b border-gray-100 px-5 py-3 header (text-sm font-medium
+  text-gray-700) and p-5 body
+- Dashboard NeedsAttention: amber-50 bg, amber-200 border, pill badges
+  with amber-600 count bubble — hidden when all counts are zero
+- Dashboard PeriodFilter: segmented pill group (indigo-600 active) +
+  collapsible custom date range inputs
+- Dashboard KPI cards: left-colored border accent per category
+  (indigo=revenue, red=expense, green=profit, amber=sales)
 
 ---
 
@@ -204,6 +229,7 @@ MasterPOS/
 │ ├── Http/
 │ │ ├── Controllers/
 │ │ │ └── Backend/
+│ │ │ ├── DashboardController.php
 │ │ │ ├── UserController.php
 │ │ │ ├── RoleController.php
 │ │ │ ├── LoginHistoryController.php
@@ -255,7 +281,7 @@ MasterPOS/
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
-│ │ ├── ActivityLog.php
+│ │ ├── ActivityLog.php ← must have user() BelongsTo relation
 │ │ ├── BusinessSetting.php
 │ │ ├── PaymentMethod.php
 │ │ ├── ExpenseCategory.php
@@ -340,6 +366,22 @@ MasterPOS/
 │ └── js/
 │ ├── Pages/
 │ │ └── Backend/
+│ │ ├── Dashboard/
+│ │ │ ├── Index.tsx
+│ │ │ └── \_components/
+│ │ │ ├── PeriodFilter.tsx
+│ │ │ ├── FinancialSummary.tsx
+│ │ │ ├── SalesChart.tsx
+│ │ │ ├── SalesAnalytics.tsx
+│ │ │ ├── SalesAnalyticsChart.tsx
+│ │ │ ├── ExpenseBreakdown.tsx
+│ │ │ ├── InventoryPanel.tsx
+│ │ │ ├── CustomerAnalytics.tsx
+│ │ │ ├── ProductAnalytics.tsx
+│ │ │ ├── NeedsAttention.tsx
+│ │ │ ├── RecentActivities.tsx
+│ │ │ ├── NotificationsPanel.tsx
+│ │ │ └── RecentSales.tsx
 │ │ ├── Users/Index.tsx
 │ │ ├── Roles/Index.tsx
 │ │ ├── LoginHistories/Index.tsx
@@ -644,6 +686,10 @@ note(text nullable), timestamps
 
 Distribution No format: PD-YYYY-000001
 
+### Step 15 Tables
+
+No new tables — Dashboard aggregates from all existing tables.
+
 ---
 
 ## ROUTES — REGISTERED
@@ -771,9 +817,6 @@ GET /backend/investments/{investment} → backend.investments.show
 PUT /backend/investments/{investment} → backend.investments.update
 DELETE /backend/investments/{investment} → backend.investments.destroy
 
-Note: export + restore declared BEFORE resource() to prevent
-{investment} wildcard swallowing those segments.
-
 ### Step 14 Routes
 
 GET /backend/profit-distributions/calculate-preview → backend.profit-distributions.calculate-preview
@@ -790,8 +833,13 @@ GET /backend/profit-distributions/{profit_distribution}/edit → backend.profit-
 PUT /backend/profit-distributions/{profit_distribution} → backend.profit-distributions.update
 DELETE /backend/profit-distributions/{profit_distribution} → backend.profit-distributions.destroy
 
-Note: calculate-preview, approve, distribute, restore, items.payment
-all declared BEFORE resource() to prevent wildcard swallowing.
+### Step 15 Routes
+
+GET /backend/dashboard → backend.dashboard.index
+GET /backend/dashboard/data → backend.dashboard.data
+
+Note: data route declared BEFORE index to prevent any wildcard clash.
+Both routes have no permission gate — accessible to all authenticated users.
 
 ---
 
@@ -857,8 +905,9 @@ investment.view, investment.create, investment.edit, investment.delete, investme
 profit_distribution.view, profit_distribution.create, profit_distribution.edit,
 profit_distribution.delete, profit_distribution.restore, profit_distribution.approve
 
-Staff: profit_distribution.view only
-Admin: all
+### Step 15
+
+No new permissions — Dashboard accessible to all authenticated users.
 
 ---
 
@@ -932,9 +981,6 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - item map includes: stock_qty, unit (product.unit.name string), image (first image_path)
 - store() → DB transaction, creates hold_order + items, ActivityLogService::log
 - update() → $this->authorize('edit', $holdOrder) — 'edit' passed explicitly
-  because policy method is named edit(), not update(). Laravel maps authorize('update') → update()
-  automatically, but our policy has no update() method — it has edit().
-  Passing the wrong ability name causes silent 403.
 - update() → replaces all items (delete + recreate) inside DB transaction
 - resume() → markAsProcessing(), returns full item data for cart restore
 - release() → markAsActive() (checkout cancelled or failed)
@@ -945,10 +991,8 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Uses Gate::allows() + abort_unless() — NOT $this->authorize()
 - Policy registered: Gate::policy(Investment::class, InvestmentPolicy::class)
 - index() appends attachment_url accessor via $investment->append(['attachment_url'])
-  on paginator collection — required so edit modal can preview existing file
 - show() passes 'investmentTypes' prop for the edit modal dropdown
-- export() handles csv (native StreamedResponse), excel (maatwebsite),
-  pdf (dompdf + resources/views/pdf/investments_export.blade.php)
+- export() handles csv (native), excel (maatwebsite), pdf (dompdf)
 - buildExportQuery() private method — shared filter logic for all 3 formats
 - update() handles remove_attachment flag via elseif branch
 
@@ -971,41 +1015,55 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 - Uses optional(Auth::user())->can() — NOT hasPermissionTo() directly
 - Policy registered: Gate::policy(ProfitDistribution::class, ProfitDistributionPolicy::class)
-- calculatePreview() → GET + JSON; sums ALL expenses (no status filter);
-  COGS via JOIN sale_items × products.average_cost
+- calculatePreview() → GET + JSON; sums ALL expenses (no status filter)
 - store() → DB::transaction() wraps generateDistributionNo() + insert
-- update() → items delete + recreate (same as HoldOrder pattern)
-- approve() → calls $distribution->approve(Auth::id()) — sets is_locked=true
-- distribute() → calls $distribution->distribute(Auth::id())
+- update() → items delete + recreate
+- approve() → $distribution->approve(Auth::id()) — sets is_locked=true
+- distribute() → $distribution->distribute(Auth::id())
 - updateItemPayment() → PATCH; only pending→paid or pending→cancelled
 - show() → appends paid_items_count, pending_items_count, total_paid_amount
-- restore() → onlyTrashed()->findOrFail() — Rule #14
+- restore() → onlyTrashed()->findOrFail()
 
 ### ProfitDistribution.php
 
-- generateDistributionNo() → PD-YYYY-000001; withTrashed() included;
-  must be called inside DB::transaction() with lockForUpdate()
-- approve() → status=approved, is_locked=true, approved_by, approved_at
-- distribute() → status=distributed, distributed_by, distributed_at
+- generateDistributionNo() → PD-YYYY-000001; withTrashed(); DB::transaction()
+- approve() / distribute() — set status + audit fields
 - Accessors: paid_items_count, pending_items_count, total_paid_amount
-  (must be appended in controller via ->append([...]))
-- Relations: items, creator/updater/approver/distributor (all withTrashed)
 - SoftDeletes — has deleted_at
 
 ### ProfitDistributionItem.php
 
 - No SoftDeletes — cascadeOnDelete from parent
-- markAsPaid(userId, method, reference) — payment_status=paid + audit
-- markAsCancelled() — payment_status=cancelled
-- investment() relation → withTrashed() for ledger JOIN compatibility
-- paidByUser() relation → withTrashed()
+- markAsPaid() / markAsCancelled()
+- investment() → withTrashed(); paidByUser() → withTrashed()
 
-### Edit.tsx (ProfitDistributions)
+### DashboardController.php
 
-- toDateInputValue() helper — slices ISO datetime to YYYY-MM-DD for
-  <input type="date"> compatibility (Laravel date cast quirk)
-- Recalculate button replaces all snapshot fields + items together
-- is_locked guard at top — renders Lock screen instead of form
+- index() → Inertia::render('Backend/Dashboard/Index') — no props
+- data() → single JSON endpoint, all dashboard data in one response
+- Period options: today / this_week / this_month / this_year / custom
+- Previous period auto-calculated: equal length window before $from
+- financialKpis() — revenue, COGS, expenses, profit, today snapshot,
+  dues, investments, AOV, profit margin, period comparison %
+- salesAnalytics() — payment method breakdown + status breakdown
+- inventoryAnalytics() — total value, SKU, low/out-of-stock counts
+- customerAnalytics() — total, new (period), returning (≥2 sales)
+- productAnalytics() — fast moving, slow moving, highest profit (top 5 each)
+- chartData() — daily (≤60d) or monthly (>60d) granularity auto-switch
+- recentSales() — latest 10, LEFT JOIN customers
+- topProducts() / topCustomers() — period-scoped, limit 5
+- lowStockProducts() — stock_qty > 0 AND ≤ low_stock_threshold, limit 10
+- neverSoldProducts() — LEFT JOIN sale_items WHERE NULL, limit 10
+- needsAttention() — 6 counts: low stock, out of stock, sales due,
+  purchase due, draft distributions, unread notifications
+- recentActivities() — ActivityLog with('user:id,name'), latest 10
+- recentNotifications() — notifications table for Auth::id(), latest 8
+- All queries: whereNull('deleted_at') safe
+
+### ActivityLog.php
+
+- MUST have: user() BelongsTo relation → withTrashed()
+  (required by DashboardController::recentActivities())
 
 ### SaleController.php
 
@@ -1023,14 +1081,6 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 ### pdf/invoice.blade.php
 
 - DejaVu Sans font, public_path() for logo, flexbox/tables only (no Grid)
-
-### SaleStockService.php
-
-- applyStock() / reverseStock() / reApplyStock() / checkLowStock()
-
-### SalePolicy.php
-
-- delete() and restore() have NO model instance parameter
 
 ---
 
@@ -1051,10 +1101,10 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 12: Expense Management ✅
 - Step 13: Investment Management ✅
 - Step 14: Profit Distribution ✅
+- Step 15: Dashboard & Analytics ✅
 
 ## PENDING MODULES
 
-- Step 15: Dashboard & Analytics
 - Step 16: Reports
 - Step 17: Security Hardening
 - Step 18: Performance Optimization
@@ -1062,4 +1112,4 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ## NEXT STEP
 
-Step 15 — Dashboard & Analytics
+Step 16 — Reports
