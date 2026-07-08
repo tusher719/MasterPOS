@@ -35,7 +35,7 @@ class ExpenseCategoryController extends Controller
             'expense_category',
             'created',
             'Expense category created: ' . $category->name,
-            $category->id,
+            $category,              // ✅ object, id না
             $category->toArray()
         );
 
@@ -47,10 +47,9 @@ class ExpenseCategoryController extends Controller
         $expenseCategory->update($request->validated());
 
         ActivityLogService::log(
-            'expense_category',
-            'updated',
+            'expense_category', 'updated',
             'Expense category updated: ' . $expenseCategory->name,
-            $expenseCategory->id,
+            $expenseCategory,        // ✅ object
             $request->validated()
         );
 
@@ -64,10 +63,9 @@ class ExpenseCategoryController extends Controller
         $expenseCategory->delete();
 
         ActivityLogService::log(
-            'expense_category',
-            'deleted',
+            'expense_category', 'deleted',
             'Expense category deleted: ' . $expenseCategory->name,
-            $expenseCategory->id,
+            $expenseCategory,        // ✅ object
             ['name' => $expenseCategory->name]
         );
 

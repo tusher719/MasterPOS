@@ -20,6 +20,7 @@ use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
 use App\Http\Controllers\Backend\PurchaseController;
 use App\Http\Controllers\Backend\PurchasePaymentController;
+use App\Http\Controllers\Backend\ReportController;
 use App\Http\Controllers\Backend\SaleController;
 use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
@@ -324,6 +325,28 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('dashboard', [DashboardController::class, 'index'])
             ->name('dashboard.index');
+
+        // ── Step 16: Reports ──────────────────────────────────────────────────────────
+        // Export route BEFORE named report routes to prevent {type} swallowing segments
+        Route::get('/reports/{type}/export/{fmt}', [ReportController::class, 'export'])
+            ->name('reports.export');
+
+        Route::get('/reports',                [ReportController::class, 'index'])
+            ->name('reports.index');
+        Route::get('/reports/sales',          [ReportController::class, 'sales'])
+            ->name('reports.sales');
+        Route::get('/reports/purchases',      [ReportController::class, 'purchases'])
+            ->name('reports.purchases');
+        Route::get('/reports/expenses',       [ReportController::class, 'expenses'])
+            ->name('reports.expenses');
+        Route::get('/reports/profit-loss',    [ReportController::class, 'profitLoss'])
+            ->name('reports.profit-loss');
+        Route::get('/reports/inventory',      [ReportController::class, 'inventory'])
+            ->name('reports.inventory');
+        Route::get('/reports/customer-ledger',[ReportController::class, 'customerLedger'])
+            ->name('reports.customer-ledger');
+        Route::get('/reports/investments',    [ReportController::class, 'investments'])
+            ->name('reports.investments');
 
     });
 

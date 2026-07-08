@@ -37,6 +37,7 @@ import {
     ShoppingBag,
     PieChart,
     Gauge,
+    ScrollText,
 } from "lucide-react";
 import { Notification, NotificationShared } from "@/types/notification";
 
@@ -253,10 +254,21 @@ const NAV_ITEMS: NavItem[] = [
             },
         ],
     },
+    {
+        label: "Reports",
+        icon: BarChart3,
+        children: [
+            {
+                label: "Reports",
+                icon: ScrollText,
+                href: "backend.reports.index",
+                active: "backend.reports.index*",
+            },
+        ],
+    },
 
     // ── Placeholder / not-yet-implemented items ──
     { label: "Orders", icon: FileText, active: "backend.orders.*" },
-    { label: "Reports", icon: BarChart3, active: "backend.reports.*" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
