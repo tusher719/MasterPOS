@@ -8,7 +8,7 @@
 
 - Name: Master POS System
 - Version: v2.0
-- Current Step: Step 15 — Dashboard & Analytics ✅ COMPLETE
+- Current Step: Step 16 — Reports ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
 - Project Path: D:/xampp/htdocs/Laravel_12/MasterPOS
 
@@ -166,6 +166,49 @@
     returns null otherwise to avoid empty amber box on healthy systems.
 53. Dashboard data route declared BEFORE resource routes to prevent
     wildcard swallowing: route('backend.dashboard.data') must come first.
+54. Reports use ReportController — single controller, 7 report methods
+    - 1 export() dispatcher. No separate export controller.
+55. Report export() method handles profit-loss PDF separately —
+    array_merge() would nest $summary inside data; profit-loss PDF needs
+    $summary and $expenseByCategory at top level.
+56. expenses table has NO status column — never select/filter by
+    expenses.status in any query. Rule 44 confirms no approval workflow.
+57. products table FK to categories is 'category_id' NOT
+    'product_category_id' — always use products.category_id in raw
+    DB::table() joins for inventory queries.
+58. ReportController uses Gate::allows() + abort_unless() pattern
+    (NOT Auth::user()->hasPermissionTo()) — consistent with
+    InvestmentController pattern.
+59. dateRange() helper uses $request->filled() not $request->input()
+    with default — Laravel ConvertEmptyStringsToNull middleware converts
+    empty strings to null, breaking input() fallback defaults.
+60. Report PDF templates use $rows as Laravel Collection — ->sum(),
+    ->count(), ->where() methods available directly in Blade without
+    extra variables. All 5 report PDFs follow same header/kpi/table
+    structure with DejaVu Sans font and flexbox layout (no CSS Grid).
+61. SecurityHeaders middleware applied globally via bootstrap/app.php
+    web stack. CSP allows: fonts.bunny.net, fonts.googleapis.com,
+    fonts.gstatic.com. Local env also allows localhost:5173 for Vite HMR.
+    IPv6 [::1] is NOT valid in CSP — vite.config.js must force
+    host: 'localhost' to prevent Vite binding to [::1].
+62. ValidateSortColumn middleware strips invalid sort_by and sort_order
+    query params — per-module allowlists prevent SQL injection via
+    orderBy() with user-supplied column names.
+63. ProfitDistribution.$fillable must NOT include: status, is_locked,
+    approved_by, approved_at, distributed_by, distributed_at.
+    These are set only via approve() and distribute() model methods.
+    ProfitDistributionItem.$fillable must NOT include: payment_status,
+    payment_method, transaction_reference, paid_by, paid_at.
+    These are set only via markAsPaid() and markAsCancelled() methods.
+64. Session security: SESSION_ENCRYPT=true, SESSION_HTTP_ONLY=true,
+    SESSION_SAME_SITE=lax, SESSION_SECURE_COOKIE=false (local HTTP).
+    Production: SESSION_SECURE_COOKIE=true, APP_DEBUG=false.
+65. Rate limiting applied to heavy/sensitive routes:
+    pos.sales.store → throttle:30,1
+    invoices.pdf → throttle:30,1
+    investments.export → throttle:20,1
+    reports.export → throttle:20,1
+    settings.logo → throttle:10,1
 
 ---
 
@@ -217,6 +260,13 @@
   collapsible custom date range inputs
 - Dashboard KPI cards: left-colored border accent per category
   (indigo=revenue, red=expense, green=profit, amber=sales)
+- Reports hub: 3-column card grid, each card is full <Link>, COLOR_MAP
+  object keeps Tailwind classes static to prevent PurgeCSS stripping
+- Report pages: back breadcrumb + print:hidden on filters/export bar,
+  print:block title block with period range for printed copy
+- Report KPI cards: border-l-4 accent color per metric category
+- Report tables: tfoot totals row recalculates from filtered array
+  (not summary props) for Inventory and CustomerLedger
 
 ---
 
@@ -251,7 +301,11 @@ MasterPOS/
 │ │ │ ├── HoldOrderController.php
 │ │ │ ├── ExpenseController.php
 │ │ │ ├── InvestmentController.php
-│ │ │ └── ProfitDistributionController.php
+│ │ │ ├── ProfitDistributionController.php
+│ │ │ └── ReportController.php
+│ │ ├── Middleware/
+│ │ │ ├── SecurityHeaders.php
+│ │ │ └── ValidateSortColumn.php
 │ │ └── Requests/
 │ │ └── Backend/
 │ │ ├── StoreUserRequest.php
@@ -281,7 +335,7 @@ MasterPOS/
 │ ├── Models/
 │ │ ├── User.php
 │ │ ├── LoginHistory.php
-│ │ ├── ActivityLog.php ← must have user() BelongsTo relation
+│ │ ├── ActivityLog.php
 │ │ ├── BusinessSetting.php
 │ │ ├── PaymentMethod.php
 │ │ ├── ExpenseCategory.php
@@ -355,6 +409,7 @@ MasterPOS/
 │ ├── Step12PermissionSeeder.php
 │ ├── Step13PermissionSeeder.php
 │ ├── Step14PermissionSeeder.php
+│ ├── Step16PermissionSeeder.php
 │ ├── UnitSeeder.php
 │ ├── ProductCategorySeeder.php
 │ └── NotificationSeeder.php
@@ -362,7 +417,13 @@ MasterPOS/
 │ ├── views/
 │ │ └── pdf/
 │ │ ├── invoice.blade.php
-│ │ └── investments_export.blade.php
+│ │ ├── investments_export.blade.php
+│ │ ├── report_sales.blade.php
+│ │ ├── report_purchases.blade.php
+│ │ ├── report_profit_loss.blade.php
+│ │ ├── report_customer_ledger.blade.php
+│ │ ├── report_investments.blade.php
+│ │ └── report_inventory.blade.php
 │ └── js/
 │ ├── Pages/
 │ │ └── Backend/
@@ -472,14 +533,26 @@ MasterPOS/
 │ │ │ ├── InvestmentStatsCards.tsx
 │ │ │ ├── InvestmentTable.tsx
 │ │ │ └── InvestmentModal.tsx
-│ │ └── ProfitDistributions/
+│ │ ├── ProfitDistributions/
+│ │ │ ├── Index.tsx
+│ │ │ ├── Create.tsx
+│ │ │ ├── Edit.tsx
+│ │ │ ├── Show.tsx
+│ │ │ └── \_components/
+│ │ │ ├── ProfitDistributionStatsCards.tsx
+│ │ │ └── ProfitDistributionTable.tsx
+│ │ └── Reports/
 │ │ ├── Index.tsx
-│ │ ├── Create.tsx
-│ │ ├── Edit.tsx
-│ │ ├── Show.tsx
+│ │ ├── Sales.tsx
+│ │ ├── Purchases.tsx
+│ │ ├── Expenses.tsx
+│ │ ├── ProfitLoss.tsx
+│ │ ├── Inventory.tsx
+│ │ ├── CustomerLedger.tsx
+│ │ ├── Investments.tsx
 │ │ └── \_components/
-│ │ ├── ProfitDistributionStatsCards.tsx
-│ │ └── ProfitDistributionTable.tsx
+│ │ ├── ReportFilters.tsx
+│ │ └── ExportBar.tsx
 │ ├── Components/shared/
 │ │ ├── DataTable.tsx
 │ │ └── Modal.tsx
@@ -531,6 +604,7 @@ products table actual column names (critical):
 - cost_price (NOT purchase_price, NOT buying_price)
 - stock_qty (NOT stock_quantity)
 - low_stock_threshold (NOT low_stock_alert)
+- category_id (NOT product_category_id) ← FK to product_categories
 - sale_price, is_active, deleted_at
 
 ### Step 05 Tables
@@ -584,6 +658,13 @@ address(text nullable), city(nullable), country(default Bangladesh),
 opening_balance(decimal 10,2 default 0), is_active(bool default true),
 timestamps, deleted_at
 
+Customer Opening Balance note:
+
+- opening_balance is for historical balances before using this POS only
+- It is NOT related to current orders or sales
+- Positive value = customer owes the business
+- Negative value = business owes the customer
+
 ### Step 09 Tables
 
 sales → id, reference_no(unique), customer_id(FK nullable nullOnDelete),
@@ -615,7 +696,7 @@ default:active), subtotal(dec10,2 default 0),
 discount(dec10,2 default 0), tax(dec10,2 default 0),
 grand_total(dec10,2 default 0), expires_at(timestamp nullable),
 created_by(FK users restrict), timestamps
-❌ NO deleted_at — hard delete only
+NO deleted_at — hard delete only
 
 hold_order_items → id, hold_order_id(FK hold_orders cascadeDelete),
 product_id(FK products restrict), quantity(int unsigned),
@@ -630,10 +711,11 @@ expenses → id, expense_category_id(FK restrict),
 payment_method_id(FK nullable nullOnDelete),
 title, amount(dec10,2), expense_date(date),
 reference(varchar nullable), attachment(varchar nullable),
-note(text nullable), status(enum: pending/approved/rejected
-default:pending), created_by(FK users restrict),
+note(text nullable),
+created_by(FK users restrict),
 updated_by(FK users nullable nullOnDelete),
 timestamps, deleted_at
+NO status column — expenses table has no approval workflow
 
 ### Step 13 Tables
 
@@ -682,13 +764,21 @@ transaction_reference(varchar nullable),
 paid_by(FK users nullable nullOnDelete),
 paid_at(timestamp nullable),
 note(text nullable), timestamps
-❌ NO deleted_at — cascadeOnDelete from parent
+NO deleted_at — cascadeOnDelete from parent
 
 Distribution No format: PD-YYYY-000001
 
 ### Step 15 Tables
 
 No new tables — Dashboard aggregates from all existing tables.
+
+### Step 16 Tables
+
+No new tables — Reports aggregate from all existing tables.
+
+### Step 17 Tables
+
+No new tables — Partnership Business Upgrade planning only.
 
 ---
 
@@ -838,8 +928,20 @@ DELETE /backend/profit-distributions/{profit_distribution} → backend.profit-di
 GET /backend/dashboard → backend.dashboard.index
 GET /backend/dashboard/data → backend.dashboard.data
 
-Note: data route declared BEFORE index to prevent any wildcard clash.
-Both routes have no permission gate — accessible to all authenticated users.
+### Step 16 Routes
+
+GET /backend/reports/{type}/export/{fmt} → backend.reports.export
+GET /backend/reports → backend.reports.index
+GET /backend/reports/sales → backend.reports.sales
+GET /backend/reports/purchases → backend.reports.purchases
+GET /backend/reports/expenses → backend.reports.expenses
+GET /backend/reports/profit-loss → backend.reports.profit-loss
+GET /backend/reports/inventory → backend.reports.inventory
+GET /backend/reports/customer-ledger → backend.reports.customer-ledger
+GET /backend/reports/investments → backend.reports.investments
+
+Note: export route declared BEFORE named report routes to prevent
+{type} wildcard swallowing named segments.
 
 ---
 
@@ -909,6 +1011,11 @@ profit_distribution.delete, profit_distribution.restore, profit_distribution.app
 
 No new permissions — Dashboard accessible to all authenticated users.
 
+### Step 16
+
+report.view, report.export
+Admin: both. Staff: report.view only.
+
 ---
 
 ## SEEDERS RUN
@@ -926,6 +1033,7 @@ No new permissions — Dashboard accessible to all authenticated users.
 - Step12PermissionSeeder → Admin (all), Staff (expense.view only)
 - Step13PermissionSeeder → Admin (all), Staff (investment.view only)
 - Step14PermissionSeeder → Admin (all), Staff (profit_distribution.view only)
+- Step16PermissionSeeder → Admin (all), Staff (report.view only)
 - BusinessSettingSeeder, PaymentMethodSeeder,
   ExpenseCategorySeeder, InvestmentTypeSeeder
 - UnitSeeder → pcs, kg, g, ltr, ml, mtr, box, dz
@@ -950,6 +1058,7 @@ ProfitDistributionPolicy (model: ProfitDistribution::class)
 Event listener: Login::class → RecordLoginHistory::class
 Note: InvoicePolicy NOT registered here — InvoiceController uses
 abort_unless(hasPermissionTo()) directly
+Note: ReportController has NO policy — uses Gate::allows() directly
 
 ### ActivityLogService.php
 
@@ -960,13 +1069,11 @@ Note: pass $model object, not $model->id
 
 Usage: const ok = await confirmAction({ title, text, confirmButtonText })
 Note: In Index page handlers use .then() pattern — NOT async/await
-(Inertia router callback compatibility)
 
 ### NotificationController.php
 
 - Uses direct DatabaseNotification query (not auth()->user()->notifications() relation)
-- Page prop name: 'notificationList' (not 'notifications') to avoid
-  collision with globally shared notifications prop from HandleInertiaRequests
+- Page prop name: 'notificationList' (not 'notifications')
 
 ### HandleInertiaRequests.php
 
@@ -974,113 +1081,79 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 
 ### HoldOrderController.php
 
-- Uses AuthorizesRequests trait + $this->authorize() — NOT abort_unless()
-- Policy registered in AppServiceProvider: Gate::policy(HoldOrder::class, HoldOrderPolicy::class)
-- index() returns JSON paginated (not Inertia) — drawer fetches via axios
-- index() + resume() eager load: 'customer', 'items.product.images', 'items.product.unit'
-- item map includes: stock_qty, unit (product.unit.name string), image (first image_path)
-- store() → DB transaction, creates hold_order + items, ActivityLogService::log
+- Uses AuthorizesRequests trait + $this->authorize()
 - update() → $this->authorize('edit', $holdOrder) — 'edit' passed explicitly
-- update() → replaces all items (delete + recreate) inside DB transaction
-- resume() → markAsProcessing(), returns full item data for cart restore
-- release() → markAsActive() (checkout cancelled or failed)
+- index() + resume() eager load: 'customer', 'items.product.images', 'items.product.unit'
 - destroy() → ActivityLogService::log() BEFORE delete(), then hard delete
 
 ### InvestmentController.php
 
-- Uses Gate::allows() + abort_unless() — NOT $this->authorize()
-- Policy registered: Gate::policy(Investment::class, InvestmentPolicy::class)
-- index() appends attachment_url accessor via $investment->append(['attachment_url'])
-- show() passes 'investmentTypes' prop for the edit modal dropdown
-- export() handles csv (native), excel (maatwebsite), pdf (dompdf)
-- buildExportQuery() private method — shared filter logic for all 3 formats
-- update() handles remove_attachment flag via elseif branch
+- Uses Gate::allows() + abort_unless()
+- index() appends attachment_url accessor
+- show() passes 'investmentTypes' prop
+- buildExportQuery() private method for shared filter logic
 
 ### Investment.php
 
-- attachment_url accessor: returns asset('storage/' . $this->attachment)
-- attachment_extension accessor: pathinfo PATHINFO_EXTENSION
-- isAttachmentImage(): checks extension against jpg/jpeg/png/gif/webp
-- Relations: investmentType, creator (withTrashed), updater (withTrashed)
-- Scopes: scopeActive(), scopeWithdrawn()
-- SoftDeletes trait — has deleted_at
+- attachment_url accessor, attachment_extension accessor, isAttachmentImage()
+- SoftDeletes trait
 
-### InvestmentExport.php (app/Exports/)
+### InvestmentExport.php
 
 - Implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
-- Constructor receives Request — applies same filter logic as index()
-- Requires: composer require maatwebsite/excel
 
 ### ProfitDistributionController.php
 
-- Uses optional(Auth::user())->can() — NOT hasPermissionTo() directly
-- Policy registered: Gate::policy(ProfitDistribution::class, ProfitDistributionPolicy::class)
-- calculatePreview() → GET + JSON; sums ALL expenses (no status filter)
-- store() → DB::transaction() wraps generateDistributionNo() + insert
-- update() → items delete + recreate
-- approve() → $distribution->approve(Auth::id()) — sets is_locked=true
-- distribute() → $distribution->distribute(Auth::id())
-- updateItemPayment() → PATCH; only pending→paid or pending→cancelled
-- show() → appends paid_items_count, pending_items_count, total_paid_amount
-- restore() → onlyTrashed()->findOrFail()
+- Uses optional(Auth::user())->can()
+- calculatePreview() sums ALL expenses (no status filter)
+- store() → DB::transaction() wraps generateDistributionNo()
+- approve() → sets is_locked=true
 
 ### ProfitDistribution.php
 
 - generateDistributionNo() → PD-YYYY-000001; withTrashed(); DB::transaction()
 - approve() / distribute() — set status + audit fields
-- Accessors: paid_items_count, pending_items_count, total_paid_amount
-- SoftDeletes — has deleted_at
+- $fillable excludes: status, is_locked, approved_by, approved_at,
+  distributed_by, distributed_at (set only via model methods)
 
 ### ProfitDistributionItem.php
 
-- No SoftDeletes — cascadeOnDelete from parent
-- markAsPaid() / markAsCancelled()
-- investment() → withTrashed(); paidByUser() → withTrashed()
+- $fillable excludes: payment_status, payment_method,
+  transaction_reference, paid_by, paid_at
+  (set only via markAsPaid() and markAsCancelled() model methods)
 
 ### DashboardController.php
 
-- index() → Inertia::render('Backend/Dashboard/Index') — no props
-- data() → single JSON endpoint, all dashboard data in one response
-- Period options: today / this_week / this_month / this_year / custom
-- Previous period auto-calculated: equal length window before $from
-- financialKpis() — revenue, COGS, expenses, profit, today snapshot,
-  dues, investments, AOV, profit margin, period comparison %
-- salesAnalytics() — payment method breakdown + status breakdown
-- inventoryAnalytics() — total value, SKU, low/out-of-stock counts
-- customerAnalytics() — total, new (period), returning (≥2 sales)
-- productAnalytics() — fast moving, slow moving, highest profit (top 5 each)
-- chartData() — daily (≤60d) or monthly (>60d) granularity auto-switch
-- recentSales() — latest 10, LEFT JOIN customers
-- topProducts() / topCustomers() — period-scoped, limit 5
-- lowStockProducts() — stock_qty > 0 AND ≤ low_stock_threshold, limit 10
-- neverSoldProducts() — LEFT JOIN sale_items WHERE NULL, limit 10
-- needsAttention() — 6 counts: low stock, out of stock, sales due,
-  purchase due, draft distributions, unread notifications
-- recentActivities() — ActivityLog with('user:id,name'), latest 10
-- recentNotifications() — notifications table for Auth::id(), latest 8
-- All queries: whereNull('deleted_at') safe
+- index() → Inertia::render — no props
+- data() → single JSON endpoint
+- chartData() — daily (≤60d) or monthly (>60d) auto-switch
 
 ### ActivityLog.php
 
 - MUST have: user() BelongsTo relation → withTrashed()
-  (required by DashboardController::recentActivities())
+
+### ReportController.php
+
+- Single controller, 7 report methods + export() dispatcher
+- authorizeView() / authorizeExport() use Gate::allows() + abort_unless()
+- dateRange() uses $request->filled() — NOT $request->input() with default
+- expenses() — NO status column selected (expenses table has none)
+- inventory() — join uses products.category_id NOT product_category_id
+- export() handles profit-loss PDF separately to avoid nested $summary
+- profitLossData() returns summary as explicit array (not compact())
+  with all keys Blade template expects
+- CSV export via response()->streamDownload() — memory-safe
+- All PDF templates: DejaVu Sans, flexbox only, A4 landscape
 
 ### SaleController.php
 
-- index() eager loads Product with 'images' relation, maps image_path (NOT 'path')
 - store() returns response()->json([id, reference_no]) — NOT redirect()
 - destroy() reverses stock via SaleStockService::reverseStock()
-- restore() re-applies stock via SaleStockService::reApplyStock()
 
 ### InvoiceController.php
 
 - No policy registration — uses abort_unless(hasPermissionTo()) directly
-- withTrashed() on all queries — voided invoices still visible
-- pdf() → DomPDF download via resources/views/pdf/invoice.blade.php
-
-### pdf/invoice.blade.php
-
-- DejaVu Sans font, public_path() for logo, flexbox/tables only (no Grid)
+- withTrashed() on all queries
 
 ---
 
@@ -1102,14 +1175,333 @@ Shares globally: auth.user, flash, ziggy, notifications (unread_count + latest 8
 - Step 13: Investment Management ✅
 - Step 14: Profit Distribution ✅
 - Step 15: Dashboard & Analytics ✅
+- Step 16: Reports ✅
 
 ## PENDING MODULES
 
-- Step 16: Reports
-- Step 17: Security Hardening
-- Step 18: Performance Optimization
-- Step 19: Testing
+- Step 17: Partnership Business Upgrade
+- Step 18: Security Hardening
+- Step 19: Performance Optimization
+- Step 20: Testing
 
 ## NEXT STEP
 
-Step 16 — Reports
+Step 17 — Partnership Business Upgrade
+
+---
+
+## PARTNERSHIP BUSINESS UPGRADE — FULL ROADMAP (Step 17+)
+
+### Vision
+
+Transparent partnership accounting system supporting 2–100 investors.
+Every investor can see their capital contribution, profit share, payment
+history, and ROI. Capital and Profit are always tracked separately.
+
+### Core Principles
+
+1. Capital != Profit — investment capital and distributed profit are
+   always tracked in separate ledgers and never mixed.
+2. Snapshot Accounting — financial figures are frozen at distribution
+   time. Approved snapshots are never recalculated or overwritten.
+3. No edit after approval — use Reverse workflow instead of editing.
+4. Full audit trail — every state change logged via ActivityLogService.
+5. Transparent investor ledger — every investor can review their own
+   history independently.
+
+---
+
+### Phase 1 — Advanced Profit Distribution (Step 17)
+
+Extends the existing ProfitDistribution module with:
+
+Investor Eligibility:
+
+- Eligibility determined by investment_date and eligible_from_date
+- Mid-period investors join the next eligible distribution by default
+- Admin can manually override eligibility per investor per period
+- Eligibility reason recorded for audit trail
+
+Per-Investor Configuration:
+
+- Individual profit share percentage per investor
+- Distribution percentage configurable per investor
+- Deferred profit support — carry forward to next period
+- Reinvest profit directly into capital ledger
+
+Profit Balance Tracking:
+
+- Each investor has a running profit balance
+- Profit payment cannot exceed available pending profit balance
+- Partial payments allowed and tracked
+- Pending profit carried forward automatically to next period
+- Reverse or reopen cancelled payments
+
+Payment States (extended):
+Pending, Partial Paid, Paid, Deferred, Reinvested, Cancelled, Reopened.
+
+Distribution Integrity:
+
+- Frozen financial snapshots — approved data never changes
+- Distribution locking after approval
+- Complete audit trail for every state change
+- Transparent investor ledger accessible per investor
+
+Future Controllers for Phase 1:
+
+- ProfitPaymentController — handles extended payment states
+- DistributionReverseController — handles reversal and reopen workflow
+
+---
+
+### Phase 2 — Capital Ledger (Step 17 continued)
+
+Capital and Profit must always remain separate.
+
+Capital Ledger tracks:
+
+- Capital Deposit (new investment)
+- Capital Withdrawal (admin approval required)
+- Capital Reinvestment (profit converted to capital)
+- Capital Adjustment (admin correction with reason)
+- Capital History (full timeline per investor)
+- Running Capital Balance per investor
+
+Capital Withdrawal Workflow:
+
+- Investor requests withdrawal
+- Admin reviews and approves or rejects
+- Approved withdrawals recorded in Capital Ledger
+- Capital balance updated immediately on approval
+
+Future Controllers for Phase 2:
+
+- CapitalLedgerController
+- CapitalWithdrawalController
+
+---
+
+### Phase 3 — Investor Transparency & Statements (Step 17 continued)
+
+Future reports and statements per investor:
+
+- Investor Statement — full financial summary per investor
+- Investor Timeline — chronological activity history
+- Distribution History — all distributions with payment status
+- Capital History — all capital movements
+- ROI Report — return on investment per period and cumulative
+- Financial Snapshot Report — frozen snapshot for each distribution
+- Profit Ledger — detailed profit credit and debit history
+- Capital Ledger — detailed capital movement history
+- Transparency Dashboard — investor-facing overview of all activity
+
+Future Controllers for Phase 3:
+
+- InvestorStatementController
+
+---
+
+### Phase 4 — Investment-to-Business Tracking (Step 17 continued)
+
+Every investment should be traceable through business operations.
+
+Future reports will show per investor:
+
+- Which products were purchased using invested capital
+- Total sales generated from those products
+- Revenue, Cost, Gross Profit, Net Profit
+- Current inventory value from those purchases
+- Remaining stock from invested capital
+- Investor contribution percentage
+- Investment performance over time
+
+Implementation note: Use existing Inventory, Purchase, and Sales data.
+Do not create duplicate records. Trace via stock movements and sale items.
+
+---
+
+### Phase 5 — Sales Payment System Upgrade (Step 17 continued)
+
+Upgrade Sales to work like Purchase Payments with full payment tracking.
+
+Future features:
+
+- Record Payment against a sale
+- Multiple partial payments per sale
+- Payment history per sale
+- Due collection tracking
+- Payment receipts (PDF)
+- Payment timeline per sale
+- Payment notes and reference numbers
+
+Sales History actions will include:
+
+- View Sale
+- Record Payment
+- Payment History
+- Print Invoice
+- Send Email (future)
+- Void Sale
+
+Payment Status will extend to:
+
+- Paid, Partial, Due, COD
+
+Future Controller:
+
+- SalesPaymentController
+
+---
+
+### Phase 6 — Cash on Delivery (COD) Support (Step 17 continued)
+
+Add COD as a payment status for sales.
+
+COD workflow:
+
+- Sale created with payment_status = 'cod'
+- Delivery confirmed by staff
+- Record Payment converts COD to partial or paid
+- COD sales tracked separately in reports
+
+Payment Status roadmap:
+Paid, Partial, Due, COD
+
+---
+
+### Phase 7 — Email System (Future)
+
+Future email features integrated into business workflow:
+
+After Sale:
+
+- Send Invoice Email after checkout (optional button)
+- Send Payment Receipt after payment recorded
+- Send Due Reminder for overdue balances
+- Resend Invoice on demand
+
+After Distribution:
+
+- Send Distribution Report to all investors
+- Send individual Investor Statement via email
+
+Business Settings will support:
+
+- Automatic email on sale completion toggle
+- Automatic email on payment recorded toggle
+- Email templates per event type
+
+Future Controller:
+
+- EmailCampaignController (for batch sending)
+
+---
+
+### Phase 8 — Customer CRM Upgrade (Future)
+
+Extend customer profiles with full relationship history:
+
+- Purchase History — all orders with amounts and dates
+- Payment History — all payments with method and reference
+- Order Timeline — chronological purchase activity
+- Favorite Products — most purchased products
+- Favorite Categories — most purchased categories
+- Lifetime Purchase value
+- Lifetime Profit generated from customer
+- Average Order Value
+- Last Purchase date
+- Customer Analytics — trends and patterns
+- Customer Tags — manual labels (VIP, Wholesale, Due, COD)
+- Customer Segments — auto-group by behavior
+
+---
+
+### Phase 9 — Marketing Module (Future — Separate Module)
+
+This is a completely separate future module, not part of core POS.
+
+Planned features:
+
+- Email Campaign builder
+- Customer Segments targeting
+- Product Launch Email
+- Category-wise Campaign
+- Product-wise Campaign
+- Promotional Campaign
+- VIP Customer campaigns
+- Wholesale Customer campaigns
+- Due Customer reminder campaigns
+- COD Customer follow-up campaigns
+
+Future Controller:
+
+- CustomerMarketingController
+
+---
+
+### Future Controllers Summary
+
+| Controller                    | Phase   | Purpose                 |
+| ----------------------------- | ------- | ----------------------- |
+| ProfitPaymentController       | Phase 1 | Extended payment states |
+| DistributionReverseController | Phase 1 | Reversal and reopen     |
+| CapitalLedgerController       | Phase 2 | Capital tracking        |
+| CapitalWithdrawalController   | Phase 2 | Withdrawal approval     |
+| InvestorStatementController   | Phase 3 | Statements and reports  |
+| SalesPaymentController        | Phase 5 | Sales payment tracking  |
+| EmailCampaignController       | Phase 7 | Email sending           |
+| CustomerMarketingController   | Phase 9 | Marketing campaigns     |
+
+---
+
+### Security Hardening Plan (Step 18)
+
+Planned tasks:
+
+- SecurityHeaders middleware (CSP, X-Frame-Options, etc.)
+- ValidateSortColumn middleware (prevent SQL injection via orderBy)
+- Mass assignment audit on all models
+- XSS audit on all PDF Blade templates
+- Rate limiting on heavy routes (POS sale, export, invoice PDF)
+- Session security config (encrypt, http_only, same_site)
+- FormRequest enum validation audit
+- File upload MIME type validation audit
+
+Known implementation notes (from Step 17 Security work done in parallel):
+
+- CSP local env must allow localhost:5173 for Vite HMR
+- IPv6 [::1] is NOT valid in CSP — vite.config.js must force host:'localhost'
+- SESSION_ENCRYPT=true safe to enable immediately
+- SESSION_SECURE_COOKIE=false for local HTTP; true for production HTTPS
+- ProfitDistribution.$fillable must exclude status, is_locked, approved_by,
+  approved_at, distributed_by, distributed_at
+- ProfitDistributionItem.$fillable must exclude payment_status,
+  payment_method, transaction_reference, paid_by, paid_at
+
+---
+
+### Performance Optimization Plan (Step 19)
+
+Planned tasks:
+
+- Eager loading audit across all controllers
+- Database index review on foreign keys and filter columns
+- Query optimization for Dashboard data endpoint
+- Pagination review — ensure all list pages paginate
+- Config, route, and view caching for production
+- Vite build optimization for frontend bundle size
+- Queue-based processing for heavy exports (PDF, Excel)
+
+---
+
+### Testing Plan (Step 20)
+
+Planned tasks:
+
+- Feature tests for all CRUD controllers
+- Policy authorization tests
+- FormRequest validation tests
+- POS checkout flow integration test
+- Profit distribution snapshot integrity test
+- Report export tests (CSV, Excel, PDF)
+- Security middleware tests (CSP headers, rate limiting)

@@ -4,6 +4,10 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+    server: {
+        host: "localhost",
+        port: 5173,
+    },
     plugins: [
         laravel({
             input: "resources/js/app.tsx",
@@ -13,9 +17,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            // shadcn/ui alias
             "@": path.resolve(__dirname, "./resources/js"),
-            // Ziggy alias — points to the auto-generated file
             "ziggy-js": path.resolve(
                 __dirname,
                 "vendor/tightenco/ziggy/dist/index.esm.js",

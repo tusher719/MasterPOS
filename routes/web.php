@@ -67,7 +67,9 @@ Route::middleware(['auth', 'verified'])
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [SettingController::class, 'index'])->name('index');
             Route::post('/', [SettingController::class, 'update'])->name('update');
-            Route::post('/logo', [SettingController::class, 'uploadLogo'])->name('logo');
+            Route::post('/logo', [SettingController::class, 'uploadLogo'])
+                ->middleware('throttle:10,1')
+                ->name('logo');
         });
 
         // Payment Methods
@@ -223,7 +225,8 @@ Route::middleware(['auth', 'verified'])
 
             // Sales CRUD
             Route::post('/sales', [SaleController::class, 'store'])
-                ->name('pos.sales.store');
+                    ->middleware('throttle:30,1')
+                    ->name('pos.sales.store');
 
             Route::post('/sales/{id}/restore', [SaleController::class, 'restore'])
                 ->name('pos.sales.restore');
@@ -242,7 +245,9 @@ Route::middleware(['auth', 'verified'])
         Route::prefix('invoices')->name('invoices.')->group(function () {
             Route::get('/', [InvoiceController::class, 'index'])->name('index');
             Route::get('/{sale}', [InvoiceController::class, 'show'])->name('show');
-            Route::get('/{sale}/pdf', [InvoiceController::class, 'pdf'])->name('pdf');
+            Route::get('/{sale}/pdf', [InvoiceController::class, 'pdf'])
+                ->middleware('throttle:30,1')
+                ->name('pdf');
         });
 
         // ─── Hold Orders ──────────────────────────────────────────────────
@@ -276,6 +281,11 @@ Route::middleware(['auth', 'verified'])
         });
 
         // Step 13: Investment Management
+
+        Route::get('investments/export/{format}', [InvestmentController::class, 'export'])
+            ->middleware('throttle:20,1')
+            ->name('investments.export');
+
         Route::post('investments/{id}/restore', [InvestmentController::class, 'restore'])
             ->name('investments.restore');
 
@@ -329,6 +339,7 @@ Route::middleware(['auth', 'verified'])
         // ── Step 16: Reports ──────────────────────────────────────────────────────────
         // Export route BEFORE named report routes to prevent {type} swallowing segments
         Route::get('/reports/{type}/export/{fmt}', [ReportController::class, 'export'])
+            ->middleware('throttle:20,1')
             ->name('reports.export');
 
         Route::get('/reports',                [ReportController::class, 'index'])
