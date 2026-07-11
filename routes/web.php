@@ -3,6 +3,7 @@
 use App\Http\Controllers\Backend\ActivityLogController;
 use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\DashboardController;
+use App\Http\Controllers\Backend\DistributionReverseController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\UserController;
@@ -13,11 +14,13 @@ use App\Http\Controllers\Backend\ExpenseController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
+use App\Http\Controllers\Backend\InvestorBalanceController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
+use App\Http\Controllers\Backend\ProfitPaymentController;
 use App\Http\Controllers\Backend\PurchaseController;
 use App\Http\Controllers\Backend\PurchasePaymentController;
 use App\Http\Controllers\Backend\ReportController;
@@ -295,36 +298,36 @@ Route::middleware(['auth', 'verified'])
             // ── Step 14: Profit Distributions ──────────────────────────────────
         // calculate-preview, approve, distribute, restore declared BEFORE
         // resource() to prevent {profit_distribution} wildcard swallowing them
-        Route::get('profit-distributions/calculate-preview', [ProfitDistributionController::class, 'calculatePreview'])
-            ->name('profit-distributions.calculate-preview');
+        // Route::get('profit-distributions/calculate-preview', [ProfitDistributionController::class, 'calculatePreview'])
+        //     ->name('profit-distributions.calculate-preview');
 
-        Route::post('profit-distributions/{id}/approve', [ProfitDistributionController::class, 'approve'])
-            ->name('profit-distributions.approve');
+        // Route::post('profit-distributions/{id}/approve', [ProfitDistributionController::class, 'approve'])
+        //     ->name('profit-distributions.approve');
 
-        Route::post('profit-distributions/{id}/distribute', [ProfitDistributionController::class, 'distribute'])
-            ->name('profit-distributions.distribute');
+        // Route::post('profit-distributions/{id}/distribute', [ProfitDistributionController::class, 'distribute'])
+        //     ->name('profit-distributions.distribute');
 
-        Route::post('profit-distributions/{id}/restore', [ProfitDistributionController::class, 'restore'])
-            ->name('profit-distributions.restore');
+        // Route::post('profit-distributions/{id}/restore', [ProfitDistributionController::class, 'restore'])
+        //     ->name('profit-distributions.restore');
 
-        Route::patch('profit-distributions/{profit_distribution}/items/{item}/payment', [ProfitDistributionController::class, 'updateItemPayment'])
-            ->name('profit-distributions.items.payment');
+        // Route::patch('profit-distributions/{profit_distribution}/items/{item}/payment', [ProfitDistributionController::class, 'updateItemPayment'])
+        //     ->name('profit-distributions.items.payment');
 
-        Route::resource('profit-distributions', ProfitDistributionController::class)
-            ->except(['create', 'store', 'show', 'edit', 'update', 'destroy'])
-            ->names([]);
-        Route::get('profit-distributions/create', [ProfitDistributionController::class, 'create'])
-            ->name('profit-distributions.create');
-        Route::post('profit-distributions', [ProfitDistributionController::class, 'store'])
-            ->name('profit-distributions.store');
-        Route::get('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'show'])
-            ->name('profit-distributions.show');
-        Route::get('profit-distributions/{profit_distribution}/edit', [ProfitDistributionController::class, 'edit'])
-            ->name('profit-distributions.edit');
-        Route::put('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'update'])
-            ->name('profit-distributions.update');
-        Route::delete('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'destroy'])
-            ->name('profit-distributions.destroy');
+        // Route::resource('profit-distributions', ProfitDistributionController::class)
+        //     ->except(['create', 'store', 'show', 'edit', 'update', 'destroy'])
+        //     ->names([]);
+        // Route::get('profit-distributions/create', [ProfitDistributionController::class, 'create'])
+        //     ->name('profit-distributions.create');
+        // Route::post('profit-distributions', [ProfitDistributionController::class, 'store'])
+        //     ->name('profit-distributions.store');
+        // Route::get('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'show'])
+        //     ->name('profit-distributions.show');
+        // Route::get('profit-distributions/{profit_distribution}/edit', [ProfitDistributionController::class, 'edit'])
+        //     ->name('profit-distributions.edit');
+        // Route::put('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'update'])
+        //     ->name('profit-distributions.update');
+        // Route::delete('profit-distributions/{profit_distribution}', [ProfitDistributionController::class, 'destroy'])
+        //     ->name('profit-distributions.destroy');
 
         // ─────────────────────────────────────────────────────────────
         // Step 15 — Dashboard & Analytics
@@ -358,6 +361,75 @@ Route::middleware(['auth', 'verified'])
             ->name('reports.customer-ledger');
         Route::get('/reports/investments',    [ReportController::class, 'investments'])
             ->name('reports.investments');
+
+
+        // ── Step 17: Profit Distributions (replaces Step 14 routes entirely) ──────
+        Route::prefix('profit-distributions')->name('profit-distributions.')->group(function () {
+
+            // ── Special routes — declared BEFORE resource() ───────────────────────
+
+            // Calculate preview
+            Route::get('calculate-preview', [ProfitDistributionController::class, 'calculatePreview'])
+                ->name('calculate-preview');
+
+            // Reverse distribution (Step 17)
+            Route::post('{id}/reverse', [DistributionReverseController::class, '__invoke'])
+                ->name('reverse');
+
+            // Approve / Distribute / Restore
+            Route::post('{id}/approve',    [ProfitDistributionController::class, 'approve'])
+                ->name('approve');
+            Route::post('{id}/distribute', [ProfitDistributionController::class, 'distribute'])
+                ->name('distribute');
+            Route::post('{id}/restore',    [ProfitDistributionController::class, 'restore'])
+                ->name('restore');
+
+            // ── Item payment routes (Step 17 — full payment lifecycle) ───────────
+            Route::prefix('{pd}/items/{item}')->name('items.')->group(function () {
+                Route::get('payments',                    [ProfitPaymentController::class, 'index'])
+                    ->name('payments.index');
+                Route::patch('payments',                  [ProfitPaymentController::class, 'store'])
+                    ->name('payments.store');
+                Route::delete('payments/{payment}',       [ProfitPaymentController::class, 'cancel'])
+                    ->name('payments.cancel');
+                Route::patch('payments/{payment}/reopen', [ProfitPaymentController::class, 'reopen'])
+                    ->name('payments.reopen');
+            });
+
+            // ── Eligibility override (Step 17) ────────────────────────────────────
+            Route::post(
+                '{pd}/eligibilities/{eligibility}/override',
+                [ProfitDistributionController::class, 'overrideEligibility']
+            )->name('eligibilities.override');
+
+            // ── Legacy item payment (Step 14 — kept for backward compat) ─────────
+            Route::patch(
+                '{profit_distribution}/items/{item}/payment',
+                [ProfitDistributionController::class, 'updateItemPayment']
+            )->name('items.payment');
+
+            // ── CRUD routes ───────────────────────────────────────────────────────
+            Route::get('/',                          [ProfitDistributionController::class, 'index'])
+                ->name('index');
+            Route::get('create',                     [ProfitDistributionController::class, 'create'])
+                ->name('create');
+            Route::post('/',                         [ProfitDistributionController::class, 'store'])
+                ->name('store');
+            Route::get('{profit_distribution}',      [ProfitDistributionController::class, 'show'])
+                ->name('show');
+            Route::get('{profit_distribution}/edit', [ProfitDistributionController::class, 'edit'])
+                ->name('edit');
+            Route::put('{profit_distribution}',      [ProfitDistributionController::class, 'update'])
+                ->name('update');
+            Route::delete('{profit_distribution}',   [ProfitDistributionController::class, 'destroy'])
+                ->name('destroy');
+        });
+
+        // ── Investor Balances (Step 17) ───────────────────────────────────────────
+        Route::prefix('investor-balances')->name('investor-balances.')->group(function () {
+            Route::get('/',            [InvestorBalanceController::class, 'index'])->name('index');
+            Route::get('{investment}', [InvestorBalanceController::class, 'show'])->name('show');
+        });
 
     });
 

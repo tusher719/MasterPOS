@@ -13,8 +13,10 @@ use App\Models\ExpenseCategory;
 use App\Models\HoldOrder;
 use App\Models\Investment;
 use App\Models\InvestmentType;
+use App\Models\InvestorProfitBalance;
 use App\Models\PaymentMethod;
 use App\Models\ProfitDistribution;
+use App\Models\ProfitDistributionEligibility;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
@@ -24,9 +26,11 @@ use App\Policies\ExpensePolicy;
 use App\Policies\HoldOrderPolicy;
 use App\Policies\InvestmentPolicy;
 use App\Policies\InvestmentTypePolicy;
+use App\Policies\InvestorProfitBalancePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PaymentMethodPolicy;
+use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
 use App\Policies\SalePolicy;
@@ -86,5 +90,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 13 Policies ─────────────────────────────────────────────────
         Gate::policy(ProfitDistribution::class, ProfitDistributionPolicy::class);
+
+        Gate::policy(ProfitDistributionEligibility::class, ProfitDistributionEligibilityPolicy::class);
+        Gate::policy(InvestorProfitBalance::class, InvestorProfitBalancePolicy::class);
     }
 }

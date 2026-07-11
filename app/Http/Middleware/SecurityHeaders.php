@@ -35,7 +35,7 @@ class SecurityHeaders
                 $scriptSrc,
                 $styleSrc,
                 "img-src 'self' data: blob:",
-                "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com",
+                "font-src 'self' data: https://fonts.bunny.net https://fonts.gstatic.com http://localhost:5173",
                 "connect-src 'self'" . ($isLocal ? " ws://localhost:* ws://[::1]:* http://localhost:* http://[::1]:*" : ""),
                 "frame-ancestors 'self'",
                 "form-action 'self'",

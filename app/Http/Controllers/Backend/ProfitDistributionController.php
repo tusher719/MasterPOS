@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -73,6 +74,9 @@ class ProfitDistributionController extends Controller
             'delete'  => optional(Auth::user())->can('profit_distribution.delete'),
             'restore' => optional(Auth::user())->can('profit_distribution.restore'),
             'approve' => optional(Auth::user())->can('profit_distribution.approve'),
+            'reverse'     => optional(Auth::user())->can('profit_distribution.reverse'),
+            'payment'     => optional(Auth::user())->can('profit_distribution.payment'),
+            'eligibility' => optional(Auth::user())->can('profit_distribution.eligibility'),
         ];
 
         return Inertia::render('Backend/ProfitDistributions/Index', [
@@ -264,6 +268,8 @@ class ProfitDistributionController extends Controller
 
         $profitDistribution->load([
             'items.paidByUser',
+            'items.payments.paidBy',
+            'eligibilities',
             'creator',
             'updater',
             'approver',
@@ -277,16 +283,23 @@ class ProfitDistributionController extends Controller
         ]);
 
         $can = [
-            'edit'              => optional(Auth::user())->can('profit_distribution.edit')
-                                    && ! $profitDistribution->is_locked,
-            'delete'            => optional(Auth::user())->can('profit_distribution.delete')
-                                    && ! $profitDistribution->is_locked,
-            'approve'           => optional(Auth::user())->can('profit_distribution.approve')
-                                    && $profitDistribution->status === 'draft',
-            'distribute'        => optional(Auth::user())->can('profit_distribution.approve')
-                                    && $profitDistribution->status === 'approved',
-            'update_payment'    => optional(Auth::user())->can('profit_distribution.approve')
-                                    && in_array($profitDistribution->status, ['approved', 'distributed']),
+            'edit'        => optional(Auth::user())->can('profit_distribution.edit')
+                                && ! $profitDistribution->is_locked,
+            'delete'      => optional(Auth::user())->can('profit_distribution.delete')
+                                && ! $profitDistribution->is_locked,
+            'approve'     => optional(Auth::user())->can('profit_distribution.approve')
+                                && $profitDistribution->status === 'draft',
+            'distribute'  => optional(Auth::user())->can('profit_distribution.approve')
+                                && $profitDistribution->status === 'approved',
+            'update_payment' => optional(Auth::user())->can('profit_distribution.approve')
+                                && in_array($profitDistribution->status, ['approved', 'distributed']),
+            // Step 17 additions
+            'reverse'     => optional(Auth::user())->can('profit_distribution.reverse')
+                                && $profitDistribution->canBeReversed(),
+            'payment'     => optional(Auth::user())->can('profit_distribution.payment')
+                                && in_array($profitDistribution->status, ['approved', 'distributed']),
+            'eligibility' => optional(Auth::user())->can('profit_distribution.eligibility')
+                                && ! $profitDistribution->is_locked,
         ];
 
         return Inertia::render('Backend/ProfitDistributions/Show', [
@@ -397,15 +410,27 @@ class ProfitDistributionController extends Controller
             403
         );
 
-        $distribution->approve(Auth::id());
+        try {
+            DB::transaction(function () use ($distribution) {
+                $distribution->generateEligibilities();
+                $distribution->approve(Auth::id());
 
-        ActivityLogService::log(
-            'profit_distribution',
-            'approve',
-            "Profit Distribution {$distribution->distribution_no} approved.",
-            $distribution,
-            ['distribution_no' => $distribution->distribution_no]
-        );
+                ActivityLogService::log(
+                    'profit_distribution',
+                    'approve',
+                    "Profit Distribution {$distribution->distribution_no} approved.",
+                    $distribution,
+                    ['distribution_no' => $distribution->distribution_no]
+                );
+            });
+        } catch (\Throwable $e) {
+            Log::error('Approve failed: ' . $e->getMessage(), [
+                'distribution_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors(['approve' => 'Approval failed: ' . $e->getMessage()]);
+        }
 
         return back()->with('success', 'Distribution approved successfully.');
     }
@@ -462,11 +487,13 @@ class ProfitDistributionController extends Controller
 
         $newStatus = $request->input('payment_status');
 
-        if ($newStatus === 'paid' && $item->isPending()) {
+        if ($newStatus === 'paid' && ! $item->isFullySettled()) {
+            // Use new markAsPaid() signature — amount = full remaining amount
             $item->markAsPaid(
-                Auth::id(),
-                $request->input('payment_method'),
-                $request->input('transaction_reference')
+                amount:        $item->remainingAmount(),
+                paymentMethod: $request->input('payment_method') ?? 'Cash',
+                reference:     $request->input('transaction_reference'),
+                note:          null,
             );
 
             ActivityLogService::log(
@@ -481,7 +508,12 @@ class ProfitDistributionController extends Controller
                 ]
             );
         } elseif ($newStatus === 'cancelled' && $item->isPending()) {
-            $item->markAsCancelled();
+            // Cancel all existing payments on this item
+            foreach ($item->payments as $payment) {
+                if (! $payment->isCancelled()) {
+                    $item->cancelPayment($payment);
+                }
+            }
 
             ActivityLogService::log(
                 'profit_distribution',
@@ -547,5 +579,60 @@ class ProfitDistributionController extends Controller
         );
 
         return back()->with('success', 'Profit Distribution restored successfully.');
+    }
+
+    // -----------------------------------------------------------------------
+    // Override Eligibility (Step 17)
+    // -----------------------------------------------------------------------
+
+    public function overrideEligibility(
+        Request $request,
+        int $pd,
+        int $eligibility
+    ): RedirectResponse {
+        abort_unless(
+            optional(Auth::user())->can('profit_distribution.eligibility'),
+            403,
+            'You do not have permission to override eligibility.'
+        );
+
+        $distribution = ProfitDistribution::findOrFail($pd);
+
+        abort_unless(
+            ! $distribution->is_locked,
+            422,
+            'Cannot override eligibility on a locked distribution.'
+        );
+
+        $record = $distribution->eligibilities()->findOrFail($eligibility);
+
+        $request->validate([
+            'is_eligible'        => ['required', 'boolean'],
+            'eligibility_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $record->update([
+            'is_eligible'        => $request->boolean('is_eligible'),
+            'eligibility_reason' => $request->input('eligibility_reason'),
+            'override_by'        => Auth::id(),
+            'override_at'        => now(),
+        ]);
+
+        ActivityLogService::log(
+            'profit_distribution',
+            'eligibility_override',
+            "Eligibility overridden for {$record->investor_name} in {$distribution->distribution_no}. " .
+            "Set to: " . ($request->boolean('is_eligible') ? 'Eligible' : 'Ineligible') . ". " .
+            "Reason: {$request->input('eligibility_reason')}",
+            $distribution,
+            [
+                'eligibility_id' => $record->id,
+                'investor_name'  => $record->investor_name,
+                'is_eligible'    => $request->boolean('is_eligible'),
+                'reason'         => $request->input('eligibility_reason'),
+            ]
+        );
+
+        return back()->with('success', 'Eligibility updated successfully.');
     }
 }

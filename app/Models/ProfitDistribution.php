@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProfitDistribution extends Model
@@ -27,16 +28,18 @@ class ProfitDistribution extends Model
         'net_profit',
         'distribution_percent',
         'distributable_amount',
-        'status',
-        'is_locked',
         'note',
-        'approved_by',
-        'approved_at',
-        'distributed_by',
-        'distributed_at',
         'created_by',
         'updated_by',
     ];
+
+    // ─── Excluded from fillable (set only via model methods) ──
+    // status         → set via approve() / distribute() / reverse()
+    // is_locked      → set via approve() / reverse()
+    // approved_by    → set via approve() / reverse()
+    // approved_at    → set via approve() / reverse()
+    // distributed_by → set via distribute() / reverse()
+    // distributed_at → set via distribute() / reverse()
 
     protected $casts = [
         'distribution_date'    => 'date',
@@ -55,14 +58,18 @@ class ProfitDistribution extends Model
         'distributed_at'       => 'datetime',
     ];
 
-    // -----------------------------------------------------------------------
-    // Auto-generate distribution_no
-    // -----------------------------------------------------------------------
+    // ─── Status Constants ─────────────────────────────────────
+
+    const STATUS_DRAFT       = 'draft';
+    const STATUS_APPROVED    = 'approved';
+    const STATUS_DISTRIBUTED = 'distributed';
+
+    // ─── Distribution Number Generator ───────────────────────
 
     /**
      * Generate the next sequential distribution number for the current year.
-     * Must be called inside a DB::transaction() with a lockForUpdate() to
-     * prevent race conditions under concurrent requests.
+     * Format: PD-YYYY-000001
+     * Must be called inside DB::transaction() with lockForUpdate().
      */
     public static function generateDistributionNo(): string
     {
@@ -76,23 +83,21 @@ class ProfitDistribution extends Model
         return 'PD-' . $year . '-' . str_pad($count + 1, 6, '0', STR_PAD_LEFT);
     }
 
-    // -----------------------------------------------------------------------
-    // Status helpers
-    // -----------------------------------------------------------------------
+    // ─── Status Helpers ───────────────────────────────────────
 
     public function isDraft(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === self::STATUS_DRAFT;
     }
 
     public function isApproved(): bool
     {
-        return $this->status === 'approved';
+        return $this->status === self::STATUS_APPROVED;
     }
 
     public function isDistributed(): bool
     {
-        return $this->status === 'distributed';
+        return $this->status === self::STATUS_DISTRIBUTED;
     }
 
     public function isLocked(): bool
@@ -100,83 +105,205 @@ class ProfitDistribution extends Model
         return (bool) $this->is_locked;
     }
 
-    // -----------------------------------------------------------------------
-    // Status transitions
-    // -----------------------------------------------------------------------
+    public function canBeEdited(): bool
+    {
+        return $this->isDraft() && ! $this->isLocked();
+    }
 
+    public function canBeApproved(): bool
+    {
+        return $this->isDraft() && $this->items()->count() > 0;
+    }
+
+    public function canBeDistributed(): bool
+    {
+        return $this->isApproved();
+    }
+
+    public function canBeReversed(): bool
+    {
+        return ! $this->isDraft();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return $this->isDraft() && ! $this->isLocked();
+    }
+
+    // ─── Status Transitions ───────────────────────────────────
+
+    /**
+     * Approve this distribution.
+     * Locks the snapshot and credits InvestorProfitBalance for each item.
+     * Must be called inside DB::transaction().
+     */
     public function approve(int $userId): void
     {
-        $this->update([
-            'status'      => 'approved',
+        $this->forceFill([
+            'status'      => self::STATUS_APPROVED,
             'is_locked'   => true,
             'approved_by' => $userId,
             'approved_at' => now(),
-        ]);
-    }
+        ])->save();
 
-    public function distribute(int $userId): void
-    {
-        $this->update([
-            'status'           => 'distributed',
-            'distributed_by'   => $userId,
-            'distributed_at'   => now(),
-        ]);
+        foreach ($this->items()->with('investment')->get() as $item) {
+            if ($item->investment) {
+                $balance = InvestorProfitBalance::findOrCreateForInvestment($item->investment);
+                $balance->creditEarned($item->effectiveAmount());
+            }
+        }
     }
-
-    // -----------------------------------------------------------------------
-    // Computed accessors
-    // -----------------------------------------------------------------------
 
     /**
-     * Count of items with payment_status = paid.
+     * Mark distribution as fully distributed.
+     * All items must be settled before calling this.
      */
+    public function distribute(int $userId): void
+    {
+        $unsettled = $this->items()
+            ->whereNotIn('payment_status', [
+                ProfitDistributionItemPayment::STATUS_PAID,
+                ProfitDistributionItemPayment::STATUS_DEFERRED,
+                ProfitDistributionItemPayment::STATUS_REINVESTED,
+                ProfitDistributionItemPayment::STATUS_CANCELLED,
+            ])
+            ->count();
+
+        if ($unsettled > 0) {
+            throw new \RuntimeException(
+                "Cannot mark as distributed: {$unsettled} item(s) are not yet settled."
+            );
+        }
+
+        $this->forceFill([
+            'status'         => self::STATUS_DISTRIBUTED,
+            'distributed_by' => $userId,
+            'distributed_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Reverse an approved or distributed distribution back to draft.
+     * Cancels all payments and reverses InvestorProfitBalance credits.
+     * Must be called inside DB::transaction().
+     */
+    public function reverse(string $reason): void
+    {
+        if ($this->isDraft()) {
+            throw new \RuntimeException('Draft distributions cannot be reversed.');
+        }
+
+        foreach ($this->items()->with(['investment', 'payments'])->get() as $item) {
+            if ($item->investment) {
+                $balance = InvestorProfitBalance::findOrCreateForInvestment($item->investment);
+
+                foreach ($item->payments as $payment) {
+                    if (! $payment->isCancelled()) {
+                        $item->cancelPayment($payment);
+                    }
+                }
+
+                $balance->reverseEarned($item->effectiveAmount());
+            }
+        }
+
+        $this->forceFill([
+            'status'         => self::STATUS_DRAFT,
+            'is_locked'      => false,
+            'approved_by'    => null,
+            'approved_at'    => null,
+            'distributed_by' => null,
+            'distributed_at' => null,
+            'note'           => $this->note
+                ? $this->note . "\n[Reversed] " . $reason
+                : "[Reversed] " . $reason,
+        ])->save();
+    }
+
+    // ─── Eligibility Helpers ──────────────────────────────────
+
+    /**
+     * Auto-generate eligibility records for all active investments
+     * based on period_start date. Skips already-existing records.
+     */
+    public function generateEligibilities(): void
+    {
+        $periodStart = $this->period_start->toDateString();
+        $existing    = $this->eligibilities()->pluck('investment_id')->toArray();
+
+        $investments = Investment::whereNotIn('id', $existing)
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($investments as $investment) {
+            $isEligible = ProfitDistributionEligibility::determineEligibility(
+                $investment,
+                $periodStart
+            );
+
+            $this->eligibilities()->create([
+                'investment_id'      => $investment->id,
+                'investor_name'      => $investment->investor_name,
+                'is_eligible'        => $isEligible,
+                'eligibility_reason' => $isEligible
+                    ? 'Investment date is on or before period start'
+                    : 'Investment date is after period start',
+            ]);
+        }
+    }
+
+    // ─── Computed Accessors ───────────────────────────────────
+
     public function getPaidItemsCountAttribute(): int
     {
         return $this->items()->where('payment_status', 'paid')->count();
     }
 
-    /**
-     * Count of items with payment_status = pending.
-     */
     public function getPendingItemsCountAttribute(): int
     {
         return $this->items()->where('payment_status', 'pending')->count();
     }
 
-    /**
-     * Sum of share_amount for paid items.
-     */
     public function getTotalPaidAmountAttribute(): string
     {
         return $this->items()->where('payment_status', 'paid')->sum('share_amount');
     }
 
-    // -----------------------------------------------------------------------
-    // Scopes
-    // -----------------------------------------------------------------------
+    // ─── Scopes ───────────────────────────────────────────────
 
     public function scopeDraft($query)
     {
-        return $query->where('status', 'draft');
+        return $query->where('status', self::STATUS_DRAFT);
     }
 
     public function scopeApproved($query)
     {
-        return $query->where('status', 'approved');
+        return $query->where('status', self::STATUS_APPROVED);
     }
 
     public function scopeDistributed($query)
     {
-        return $query->where('status', 'distributed');
+        return $query->where('status', self::STATUS_DISTRIBUTED);
     }
 
-    // -----------------------------------------------------------------------
-    // Relations
-    // -----------------------------------------------------------------------
+    // ─── Relations ────────────────────────────────────────────
 
     public function items(): HasMany
     {
         return $this->hasMany(ProfitDistributionItem::class);
+    }
+
+    public function eligibilities(): HasMany
+    {
+        return $this->hasMany(ProfitDistributionEligibility::class, 'profit_distribution_id');
+    }
+
+    /**
+     * Items that were deferred FROM this distribution into future ones.
+     */
+    public function carriedForwardItems(): HasMany
+    {
+        return $this->hasMany(ProfitDistributionItem::class, 'carried_from_distribution_id');
     }
 
     public function creator(): BelongsTo
