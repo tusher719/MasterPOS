@@ -298,6 +298,32 @@ pending_balance(dec10,2 default 0), timestamps
 
 ---
 
+## Step 17 Phase 2 — Capital Ledger
+
+### capital_ledger_entries
+
+id, investment_id(FK investments restrict), investor_name(varchar snapshot),
+transaction_type(enum: deposit/withdrawal/reinvestment/adjustment),
+direction(enum: credit/debit), amount(dec10,2), running_balance(dec10,2),
+reference_no(varchar unique nullable CL-YYYYMMDD-XXXX),
+source_type(varchar nullable), source_id(bigint nullable),
+reason(text nullable mandatory for adjustment), note(text nullable),
+status(enum: completed/pending/approved/rejected/cancelled default:completed),
+requested_by(FK users nullable nullOnDelete),
+approved_by(FK users nullable nullOnDelete), approved_at(timestamp nullable),
+created_by(FK users restrict), timestamps
+Indexes: (investment_id, transaction_type), (source_type, source_id), status
+
+### investor_capital_balances
+
+id, investment_id(FK investments restrict UNIQUE),
+investor_name(varchar denormalized),
+total_deposited(dec10,2 default 0), total_withdrawn(dec10,2 default 0),
+total_reinvested(dec10,2 default 0), total_adjusted(dec10,2 default 0),
+current_balance(dec10,2 default 0), timestamps
+
+---
+
 ## Enum Reference
 
 | Table                             | Column          | Values                                                            |

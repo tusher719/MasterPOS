@@ -31,8 +31,8 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 2 — Capital Ledger (IN PROGRESS)
-- **Last Completed:** Step 17 Phase 1 — Advanced Profit Distribution ✅
+- **Current Step:** Step 17 Phase 3 — Investor Statements (NOT STARTED)
+- **Last Completed:** Step 17 Phase 2 — Capital Ledger ✅
 
 ## Completed Modules
 
@@ -56,12 +56,12 @@
 | 15         | Dashboard & Analytics         | ✅     |
 | 16         | Reports                       | ✅     |
 | 17 Phase 1 | Advanced Profit Distribution  | ✅     |
+| 17 Phase 2 | Capital Ledger                | ✅     |
 
 ## Pending Modules
 
 | Step       | Module                          |
 | ---------- | ------------------------------- |
-| 17 Phase 2 | Capital Ledger                  |
 | 17 Phase 3 | Investor Statements             |
 | 17 Phase 4 | Investment-to-Business Tracking |
 | 17 Phase 5 | Sales Payment Upgrade           |

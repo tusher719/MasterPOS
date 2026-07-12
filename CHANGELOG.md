@@ -2,6 +2,33 @@
 
 ---
 
+## [v2.1] — Step 17 Phase 2 — 2026-07-12
+
+### Capital Ledger
+
+- capital_ledger_entries table: deposit/withdrawal/reinvestment/adjustment entries with running balance
+- investor_capital_balances table: denormalized balance per investor (1:1 with investments)
+- InvestorCapitalBalanceSeeder: seeds initial deposit from existing investments.amount
+- CapitalLedgerController: index (all investors summary), show (per-investor ledger), store (deposit/adjustment/withdrawal request)
+- CapitalWithdrawalController: approve (balance deducted only here), reject, cancel
+- CapitalLedgerPolicy: view/deposit/adjust/withdrawal.request/withdrawal.approve
+- Step17Phase2PermissionSeeder: Admin all, Staff view only
+- Phase 1 → Phase 2 bridge: ProfitPaymentController reinvest action now credits InvestorCapitalBalance + creates CapitalLedgerEntry in same DB transaction
+- Frontend: CapitalLedger/Index.tsx (summary table), Show.tsx (ledger + pending withdrawals), DepositModal, WithdrawalModal, AdjustmentModal, WithdrawalApprovalModal, LedgerTable
+- Sidebar: Capital Ledger nav link under Investments group
+
+### Bug Fixes
+
+- ProfitDistribution.getPaidItemsCountAttribute: now counts deferred/reinvested/cancelled as settled
+- ProfitDistribution.getTotalPaidAmountAttribute: now sums paid/deferred/reinvested
+- InvestorProfitBalance.reverseEarned: guard prevents negative pending_balance
+- ProfitDistributionItem.cancelPayment: REOPENED status now reverses payment correctly
+- Investment model: profitBalance/capitalBalance/distributionItems/capitalLedgerEntries relations added
+- ProfitDistributionController.distribute: RuntimeException now returns user-friendly error instead of 500
+- ProfitPaymentController: axios replaces fetch for CSRF compatibility with SESSION_ENCRYPT=true
+- CapitalLedgerEntry.$fillable: status field added to fix withdrawal pending status bug
+- ProfitDistributionController.show: items now include remaining_amount/effective_amount/total_paid/isFullySettled via setAttribute
+
 ## [v2.0] — Step 17 Phase 1 — 2026-07-11
 
 ### Advanced Profit Distribution

@@ -257,3 +257,16 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - PDF: `barryvdh/laravel-dompdf` with dedicated Blade template
 - Export routes always declared BEFORE resource routes
 - Shared filter logic extracted to private `buildExportQuery(Request)` method
+
+---
+
+## 15. Capital Ledger Rules
+
+- Balance deducted ONLY on withdrawal approval — never on request creation
+- Reinvestment entries are auto-created — never manually entered by admin
+- Adjustment reason is mandatory — backend validation + frontend enforcement
+- running_balance stored per entry — never recalculated on read (immutable ledger)
+- Cannot withdraw more than current_balance — validated before creating request
+- InvestorCapitalBalance seeded from existing investments (amount = initial deposit)
+- Phase 1 → Phase 2 bridge: reinvest action must update BOTH InvestorProfitBalance AND InvestorCapitalBalance in same DB transaction
+- CapitalLedgerEntry status field MUST be in $fillable (unlike ProfitDistribution status fields)
