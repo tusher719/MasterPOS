@@ -1,4 +1,5 @@
 import { router } from "@inertiajs/react";
+import { DatePickerInput } from "@mantine/dates";
 import { Search, X } from "lucide-react";
 import { useState } from "react";
 
@@ -12,6 +13,8 @@ interface Props {
     showCustomerFilter?: boolean;
     customers?: { id: number; name: string; phone: string | null }[];
 }
+
+type RangeValue = [string | null, string | null];
 
 // Quick presets
 const PRESETS = [
@@ -39,7 +42,10 @@ function today(): string {
 }
 function startOfWeek(): string {
     const d = new Date();
-    d.setDate(d.getDate() - d.getDay());
+    // JS getDay(): Sun=0, Mon=1, ... Fri=5, Sat=6
+    // Week starts Saturday, so days-since-Saturday = (getDay() + 1) % 7
+    const daysSinceSaturday = (d.getDay() + 1) % 7;
+    d.setDate(d.getDate() - daysSinceSaturday);
     return d.toISOString().slice(0, 10);
 }
 function startOfMonth(): string {
@@ -67,21 +73,24 @@ export default function ReportFilters({
     showCustomerFilter = false,
     customers = [],
 }: Props) {
-    const [from, setFrom] = useState(filters.from ?? "");
-    const [to, setTo] = useState(filters.to ?? "");
+    const [range, setRange] = useState<RangeValue>([
+        filters.from || null,
+        filters.to || null,
+    ]);
     const [customerId, setCustomerId] = useState(filters.customer_id ?? "");
     const [activePreset, setActivePreset] = useState<string | null>(null);
 
     function applyPreset(preset: (typeof PRESETS)[number]) {
         const dates = preset.getDates();
-        setFrom(dates.from);
-        setTo(dates.to);
+        setRange([dates.from, dates.to]);
         setActivePreset(preset.label);
         submit(dates.from, dates.to, customerId);
     }
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        const [from, to] = range;
+        if (!from || !to) return; // wait until both ends of the range are picked
         setActivePreset(null);
         submit(from, to, customerId);
     }
@@ -95,8 +104,7 @@ export default function ReportFilters({
     function reset() {
         const f = startOfMonth();
         const t = today();
-        setFrom(f);
-        setTo(t);
+        setRange([f, t]);
         setCustomerId("");
         setActivePreset(null);
         submit(f, t, "");
@@ -123,42 +131,49 @@ export default function ReportFilters({
                 ))}
             </div>
 
-            {/* Custom date + optional customer filter */}
+            {/* Custom date range + optional customer filter */}
             <form
                 onSubmit={handleSubmit}
                 className="flex flex-wrap items-end gap-3"
             >
                 <div className="flex flex-col gap-1">
                     <label className="text-xs font-medium text-gray-500">
-                        From
+                        Date Range
                     </label>
-                    <input
-                        type="date"
-                        value={from}
-                        onChange={(e) => {
-                            setFrom(e.target.value);
+                    <DatePickerInput
+                        type="range"
+                        placeholder="From — To"
+                        value={range}
+                        onChange={(val) => {
+                            setRange(val);
                             setActivePreset(null);
                         }}
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm
-                                   focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-                                   focus:outline-none"
-                    />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-medium text-gray-500">
-                        To
-                    </label>
-                    <input
-                        type="date"
-                        value={to}
-                        onChange={(e) => {
-                            setTo(e.target.value);
-                            setActivePreset(null);
+                        valueFormat="DD MMM YYYY"
+                        firstDayOfWeek={6}
+                        weekendDays={[5]}
+                        getDayProps={(date) => {
+                            const day = new Date(date).getDay(); // Sun=0 ... Sat=6
+                            const isFriday = day === 5;
+                            return {
+                                style: {
+                                    color: isFriday
+                                        ? "#ef4444" // red-500 for Friday (off day)
+                                        : "#1f2937", // gray-800, normal color for every other day incl. Sat/Sun
+                                    fontWeight: isFriday ? 600 : 400,
+                                },
+                            };
                         }}
-                        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm
-                                   focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-                                   focus:outline-none"
+                        allowSingleDateInRange
+                        clearable={false}
+                        className="min-w-[240px]"
+                        styles={{
+                            input: {
+                                borderRadius: "0.375rem",
+                                borderColor: "#d1d5db",
+                                fontSize: "0.875rem",
+                                padding: "0.375rem 0.75rem",
+                            },
+                        }}
                     />
                 </div>
 

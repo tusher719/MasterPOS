@@ -264,6 +264,12 @@ const NAV_ITEMS: NavItem[] = [
                 icon: Landmark,
                 active: "backend.capital-ledger.*", // pattern matching consistent রাখো
             },
+            {
+                label: "Investor Statements",
+                href: "backend.investor-statements.index",
+                icon: FileText,
+                active: "backend.investor-statements.*",
+            },
         ],
     },
     {

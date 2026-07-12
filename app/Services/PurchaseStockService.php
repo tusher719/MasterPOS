@@ -249,10 +249,10 @@ class PurchaseStockService
             $admins = User::role('Admin')->get();
 
             Notification::send($admins, new LowStockNotification(
-                $product,
-                $product->stock_qty,
-                $product->low_stock_threshold,
-                $product->name
+                $product->name,
+                (float) $product->stock_qty,
+                (float) $product->low_stock_threshold,
+                $product->id
             ));
         }
     }

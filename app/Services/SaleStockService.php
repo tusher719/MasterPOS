@@ -135,7 +135,12 @@ class SaleStockService
             $admins = User::role('Admin')->get();
 
             if ($admins->isNotEmpty()) {
-                Notification::send($admins, new LowStockNotification($product, $product->stock_qty, $product->low_stock_threshold, Auth::id()));
+                Notification::send($admins, new LowStockNotification(
+                    $product->name,
+                    (float) $product->stock_qty,
+                    (float) $product->low_stock_threshold,
+                    $product->id
+                ));
             }
         }
     }

@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from "react";
 import { router } from "@inertiajs/react";
-import { route } from "ziggy-js";
-import { X, Upload, Paperclip, Trash2, FileText } from "lucide-react";
+import { Popover } from "@mantine/core";
+import { Calendar } from "@mantine/dates";
+import dayjs from "dayjs";
+import { FileText, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { route } from "ziggy-js";
 
 interface InvestmentType {
     id: number;
@@ -80,13 +83,16 @@ export default function InvestmentModal({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [form, setForm] = useState<FormData>(empty);
-    const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+    const [errors, setErrors] = useState<
+        Partial<Record<keyof FormData, string>>
+    >({});
     const [processing, setProcessing] = useState(false);
     const [removeAttachment, setRemoveAttachment] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [newImageMeta, setNewImageMeta] = useState<ImageMeta | null>(null);
     const [existingImageMeta, setExistingImageMeta] =
         useState<ImageMeta | null>(null);
+    const [dateOpened, setDateOpened] = useState(false);
 
     // Populate form when editing
     useEffect(() => {
@@ -331,18 +337,97 @@ export default function InvestmentModal({
                                 Investment Date{" "}
                                 <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="date"
-                                value={form.investment_date}
-                                onChange={(e) =>
-                                    set("investment_date", e.target.value)
-                                }
-                                className={`w-full rounded-md border text-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-                                    errors.investment_date
-                                        ? "border-red-300"
-                                        : "border-gray-300"
-                                }`}
-                            />
+                            <Popover
+                                opened={dateOpened}
+                                onChange={setDateOpened}
+                                position="bottom-start"
+                                withinPortal
+                                shadow="md"
+                            >
+                                <Popover.Target>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDateOpened((o) => !o)}
+                                        className={`w-full rounded-md border px-3 py-2 text-left text-sm focus:border-indigo-500 focus:ring-indigo-500 ${
+                                            errors.investment_date
+                                                ? "border-red-300"
+                                                : "border-gray-300"
+                                        }`}
+                                    >
+                                        {form.investment_date ? (
+                                            dayjs(form.investment_date).format(
+                                                "DD MMM YYYY",
+                                            )
+                                        ) : (
+                                            <span className="text-gray-400">
+                                                Pick date
+                                            </span>
+                                        )}
+                                    </button>
+                                </Popover.Target>
+                                <Popover.Dropdown className="p-3">
+                                    <Calendar
+                                        firstDayOfWeek={6}
+                                        weekendDays={[5]}
+                                        getDayProps={(date) => {
+                                            const isFriday =
+                                                new Date(date).getDay() === 5;
+                                            const isSelected =
+                                                !!form.investment_date &&
+                                                dayjs(date).format(
+                                                    "YYYY-MM-DD",
+                                                ) === form.investment_date;
+                                            return {
+                                                selected: isSelected,
+                                                onClick: () => {
+                                                    set(
+                                                        "investment_date",
+                                                        dayjs(date).format(
+                                                            "YYYY-MM-DD",
+                                                        ),
+                                                    );
+                                                    setDateOpened(false);
+                                                },
+                                                style: {
+                                                    color: isFriday
+                                                        ? "#ef4444"
+                                                        : "#1f2937",
+                                                    fontWeight: isFriday
+                                                        ? 600
+                                                        : 400,
+                                                },
+                                            };
+                                        }}
+                                    />
+                                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                set("investment_date", "");
+                                                setDateOpened(false);
+                                            }}
+                                            className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                                        >
+                                            Clear
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                set(
+                                                    "investment_date",
+                                                    dayjs().format(
+                                                        "YYYY-MM-DD",
+                                                    ),
+                                                );
+                                                setDateOpened(false);
+                                            }}
+                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                                        >
+                                            Today
+                                        </button>
+                                    </div>
+                                </Popover.Dropdown>
+                            </Popover>
                             {errors.investment_date && (
                                 <p className="mt-1 text-xs text-red-500">
                                     {errors.investment_date}
@@ -479,12 +564,13 @@ export default function InvestmentModal({
                                         <p className="truncate text-xs text-gray-600">
                                             {existingAttachmentName}
                                         </p>
-                                        {existingIsImage && existingImageMeta && (
-                                            <p className="text-[11px] text-gray-400">
-                                                {existingImageMeta.width}×
-                                                {existingImageMeta.height}px
-                                            </p>
-                                        )}
+                                        {existingIsImage &&
+                                            existingImageMeta && (
+                                                <p className="text-[11px] text-gray-400">
+                                                    {existingImageMeta.width}×
+                                                    {existingImageMeta.height}px
+                                                </p>
+                                            )}
                                         <button
                                             type="button"
                                             onClick={

@@ -270,3 +270,13 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - InvestorCapitalBalance seeded from existing investments (amount = initial deposit)
 - Phase 1 → Phase 2 bridge: reinvest action must update BOTH InvestorProfitBalance AND InvestorCapitalBalance in same DB transaction
 - CapitalLedgerEntry status field MUST be in $fillable (unlike ProfitDistribution status fields)
+
+---
+
+## 16. TypeScript Declaration File Rules
+
+- `.d.ts` files: **type declarations only** — interfaces, type aliases, enums
+- `.d.ts` files: **NEVER export runtime values** (const, let, var, functions)
+- Runtime constants (color maps, label maps) → always in `.ts` files
+- Vite cannot resolve runtime values from `.d.ts` at build time — causes import resolution failure
+- Pattern: `foo.d.ts` for types + `foo-colors.ts` for runtime color/label maps

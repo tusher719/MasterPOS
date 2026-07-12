@@ -1,18 +1,18 @@
+import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, useForm } from "@inertiajs/react";
-import { toast } from "sonner";
-import { useRef, useState } from "react";
 import {
+    Bell,
     Building2,
     DollarSign,
+    Info,
     Receipt,
-    Bell,
+    Save,
     Upload,
     X,
-    Save,
-    Info,
 } from "lucide-react";
-import useFlashToast from "@/hooks/useFlashToast";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SettingsGroup {

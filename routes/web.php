@@ -17,6 +17,7 @@ use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\InvestorBalanceController;
+use App\Http\Controllers\Backend\InvestorStatementController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\ProductCategoryController;
@@ -451,6 +452,16 @@ Route::middleware(['auth', 'verified'])
             ->name('capital-ledger.store');
         Route::get('capital-ledger/{investmentId}', [CapitalLedgerController::class, 'show'])
             ->name('capital-ledger.show');
+
+        // Investor Statements (read-only — export before resource pattern)
+        Route::get('investor-statements/{investment}/pdf', [InvestorStatementController::class, 'pdf'])
+            ->name('investor-statements.pdf');
+
+        Route::get('investor-statements', [InvestorStatementController::class, 'index'])
+            ->name('investor-statements.index');
+
+        Route::get('investor-statements/{investment}', [InvestorStatementController::class, 'show'])
+            ->name('investor-statements.show');
 
     });
 

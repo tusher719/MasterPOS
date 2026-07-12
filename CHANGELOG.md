@@ -2,6 +2,37 @@
 
 ---
 
+## [v2.2] — Step 17 Phase 3 — 2026-07-13
+
+### Investor Statements
+
+- InvestorStatementController: index (all investors summary), show (full statement), pdf (dompdf export)
+- Read-only module — no mutations, no separate Policy (Gate::allows() directly)
+- show() uses eager loading for all 4 relations to avoid N+1
+- Index page: all investors with capital + profit summary, footer totals
+- Show page: Investment Info, CapitalSummaryCard, ProfitSummaryCard, DistributionHistoryTable, CapitalTransactionTable
+- CapitalSummaryCard: hero balance + breakdown rows + net check footer
+- ProfitSummaryCard: pending balance hero + settlement progress bar
+- DistributionHistoryTable: distribution status + payment status columns, empty state, footer totals
+- CapitalTransactionTable: credit/debit split columns, Balance After (running_balance), cancelled rows dimmed
+- PDF: A4 portrait, 4 sections, DejaVu Sans, flexbox+tables (no CSS Grid), fixed footer with page number
+- investor-statement.d.ts: all TypeScript interfaces for statement data
+- investor-statement-colors.ts: runtime color maps (separate from .d.ts — .d.ts cannot hold runtime values)
+- Step17Phase3PermissionSeeder: investor_statement.view + export (Admin only)
+- Sidebar: Investor Statements link under Investments group
+
+### Bug Fixes
+
+- ProfitDistributionItem: profitDistribution() BelongsTo relation was missing — added (duplicate of distribution() with explicit name for eager loading in InvestorStatementController)
+- investor-statement.d.ts: PAYMENT_STATUS_COLORS / CAPITAL_TX_COLORS / CAPITAL_TX_DIRECTION_COLORS moved to investor-statement-colors.ts — .d.ts files cannot export runtime const values, Vite cannot resolve them
+
+### Known Architectural Notes
+
+- investor-statement-colors.ts rule: color map constants must live in .ts not .d.ts
+- WithTrashed not needed on Investment in index() — withTrashed() already applied before load
+
+---
+
 ## [v2.1] — Step 17 Phase 2 — 2026-07-12
 
 ### Capital Ledger
@@ -28,6 +59,8 @@
 - ProfitPaymentController: axios replaces fetch for CSRF compatibility with SESSION_ENCRYPT=true
 - CapitalLedgerEntry.$fillable: status field added to fix withdrawal pending status bug
 - ProfitDistributionController.show: items now include remaining_amount/effective_amount/total_paid/isFullySettled via setAttribute
+
+---
 
 ## [v2.0] — Step 17 Phase 1 — 2026-07-11
 

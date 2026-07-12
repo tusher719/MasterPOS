@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Head, router } from "@inertiajs/react";
-import { route } from "ziggy-js";
+import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, router } from "@inertiajs/react";
+import { DatePickerInput } from "@mantine/dates";
+import { ChevronDown, Filter, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { route } from "ziggy-js";
+import InvestmentModal from "./_components/InvestmentModal";
 import InvestmentStatsCards from "./_components/InvestmentStatsCards";
 import InvestmentTable from "./_components/InvestmentTable";
-import InvestmentModal from "./_components/InvestmentModal";
-import { Search, Plus, Filter, ChevronDown } from "lucide-react";
-import { toast } from "sonner";
-import useFlashToast from "@/hooks/useFlashToast";
 
 interface InvestmentType {
     id: number;
@@ -65,6 +65,8 @@ interface Props {
     };
 }
 
+type RangeValue = [string | null, string | null];
+
 export default function Index({
     investments,
     stats,
@@ -82,20 +84,23 @@ export default function Index({
     const [search, setSearch] = useState(filters.search ?? "");
     const [typeId, setTypeId] = useState(filters.investment_type_id ?? "");
     const [status, setStatus] = useState(filters.status ?? "");
-    const [dateFrom, setDateFrom] = useState(filters.date_from ?? "");
-    const [dateTo, setDateTo] = useState(filters.date_to ?? "");
+    const [dateRange, setDateRange] = useState<RangeValue>([
+        filters.date_from ?? null,
+        filters.date_to ?? null,
+    ]);
     const [amountMin, setAmountMin] = useState(filters.amount_min ?? "");
     const [amountMax, setAmountMax] = useState(filters.amount_max ?? "");
 
     function applyFilters(overrides: Record<string, string> = {}) {
+        const [dateFrom, dateTo] = dateRange;
         router.get(
             route("backend.investments.index"),
             {
                 search,
                 investment_type_id: typeId,
                 status,
-                date_from: dateFrom,
-                date_to: dateTo,
+                date_from: dateFrom ?? "",
+                date_to: dateTo ?? "",
                 amount_min: amountMin,
                 amount_max: amountMax,
                 ...overrides,
@@ -108,8 +113,7 @@ export default function Index({
         setSearch("");
         setTypeId("");
         setStatus("");
-        setDateFrom("");
-        setDateTo("");
+        setDateRange([null, null]);
         setAmountMin("");
         setAmountMax("");
         router.get(route("backend.investments.index"), {}, { replace: true });
@@ -129,8 +133,8 @@ export default function Index({
         search ||
         typeId ||
         status ||
-        dateFrom ||
-        dateTo ||
+        dateRange[0] ||
+        dateRange[1] ||
         amountMin ||
         amountMax;
 
@@ -266,28 +270,42 @@ export default function Index({
                     {/* Advanced filters */}
                     {showFilters && (
                         <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 md:grid-cols-4">
-                            <div>
+                            <div className="col-span-2">
                                 <label className="mb-1 block text-xs font-medium text-gray-600">
-                                    Date From
+                                    Date Range
                                 </label>
-                                <input
-                                    type="date"
-                                    value={dateFrom}
-                                    onChange={(e) =>
-                                        setDateFrom(e.target.value)
-                                    }
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-600">
-                                    Date To
-                                </label>
-                                <input
-                                    type="date"
-                                    value={dateTo}
-                                    onChange={(e) => setDateTo(e.target.value)}
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                <DatePickerInput
+                                    type="range"
+                                    placeholder="From — To"
+                                    value={dateRange}
+                                    onChange={setDateRange}
+                                    valueFormat="DD MMM YYYY"
+                                    firstDayOfWeek={6}
+                                    weekendDays={[5]}
+                                    getDayProps={(date) => {
+                                        const day = new Date(date).getDay(); // Sun=0 ... Sat=6
+                                        const isFriday = day === 5;
+                                        return {
+                                            style: {
+                                                color: isFriday
+                                                    ? "#ef4444" // red-500, Friday off day
+                                                    : "#1f2937", // gray-800, normal for every other day incl. Sat/Sun
+                                                fontWeight: isFriday
+                                                    ? 600
+                                                    : 400,
+                                            },
+                                        };
+                                    }}
+                                    allowSingleDateInRange
+                                    clearable
+                                    className="w-full"
+                                    styles={{
+                                        input: {
+                                            borderRadius: "0.375rem",
+                                            borderColor: "#d1d5db",
+                                            fontSize: "0.875rem",
+                                        },
+                                    }}
                                 />
                             </div>
                             <div>

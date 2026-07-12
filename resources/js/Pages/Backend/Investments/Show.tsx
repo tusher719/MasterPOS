@@ -1,26 +1,28 @@
-import { useState } from "react";
-import { Head, router, Link } from "@inertiajs/react";
-import { route } from "ziggy-js";
+import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import InvestmentModal from "./_components/InvestmentModal";
+import { confirmAction } from "@/lib/confirm";
+import { Head, Link, router } from "@inertiajs/react";
+import { DatePickerInput } from "@mantine/dates";
+import dayjs from "dayjs";
 import {
     ArrowLeft,
-    Pencil,
-    Trash2,
-    RotateCcw,
+    Calendar,
+    Clock,
+    DollarSign,
     Download,
     FileText,
-    Calendar,
-    User,
-    Tag,
-    DollarSign,
     Hash,
-    Clock,
+    Pencil,
+    RotateCcw,
     StickyNote,
+    Tag,
+    Trash2,
+    User,
 } from "lucide-react";
-import { confirmAction } from "@/lib/confirm";
+import { useState } from "react";
 import { toast } from "sonner";
-import useFlashToast from "@/hooks/useFlashToast";
+import { route } from "ziggy-js";
+import InvestmentModal from "./_components/InvestmentModal";
 
 interface InvestmentType {
     id: number;
@@ -88,6 +90,25 @@ export default function Show({ investment, investmentTypes, can }: Props) {
     useFlashToast();
 
     const [showEditModal, setShowEditModal] = useState(false);
+    const [investmentDate, setInvestmentDate] = useState<string | null>(
+        investment.investment_date
+            ? dayjs(investment.investment_date).format("YYYY-MM-DD")
+            : null,
+    );
+
+    function handleDateChange(value: string | null) {
+        if (!value) return;
+        setInvestmentDate(value);
+        router.put(
+            route("backend.investments.update", investment.id),
+            { investment_date: value },
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success("Investment date updated."),
+                onError: () => toast.error("Could not update investment date."),
+            },
+        );
+    }
 
     async function handleDelete() {
         const ok = await confirmAction({
@@ -267,20 +288,60 @@ export default function Show({ investment, investmentTypes, can }: Props) {
                                     </div>
                                 </div>
 
-                                {/* Investment Date */}
+                                {/* Investment Date — inline editable when permitted */}
                                 <div className="flex items-start gap-3 px-5 py-4">
                                     <div className="mt-0.5 rounded-md bg-indigo-50 p-1.5">
                                         <Calendar className="h-4 w-4 text-indigo-600" />
                                     </div>
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                                             Investment Date
                                         </p>
-                                        <p className="mt-0.5 text-sm font-medium text-gray-800">
-                                            {formatDate(
-                                                investment.investment_date,
-                                            )}
-                                        </p>
+                                        {can.edit && !isTrashed ? (
+                                            <DatePickerInput
+                                                clearable
+                                                value={investmentDate}
+                                                onChange={handleDateChange}
+                                                valueFormat="DD MMM YYYY"
+                                                firstDayOfWeek={6}
+                                                weekendDays={[5]}
+                                                getDayProps={(date) => {
+                                                    const isFriday =
+                                                        new Date(
+                                                            date,
+                                                        ).getDay() === 5;
+                                                    return {
+                                                        style: {
+                                                            color: isFriday
+                                                                ? "#ef4444"
+                                                                : "#1f2937",
+                                                            fontWeight: isFriday
+                                                                ? 600
+                                                                : 400,
+                                                        },
+                                                    };
+                                                }}
+                                                placeholder="Pick date"
+                                                className="mt-1 max-w-[220px]"
+                                                styles={{
+                                                    input: {
+                                                        borderRadius:
+                                                            "0.375rem",
+                                                        borderColor: "#d1d5db",
+                                                        fontSize: "0.875rem",
+                                                        fontWeight: 500,
+                                                        padding:
+                                                            "0.25rem 0.5rem",
+                                                    },
+                                                }}
+                                            />
+                                        ) : (
+                                            <p className="mt-0.5 text-sm font-medium text-gray-800">
+                                                {formatDate(
+                                                    investment.investment_date,
+                                                )}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

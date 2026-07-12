@@ -343,4 +343,16 @@ class ProfitDistributionItem extends Model
             default       => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
         };
     }
+
+    public function profitDistribution(): BelongsTo
+    {
+        return $this->belongsTo(ProfitDistribution::class, 'profit_distribution_id');
+    }
+
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by')->withTrashed();
+    }
+
+
 }
