@@ -14,6 +14,7 @@ import {
     FileText,
     Gauge,
     History,
+    Landmark,
     LayoutDashboard,
     LogOut,
     Menu,
@@ -256,6 +257,12 @@ const NAV_ITEMS: NavItem[] = [
                 icon: Wallet,
                 href: "backend.investor-balances.index",
                 active: "backend.investor-balances.*",
+            },
+            {
+                label: "Capital Ledger",
+                href: "backend.capital-ledger.index", // route() call না, শুধু route name string
+                icon: Landmark,
+                active: "backend.capital-ledger.*", // pattern matching consistent রাখো
             },
         ],
     },

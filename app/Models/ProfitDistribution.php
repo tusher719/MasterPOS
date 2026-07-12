@@ -256,7 +256,9 @@ class ProfitDistribution extends Model
 
     public function getPaidItemsCountAttribute(): int
     {
-        return $this->items()->where('payment_status', 'paid')->count();
+        return $this->items()
+            ->whereIn('payment_status', ['paid', 'deferred', 'reinvested', 'cancelled'])
+            ->count();
     }
 
     public function getPendingItemsCountAttribute(): int
@@ -266,7 +268,9 @@ class ProfitDistribution extends Model
 
     public function getTotalPaidAmountAttribute(): string
     {
-        return $this->items()->where('payment_status', 'paid')->sum('share_amount');
+        return $this->items()
+            ->whereIn('payment_status', ['paid', 'deferred', 'reinvested'])
+            ->sum('share_amount');
     }
 
     // ─── Scopes ───────────────────────────────────────────────

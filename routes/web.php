@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Backend\ActivityLogController;
+use App\Http\Controllers\Backend\CapitalLedgerController;
+use App\Http\Controllers\Backend\CapitalWithdrawalController;
 use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DistributionReverseController;
@@ -430,6 +432,25 @@ Route::middleware(['auth', 'verified'])
             Route::get('/',            [InvestorBalanceController::class, 'index'])->name('index');
             Route::get('{investment}', [InvestorBalanceController::class, 'show'])->name('show');
         });
+
+        // ─── Capital Ledger ───────────────────────────────────────────────────────────
+        // Withdrawal actions BEFORE resource-style routes (prevent wildcard swallowing)
+        Route::post('capital-withdrawals/{entry}/approve', [CapitalWithdrawalController::class, 'approve'])
+            ->name('capital-withdrawals.approve');
+        Route::post('capital-withdrawals/{entry}/reject', [CapitalWithdrawalController::class, 'reject'])
+            ->name('capital-withdrawals.reject');
+        Route::post('capital-withdrawals/{entry}/cancel', [CapitalWithdrawalController::class, 'cancel'])
+            ->name('capital-withdrawals.cancel');
+        Route::post('capital-withdrawals', [CapitalWithdrawalController::class, 'store'])
+            ->name('capital-withdrawals.store');
+
+        // Capital Ledger — index + show + store (deposit/adjustment/withdrawal request)
+        Route::get('capital-ledger', [CapitalLedgerController::class, 'index'])
+            ->name('capital-ledger.index');
+        Route::post('capital-ledger', [CapitalLedgerController::class, 'store'])
+            ->name('capital-ledger.store');
+        Route::get('capital-ledger/{investmentId}', [CapitalLedgerController::class, 'show'])
+            ->name('capital-ledger.show');
 
     });
 

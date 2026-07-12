@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Investment extends Model
 {
@@ -93,5 +95,25 @@ class Investment extends Model
     public function isAttachmentImage(): bool
     {
         return in_array($this->attachment_extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+    }
+
+    public function profitBalance(): HasOne
+    {
+        return $this->hasOne(InvestorProfitBalance::class);
+    }
+
+    public function capitalBalance(): HasOne
+    {
+        return $this->hasOne(InvestorCapitalBalance::class);
+    }
+
+    public function distributionItems(): HasMany
+    {
+        return $this->hasMany(ProfitDistributionItem::class);
+    }
+
+    public function capitalLedgerEntries(): HasMany
+    {
+        return $this->hasMany(CapitalLedgerEntry::class);
     }
 }

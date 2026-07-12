@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\RecordPaymentRequest;
+use App\Models\CapitalLedgerEntry;
+use App\Models\InvestorCapitalBalance;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionItem;
 use App\Models\ProfitDistributionItemPayment;
@@ -52,14 +54,14 @@ class ProfitPaymentController extends Controller
             ]);
 
         return response()->json([
-            'payments'         => $payments,
-            'item_summary'     => [
-                'investor_name'    => $item->investor_name,
-                'effective_amount' => (float) $item->effectiveAmount(),
-                'total_paid'       => (float) $item->totalPaid(),
-                'remaining_amount' => (float) $item->remainingAmount(),
-                'payment_status'   => $item->payment_status,
-                'deferred_amount'  => (float) $item->deferred_amount,
+            'payments'     => $payments,
+            'item_summary' => [
+                'investor_name'     => $item->investor_name,
+                'effective_amount'  => (float) $item->effectiveAmount(),
+                'total_paid'        => (float) $item->totalPaid(),
+                'remaining_amount'  => (float) $item->remainingAmount(),
+                'payment_status'    => $item->payment_status,
+                'deferred_amount'   => (float) $item->deferred_amount,
                 'reinvested_amount' => (float) $item->reinvested_amount,
             ],
         ]);
@@ -75,7 +77,7 @@ class ProfitPaymentController extends Controller
         ProfitDistributionItem $item
     ): JsonResponse {
         abort_unless(
-            Gate::allows('update', $pd),
+            optional(Auth::user())->can('profit_distribution.payment'),
             403,
             'You do not have permission to record payments.'
         );
@@ -116,6 +118,51 @@ class ProfitPaymentController extends Controller
                         note: $request->input('note'),
                     ),
                 };
+
+                // ── Phase 2 Bridge: Profit → Capital ─────────────────────────
+                // When action is reinvest, credit the capital ledger.
+                // Phase 1 already debited InvestorProfitBalance.
+                // Phase 2 now credits InvestorCapitalBalance.
+                if ($action === 'reinvest') {
+                    $reinvestedAmount = (float) $item->remainingAmount()
+                        ?: (float) $request->input('amount', $item->share_amount);
+
+                    // Use the actual reinvested_amount set by markAsReinvested()
+                    $item->refresh();
+                    $capitalAmount = (float) $item->reinvested_amount;
+
+                    if ($capitalAmount > 0) {
+                        $capitalBalance = InvestorCapitalBalance::where(
+                            'investment_id', $item->investment_id
+                        )->lockForUpdate()->first();
+
+                        // Guard: capital balance record must exist
+                        // (seeded from InvestorCapitalBalanceSeeder)
+                        if ($capitalBalance) {
+                            $runningBalance = $capitalBalance->recordReinvestment($capitalAmount);
+
+                            $refNo = CapitalLedgerEntry::generateReferenceNo();
+
+                            CapitalLedgerEntry::create([
+                                'investment_id'    => $item->investment_id,
+                                'investor_name'    => $item->investor_name,
+                                'transaction_type' => 'reinvestment',
+                                'direction'        => 'credit',
+                                'amount'           => $capitalAmount,
+                                'running_balance'  => $runningBalance,
+                                'reference_no'     => $refNo,
+                                'source_type'      => ProfitDistributionItem::class,
+                                'source_id'        => $item->id,
+                                'reason'           => "Profit reinvested from distribution {$pd->distribution_no}",
+                                'note'             => $request->input('note'),
+                                'status'           => 'completed',
+                                'requested_by'     => null,
+                                'created_by'       => Auth::id(),
+                            ]);
+                        }
+                    }
+                }
+                // ── End Phase 2 Bridge ────────────────────────────────────────
 
                 ActivityLogService::log(
                     'profit_distribution',
@@ -159,7 +206,7 @@ class ProfitPaymentController extends Controller
         ProfitDistributionItemPayment $payment
     ): JsonResponse {
         abort_unless(
-            Gate::allows('update', $pd),
+            optional(Auth::user())->can('profit_distribution.payment'),
             403,
             'You do not have permission to cancel payments.'
         );
@@ -225,7 +272,7 @@ class ProfitPaymentController extends Controller
         ProfitDistributionItemPayment $payment
     ): JsonResponse {
         abort_unless(
-            Gate::allows('update', $pd),
+            optional(Auth::user())->can('profit_distribution.payment'),
             403,
             'You do not have permission to reopen payments.'
         );

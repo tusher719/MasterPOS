@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
 use App\Listeners\RecordLoginHistory;
 use App\Models\BusinessSetting;
+use App\Models\CapitalLedgerEntry;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\HoldOrder;
@@ -21,6 +22,7 @@ use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Policies\CapitalLedgerPolicy;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\ExpensePolicy;
 use App\Policies\HoldOrderPolicy;
@@ -93,5 +95,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(ProfitDistributionEligibility::class, ProfitDistributionEligibilityPolicy::class);
         Gate::policy(InvestorProfitBalance::class, InvestorProfitBalancePolicy::class);
+
+        // ─── Step 17 Policies ─────────────────────────────────────────────────
+        Gate::policy(CapitalLedgerEntry::class, CapitalLedgerPolicy::class);
     }
 }

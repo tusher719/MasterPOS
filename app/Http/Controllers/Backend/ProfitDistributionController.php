@@ -282,6 +282,15 @@ class ProfitDistributionController extends Controller
             'total_paid_amount',
         ]);
 
+        // Append computed payment fields to each item
+        $profitDistribution->items->each(function ($item) {
+            $item->append([]);
+            $item->setAttribute('remaining_amount',  (float) $item->remainingAmount());
+            $item->setAttribute('effective_amount',  (float) $item->effectiveAmount());
+            $item->setAttribute('total_paid',        (float) $item->totalPaid());
+            $item->setAttribute('isFullySettled',    $item->isFullySettled());
+        });
+
         $can = [
             'edit'        => optional(Auth::user())->can('profit_distribution.edit')
                                 && ! $profitDistribution->is_locked,
@@ -449,7 +458,11 @@ class ProfitDistributionController extends Controller
             403
         );
 
-        $distribution->distribute(Auth::id());
+        try {
+            $distribution->distribute(Auth::id());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['distribute' => $e->getMessage()]);
+        }
 
         ActivityLogService::log(
             'profit_distribution',

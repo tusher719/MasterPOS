@@ -269,6 +269,7 @@ class ProfitDistributionItem extends Model
                 $this->decrement('reinvested_amount', $amount);
                 $balance->reverseReinvested($amount);
             })(),
+            ProfitDistributionItemPayment::STATUS_REOPENED => $balance->reversePayment($amount),
 
             default => null,
         };

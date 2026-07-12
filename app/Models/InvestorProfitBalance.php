@@ -128,7 +128,11 @@ class InvestorProfitBalance extends Model
     public function reverseEarned(float $amount): void
     {
         $this->decrement('total_earned', $amount);
-        $this->decrement('pending_balance', $amount);
+        // Only decrement pending_balance by what's actually pending
+        $pendingToReverse = min($amount, (float) $this->pending_balance);
+        if ($pendingToReverse > 0) {
+            $this->decrement('pending_balance', $pendingToReverse);
+        }
     }
 
     // ─── Static Helpers ───────────────────────────────────────

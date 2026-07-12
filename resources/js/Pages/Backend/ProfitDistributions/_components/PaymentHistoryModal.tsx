@@ -1,5 +1,6 @@
 import { confirmAction } from "@/lib/confirm";
 import type { ItemPayment, ItemSummary } from "@/types/profit-distribution";
+import axios from "axios";
 import { AlertTriangle, Loader2, RotateCcw, X, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -70,29 +71,15 @@ export default function PaymentHistoryModal({
         setActing(payment.id);
 
         try {
-            const res = await fetch(
+            const res = await axios.delete(
                 route("backend.profit-distributions.items.payments.cancel", {
                     pd: distributionId,
                     item: itemId,
                     payment: payment.id,
                 }),
-                {
-                    method: "DELETE",
-                    headers: {
-                        Accept: "application/json",
-                        "X-CSRF-TOKEN":
-                            (
-                                document.querySelector(
-                                    'meta[name="csrf-token"]',
-                                ) as HTMLMetaElement
-                            )?.content ?? "",
-                    },
-                },
             );
-
-            const data = await res.json();
-
-            if (!res.ok) {
+            const data = res.data;
+            if (res.status !== 200) {
                 toast.error(data.message ?? "Failed to cancel payment.");
                 return;
             }

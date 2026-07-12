@@ -2,6 +2,7 @@ import type {
     DistributionItem,
     RecordPaymentFormData,
 } from "@/types/profit-distribution";
+import axios from "axios";
 import { Clock, DollarSign, TrendingUp, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -100,30 +101,17 @@ export default function ExtendedPaymentModal({
                     form.transaction_reference || null;
             }
 
-            const response = await fetch(
+            const response = await axios.patch(
                 route("backend.profit-distributions.items.payments.store", {
                     pd: distributionId,
                     item: item.id,
                 }),
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                        "X-CSRF-TOKEN":
-                            (
-                                document.querySelector(
-                                    'meta[name="csrf-token"]',
-                                ) as HTMLMetaElement
-                            )?.content ?? "",
-                    },
-                    body: JSON.stringify(payload),
-                },
+                payload,
             );
 
-            const data = await response.json();
+            const data = response.data;
 
-            if (!response.ok) {
+            if (response.status !== 200) {
                 toast.error(data.message ?? "Failed to record payment.");
                 return;
             }

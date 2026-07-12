@@ -1,47 +1,34 @@
-import { useState } from "react";
-import { Head, router } from "@inertiajs/react";
-import { route } from "ziggy-js";
-import { toast } from "sonner";
-import {
-    ArrowLeft,
-    Edit2,
-    Trash2,
-    CheckCircle,
-    Send,
-    Lock,
-    CreditCard,
-    XCircle,
-    User,
-    Calendar,
-    TrendingUp,
-    TrendingDown,
-    DollarSign,
-    BarChart2,
-} from "lucide-react";
+// resources/js/Pages/Backend/ProfitDistributions/Show.tsx
+
+import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { confirmAction } from "@/lib/confirm";
-import useFlashToast from "@/hooks/useFlashToast";
+import type {
+    DistributionEligibility,
+    DistributionItem,
+} from "@/types/profit-distribution";
+import { Head, router } from "@inertiajs/react";
+import {
+    ArrowLeft,
+    BarChart2,
+    CheckCircle,
+    DollarSign,
+    Edit2,
+    Lock,
+    RotateCcw,
+    Send,
+    Trash2,
+    TrendingDown,
+    TrendingUp,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import EligibilityPanel from "./_components/EligibilityPanel";
+import ExtendedPaymentModal from "./_components/ExtendedPaymentModal";
+import PaymentHistoryModal from "./_components/PaymentHistoryModal";
+import ReverseDistributionModal from "./_components/ReverseDistributionModal";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface DistributionItem {
-    id: number;
-    investment_id: number;
-    investor_name: string;
-    investment_title: string;
-    investment_type: string;
-    invested_amount: string;
-    share_percent: string;
-    share_amount: string;
-    payment_status: "pending" | "paid" | "cancelled";
-    payment_method: string | null;
-    transaction_reference: string | null;
-    paid_at: string | null;
-    note: string | null;
-    paid_by_user: { id: number; name: string } | null;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AuditUser {
     id: number;
@@ -72,6 +59,7 @@ interface Distribution {
     pending_items_count: number;
     total_paid_amount: string;
     items: DistributionItem[];
+    eligibilities: DistributionEligibility[];
     creator: AuditUser | null;
     updater: AuditUser | null;
     approver: AuditUser | null;
@@ -86,6 +74,8 @@ interface Can {
     approve: boolean;
     distribute: boolean;
     update_payment: boolean;
+    override_eligibility: boolean;
+    reverse: boolean;
 }
 
 interface Props {
@@ -93,9 +83,7 @@ interface Props {
     can: Can;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(value: number | string): string {
     return Number(value).toLocaleString("en-US", {
@@ -128,183 +116,26 @@ function StatusBadge({ status }: { status: Distribution["status"] }) {
     );
 }
 
-function PaymentBadge({
-    status,
-}: {
-    status: DistributionItem["payment_status"];
-}) {
-    const map = {
+function PaymentBadge({ status }: { status: string }) {
+    const map: Record<string, string> = {
         pending: "bg-amber-100 text-amber-700",
+        partial: "bg-blue-100 text-blue-700",
         paid: "bg-green-100 text-green-700",
+        deferred: "bg-purple-100 text-purple-700",
+        reinvested: "bg-indigo-100 text-indigo-700",
         cancelled: "bg-red-100 text-red-700",
+        reopened: "bg-yellow-100 text-yellow-700",
     };
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${map[status]}`}
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${map[status] ?? "bg-gray-100 text-gray-500"}`}
         >
             {status}
         </span>
     );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Payment Modal
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface PaymentModalProps {
-    item: DistributionItem;
-    distributionId: number;
-    onClose: () => void;
-}
-
-function PaymentModal({ item, distributionId, onClose }: PaymentModalProps) {
-    const [paymentStatus, setPaymentStatus] = useState<"paid" | "cancelled">(
-        "paid",
-    );
-    const [paymentMethod, setPaymentMethod] = useState("");
-    const [transactionReference, setTransactionRef] = useState("");
-    const [submitting, setSubmitting] = useState(false);
-
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setSubmitting(true);
-
-        router.patch(
-            route("backend.profit-distributions.items.payment", {
-                profit_distribution: distributionId,
-                item: item.id,
-            }),
-            {
-                payment_status: paymentStatus,
-                payment_method: paymentMethod || null,
-                transaction_reference: transactionReference || null,
-            },
-            {
-                onSuccess: () => {
-                    toast.success("Payment status updated.");
-                    onClose();
-                },
-                onError: () => toast.error("Failed to update payment status."),
-                onFinish: () => setSubmitting(false),
-            },
-        );
-    }
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-                {/* Header */}
-                <div className="border-b border-gray-100 px-5 py-4">
-                    <h3 className="text-base font-semibold text-gray-800">
-                        Update Payment Status
-                    </h3>
-                    <p className="mt-0.5 text-sm text-gray-500">
-                        {item.investor_name}
-                    </p>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                    <div className="space-y-4 px-5 py-4">
-                        {/* Share amount info */}
-                        <div className="rounded-md bg-indigo-50 px-4 py-3">
-                            <p className="text-xs text-indigo-600">
-                                Share Amount
-                            </p>
-                            <p className="mt-0.5 text-lg font-bold text-indigo-700">
-                                ৳ {fmt(item.share_amount)}
-                            </p>
-                        </div>
-
-                        {/* Payment status */}
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Payment Status{" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <div className="flex gap-3">
-                                {(["paid", "cancelled"] as const).map((s) => (
-                                    <label
-                                        key={s}
-                                        className="flex cursor-pointer items-center gap-2"
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="payment_status"
-                                            value={s}
-                                            checked={paymentStatus === s}
-                                            onChange={() => setPaymentStatus(s)}
-                                            className="accent-indigo-600"
-                                        />
-                                        <span className="text-sm capitalize text-gray-700">
-                                            {s}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Payment method — only for paid */}
-                        {paymentStatus === "paid" && (
-                            <>
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                                        Payment Method
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={paymentMethod}
-                                        onChange={(e) =>
-                                            setPaymentMethod(e.target.value)
-                                        }
-                                        placeholder="e.g. Bank Transfer, Cash, bKash…"
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                                        Transaction Reference
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={transactionReference}
-                                        onChange={(e) =>
-                                            setTransactionRef(e.target.value)
-                                        }
-                                        placeholder="e.g. TXN-20260707-001"
-                                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    />
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                            {submitting ? "Saving…" : "Save"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Show({ distribution, can }: Props) {
     useFlashToast();
@@ -313,93 +144,120 @@ export default function Show({ distribution, can }: Props) {
     const [paymentItem, setPaymentItem] = useState<DistributionItem | null>(
         null,
     );
+    const [historyItem, setHistoryItem] = useState<DistributionItem | null>(
+        null,
+    );
+    const [showReverse, setShowReverse] = useState(false);
 
-    // -----------------------------------------------------------------------
-    // Approve
-    // -----------------------------------------------------------------------
+    // Reload page after payment change
+    function handlePaymentChanged() {
+        router.reload({ only: ["distribution"] });
+    }
 
-    async function handleApprove() {
-        const ok = await confirmAction({
+    // ── Approve ──────────────────────────────────────────────────────────────
+
+    function handleApprove() {
+        confirmAction({
             title: "Approve Distribution?",
             text: `"${distribution.distribution_no}" will be locked and can no longer be edited.`,
             confirmButtonText: "Yes, approve",
+        }).then((ok) => {
+            if (!ok) return;
+            setProcessing(true);
+            router.post(
+                route("backend.profit-distributions.approve", distribution.id),
+                {},
+                {
+                    onSuccess: () => toast.success("Distribution approved."),
+                    onError: () =>
+                        toast.error("Failed to approve distribution."),
+                    onFinish: () => setProcessing(false),
+                },
+            );
         });
-        if (!ok) return;
-
-        setProcessing(true);
-        router.post(
-            route("backend.profit-distributions.approve", distribution.id),
-            {},
-            {
-                onSuccess: () => toast.success("Distribution approved."),
-                onError: () => toast.error("Failed to approve distribution."),
-                onFinish: () => setProcessing(false),
-            },
-        );
     }
 
-    // -----------------------------------------------------------------------
-    // Distribute
-    // -----------------------------------------------------------------------
+    // ── Distribute ───────────────────────────────────────────────────────────
 
-    async function handleDistribute() {
-        const ok = await confirmAction({
+    function handleDistribute() {
+        confirmAction({
             title: "Mark as Distributed?",
             text: "This will mark the distribution as fully distributed to investors.",
             confirmButtonText: "Yes, distribute",
+        }).then((ok) => {
+            if (!ok) return;
+            setProcessing(true);
+            router.post(
+                route(
+                    "backend.profit-distributions.distribute",
+                    distribution.id,
+                ),
+                {},
+                {
+                    onSuccess: () =>
+                        toast.success("Distribution marked as distributed."),
+                    onError: () => toast.error("Failed to update status."),
+                    onFinish: () => setProcessing(false),
+                },
+            );
         });
-        if (!ok) return;
-
-        setProcessing(true);
-        router.post(
-            route("backend.profit-distributions.distribute", distribution.id),
-            {},
-            {
-                onSuccess: () =>
-                    toast.success("Distribution marked as distributed."),
-                onError: () => toast.error("Failed to update status."),
-                onFinish: () => setProcessing(false),
-            },
-        );
     }
 
-    // -----------------------------------------------------------------------
-    // Delete
-    // -----------------------------------------------------------------------
+    // ── Delete ───────────────────────────────────────────────────────────────
 
-    async function handleDelete() {
-        const ok = await confirmAction({
+    function handleDelete() {
+        confirmAction({
             title: "Delete Distribution?",
             text: `"${distribution.distribution_no}" will be moved to trash.`,
             confirmButtonText: "Yes, delete",
+        }).then((ok) => {
+            if (!ok) return;
+            setProcessing(true);
+            router.delete(
+                route("backend.profit-distributions.destroy", distribution.id),
+                {
+                    onSuccess: () => toast.success("Distribution deleted."),
+                    onError: () => toast.error("Failed to delete."),
+                    onFinish: () => setProcessing(false),
+                },
+            );
         });
-        if (!ok) return;
-
-        setProcessing(true);
-        router.delete(
-            route("backend.profit-distributions.destroy", distribution.id),
-            {
-                onSuccess: () => toast.success("Distribution deleted."),
-                onError: () => toast.error("Failed to delete."),
-                onFinish: () => setProcessing(false),
-            },
-        );
     }
 
-    // -----------------------------------------------------------------------
-    // Render
-    // -----------------------------------------------------------------------
+    const isSettleable =
+        distribution.status === "approved" ||
+        distribution.status === "distributed";
 
     return (
         <AuthenticatedLayout>
             <Head title={distribution.distribution_no} />
 
-            {/* Payment modal */}
+            {/* Payment action modal */}
             {paymentItem && (
-                <PaymentModal
+                <ExtendedPaymentModal
                     item={paymentItem}
                     distributionId={distribution.id}
                     onClose={() => setPaymentItem(null)}
+                    onSuccess={handlePaymentChanged}
+                />
+            )}
+
+            {/* Payment history modal */}
+            {historyItem && (
+                <PaymentHistoryModal
+                    distributionId={distribution.id}
+                    itemId={historyItem.id}
+                    onClose={() => setHistoryItem(null)}
+                    onPaymentChanged={handlePaymentChanged}
+                />
+            )}
+
+            {/* Reverse modal */}
+            {showReverse && (
+                <ReverseDistributionModal
+                    distributionId={distribution.id}
+                    distributionNo={distribution.distribution_no}
+                    onClose={() => setShowReverse(false)}
                 />
             )}
 
@@ -421,11 +279,7 @@ export default function Show({ distribution, can }: Props) {
                                 </h1>
                                 <StatusBadge status={distribution.status} />
                                 {distribution.is_locked && (
-                                    <Lock
-                                        size={14}
-                                        className="text-gray-400"
-                                        aria-label="Locked"
-                                    />
+                                    <Lock size={14} className="text-gray-400" />
                                 )}
                             </div>
                             <p className="mt-0.5 text-sm text-gray-500">
@@ -447,6 +301,16 @@ export default function Show({ distribution, can }: Props) {
                                 <Edit2 size={14} />
                                 Edit
                             </a>
+                        )}
+                        {can.reverse && distribution.is_locked && (
+                            <button
+                                onClick={() => setShowReverse(true)}
+                                disabled={processing}
+                                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                            >
+                                <RotateCcw size={14} />
+                                Reverse
+                            </button>
                         )}
                         {can.approve && (
                             <button
@@ -481,9 +345,9 @@ export default function Show({ distribution, can }: Props) {
                     </div>
                 </div>
 
-                {/* ── Main grid ── */}
+                {/* Main grid */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* ── Left: Financial summary + Items ── */}
+                    {/* Left: Financial summary + Items + Eligibility */}
                     <div className="space-y-6 lg:col-span-2">
                         {/* Financial summary cards */}
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -538,7 +402,7 @@ export default function Show({ distribution, can }: Props) {
                             ))}
                         </div>
 
-                        {/* Additional financials */}
+                        {/* Full financial breakdown */}
                         <div className="rounded-lg border border-gray-200 bg-white p-4">
                             <h3 className="mb-3 text-sm font-semibold text-gray-700">
                                 Full Financial Breakdown
@@ -660,11 +524,9 @@ export default function Show({ distribution, can }: Props) {
                                             <th className="px-4 py-3 text-center font-medium text-gray-500">
                                                 Payment
                                             </th>
-                                            {can.update_payment && (
-                                                <th className="px-4 py-3 text-center font-medium text-gray-500">
-                                                    Action
-                                                </th>
-                                            )}
+                                            <th className="px-4 py-3 text-center font-medium text-gray-500">
+                                                Action
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
@@ -708,65 +570,39 @@ export default function Show({ distribution, can }: Props) {
                                                     ৳ {fmt(item.share_amount)}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <PaymentBadge
-                                                            status={
-                                                                item.payment_status
-                                                            }
-                                                        />
-                                                        {item.payment_status ===
-                                                            "paid" &&
-                                                            item.paid_at && (
-                                                                <span className="text-xs text-gray-400">
-                                                                    {fmtDate(
-                                                                        item.paid_at,
-                                                                    )}
-                                                                </span>
-                                                            )}
-                                                        {item.payment_status ===
-                                                            "paid" &&
-                                                            item.payment_method && (
-                                                                <span className="text-xs text-gray-400">
-                                                                    {
-                                                                        item.payment_method
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                        {item.payment_status ===
-                                                            "paid" &&
-                                                            item.transaction_reference && (
-                                                                <span className="text-xs text-indigo-500">
-                                                                    {
-                                                                        item.transaction_reference
-                                                                    }
-                                                                </span>
-                                                            )}
-                                                    </div>
+                                                    <PaymentBadge
+                                                        status={
+                                                            item.payment_status
+                                                        }
+                                                    />
                                                 </td>
-                                                {can.update_payment && (
-                                                    <td className="px-4 py-3 text-center">
-                                                        {item.payment_status ===
-                                                        "pending" ? (
-                                                            <button
-                                                                onClick={() =>
-                                                                    setPaymentItem(
-                                                                        item,
-                                                                    )
-                                                                }
-                                                                className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-100"
-                                                            >
-                                                                <CreditCard
-                                                                    size={12}
-                                                                />
-                                                                Update
-                                                            </button>
-                                                        ) : (
-                                                            <span className="text-xs text-gray-400">
-                                                                —
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                )}
+                                                <td className="px-4 py-3 text-center">
+                                                    {isSettleable &&
+                                                    item.payment_status !==
+                                                        "paid" ? (
+                                                        <button
+                                                            onClick={() =>
+                                                                setPaymentItem(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-100"
+                                                        >
+                                                            Update
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() =>
+                                                                setHistoryItem(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
+                                                        >
+                                                            History
+                                                        </button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -817,22 +653,28 @@ export default function Show({ distribution, can }: Props) {
                                                     ),
                                                 )}
                                             </td>
-                                            <td
-                                                colSpan={
-                                                    can.update_payment ? 2 : 1
-                                                }
-                                            />
+                                            <td colSpan={2} />
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
                         </div>
-                    </div>
-                    {/* end left col */}
 
-                    {/* ── Right: Record Info sidebar ── */}
+                        {/* Eligibility Panel */}
+                        {distribution.eligibilities &&
+                            distribution.eligibilities.length > 0 && (
+                                <EligibilityPanel
+                                    distributionId={distribution.id}
+                                    eligibilities={distribution.eligibilities}
+                                    isLocked={distribution.is_locked}
+                                    canOverride={can.override_eligibility}
+                                />
+                            )}
+                    </div>
+
+                    {/* Right: Sidebar */}
                     <div className="space-y-4">
-                        {/* Period & dates */}
+                        {/* Period */}
                         <div className="rounded-lg border border-gray-200 bg-white p-4">
                             <h3 className="mb-3 text-sm font-semibold text-gray-700">
                                 Period
@@ -867,7 +709,7 @@ export default function Show({ distribution, can }: Props) {
                             </div>
                         </div>
 
-                        {/* Record info */}
+                        {/* Record Info */}
                         <div className="rounded-lg border border-gray-200 bg-white p-4">
                             <h3 className="mb-3 text-sm font-semibold text-gray-700">
                                 Record Info
@@ -902,7 +744,7 @@ export default function Show({ distribution, can }: Props) {
                             </div>
                         </div>
 
-                        {/* Audit trail */}
+                        {/* Audit Trail */}
                         {(distribution.approver ||
                             distribution.distributor) && (
                             <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -962,7 +804,6 @@ export default function Show({ distribution, can }: Props) {
                             </div>
                         )}
                     </div>
-                    {/* end right col */}
                 </div>
             </div>
         </AuthenticatedLayout>
