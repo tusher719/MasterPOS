@@ -20,6 +20,7 @@ use App\Http\Controllers\Backend\InvestorBalanceController;
 use App\Http\Controllers\Backend\InvestorStatementController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
+use App\Http\Controllers\Backend\PartnerController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
@@ -463,6 +464,37 @@ Route::middleware(['auth', 'verified'])
         Route::get('investor-statements/{investment}', [InvestorStatementController::class, 'show'])
             ->name('investor-statements.show');
 
+
+        // -------------------------------------------------------------------------
+        // Partners
+        // -------------------------------------------------------------------------
+        Route::prefix('partners')->name('partners.')->group(function () {
+
+            // Bulk action — BEFORE resource to prevent wildcard swallowing
+            Route::post('bulk-action', [PartnerController::class, 'bulkAction'])
+                ->name('bulk-action');
+
+            // Restore — BEFORE resource
+            Route::post('{id}/restore', [PartnerController::class, 'restore'])
+                ->name('restore');
+
+            // Force delete — BEFORE resource
+            Route::delete('{id}/force-delete', [PartnerController::class, 'forceDelete'])
+                ->name('force-delete');
+
+            // Link / Unlink investment
+            Route::post('{partner}/link-investment', [PartnerController::class, 'linkInvestment'])
+                ->name('link-investment');
+            Route::delete('{partner}/investments/{partnerInvestment}/unlink', [PartnerController::class, 'unlinkInvestment'])
+                ->name('unlink-investment');
+
+            // ── Explicit CRUD routes (replaces Route::resource('/', ...)) ──
+            Route::get('/', [PartnerController::class, 'index'])->name('index');
+            Route::post('/', [PartnerController::class, 'store'])->name('store');
+            Route::get('/{partner}', [PartnerController::class, 'show'])->name('show');
+            Route::put('/{partner}', [PartnerController::class, 'update'])->name('update');
+            Route::delete('/{partner}', [PartnerController::class, 'destroy'])->name('destroy');
+        });
     });
 
 

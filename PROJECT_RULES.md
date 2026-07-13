@@ -27,6 +27,8 @@
 - ProfitDistributionController: `optional(Auth::user())->can()` pattern
 - HoldOrderController: `AuthorizesRequests` trait + `$this->authorize('edit', $holdOrder)`
     - update() must pass ability name 'edit' explicitly — policy has no update() method
+- PartnerController: `abort_unless(Gate::allows('permission.name'), 403)` pattern
+- PartnerProfitRuleController: `abort_unless(Gate::allows('permission.name'), 403)` pattern
 
 ### can[] Array
 
@@ -43,6 +45,11 @@
 - `store()` must return `response()->json([id, reference_no])` — NOT redirect()
   (POS Index uses axios.post() for checkout)
 
+### Profit Calculation Controllers
+
+- `calculatePreview()` must detect `source_type` (investment_based vs partner_based) and dispatch to correct engine
+- Never mix investment-based and partner-based calculations in a single query
+
 ---
 
 ## 3. Policy Rules
@@ -52,6 +59,8 @@
   (Adding model param causes ArgumentCountError when called with class string)
 - InvoicePolicy NOT registered in AppServiceProvider — InvoiceController uses direct permission check
 - ReportController has NO policy — uses Gate::allows() directly
+- PartnerPolicy: standard registration via Gate::policy() in AppServiceProvider
+- PartnerProfitRulePolicy: standard registration — approve() method required (separate from edit)
 
 ---
 
@@ -65,6 +74,7 @@
 - Export routes declared **BEFORE** resource() to prevent wildcard swallowing
 - Dashboard data route declared **BEFORE** resource routes
 - Report export route declared **BEFORE** named report routes
+- Partner profit rule approval route declared **BEFORE** resource routes
 
 ---
 
@@ -72,6 +82,9 @@
 
 - Create/Edit forms are **ALWAYS in Modal** — never separate pages
     - **Exceptions:** Product, Purchase, ProfitDistribution Create/Edit — separate pages (forms too complex)
+    - Partner Create/Edit: Modal (simple form)
+    - ProfitRule Create/Edit: Modal (versioning handled server-side)
+    - ProductAssignment Create/Edit: Modal
 - Toast notifications: **sonner only**
 - Confirm dialogs: **SweetAlert2 only**
 - SweetAlert2 `confirmButtonColor`: `'#ef4444'` for delete actions
@@ -93,6 +106,7 @@
 - Laravel 'date' cast returns full ISO datetime string
 - Edit.tsx date fields must use `toDateInputValue()` helper → slice to `[0,10]` for `<input type="date">`
 - Without this, date inputs render blank on edit page load
+- Effective dates (effective_from, effective_to) follow the same rule
 
 ### Ziggy Routes
 
@@ -105,6 +119,8 @@
 - ItemData / PreviewItem interfaces require index signature: `[key: string]: string | number | null`
   (needed when arrays are passed through Inertia router.post() payload)
 - ProfitDistribution shared types: `resources/js/types/profit-distribution.d.ts`
+- Partner shared types: `resources/js/types/partner.d.ts`
+- Runtime color/label maps: `resources/js/types/partner-colors.ts` (never inside .d.ts)
 
 ### React Patterns
 
@@ -121,12 +137,17 @@
 - `ProfitDistribution` excludes from `$fillable`: `status`, `is_locked`, `approved_by`, `approved_at`, `distributed_by`, `distributed_at`
 - `ProfitDistributionItem` excludes from `$fillable`: `payment_status`, `payment_method`, `transaction_reference`, `paid_by`, `paid_at`
 - Always use `forceFill([...])->save()` for these fields — never `update([])`
+- `PartnerProfitRule` excludes from `$fillable`: `approved_by`, `approved_at`
+  → use `forceFill()->save()` in approval action
+- `PartnerProductAssignment` excludes from `$fillable`: `approved_by`, `approved_at`
+  → use `forceFill()->save()` in approval action
 
 ### Soft Delete & Relations
 
 - `withTrashed()` on BelongsTo relations where source may be soft-deleted
 - InvoiceController uses `withTrashed()` on all queries
 - ActivityLog must have `user()` BelongsTo with `withTrashed()`
+- Partner model: `withTrashed()` on any relation where partner may be soft-deleted
 
 ### Eager Loading with withTrashed
 
@@ -148,6 +169,9 @@
   (Laravel ConvertEmptyStringsToNull middleware converts empty strings to null)
 - `ProfitDistribution::generateDistributionNo()` must be called inside `DB::transaction()` with `lockForUpdate()`
 - `calculatePreview()` sums ALL expenses in period — no status filter (no approval workflow)
+- Profit rule resolution: always query by `effective_from <= period_start AND (effective_to IS NULL OR effective_to >= period_start)`
+- Pending profit rules (`approved_by IS NULL`) must NEVER be included in any profit calculation
+- Partner eligibility check: eligibility record must cover ENTIRE distribution period, not just partial overlap
 
 ---
 
@@ -190,6 +214,7 @@
 
 - Color scheme: `gray-50/100/200/300/400/500/600/700/800` + `indigo-600/700`
 - Status badges: `green-100/700` (active), `gray-100/500` (inactive), `amber-100/700` (processing/withdrawn)
+- Partner type badges: `blue-100/700` (capital), `purple-100/700` (working), `orange-100/700` (product)
 - Page header: `text-2xl font-bold text-gray-800`
 - Primary buttons: `rounded-lg bg-indigo-600 text-white hover:bg-indigo-700`
 - Tables: `rounded-lg border border-gray-200 bg-white overflow-hidden`
@@ -197,6 +222,8 @@
 - Stats cards: `rounded-lg border border-gray-200 bg-white p-4`
 - Form inputs: `rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500`
 - Action buttons: `rounded-md p-1.5 text-gray-400 hover:bg-gray-100` (edit) / `hover:bg-red-50 hover:text-red-500` (delete)
+- Approval pending badge: `yellow-100/700`
+- Rule version badge: `indigo-100/700`
 
 ### Modals
 
@@ -223,12 +250,14 @@
 - `@mantine/dates` → date pickers in forms only
 - `@mantine/carousel` → image sliders only
 - `@mantine/tiptap` → rich text notes fields only
-- `@mantine/charts` → charts in investor/capital pages only
+- `@mantine/charts` → charts in investor/capital/partner pages only
 - Page layout, tables, buttons, modals → always native HTML + Tailwind
 
 ### Sidebar Nav
 
 - Sidebar nav group labels must be unique (duplicate labels cause React key collision warnings)
+- Partner module: placed under a new "Partners" nav group
+- Capital domain nav group: "Investments" (existing — do not rename)
 
 ---
 
@@ -244,9 +273,10 @@
 
 ## 13. ActivityLogService
 
-php
+```php
 ActivityLogService::log('module', 'action', 'description', $model, $properties)
 // Pass $model object, not $model->id
+```
 
 ---
 
@@ -280,3 +310,34 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - Runtime constants (color maps, label maps) → always in `.ts` files
 - Vite cannot resolve runtime values from `.d.ts` at build time — causes import resolution failure
 - Pattern: `foo.d.ts` for types + `foo-colors.ts` for runtime color/label maps
+
+---
+
+## 17. Partner Domain Rules (NEW)
+
+- Partner is the central profit entity — never use investment amount to determine profit share
+- Profit share percent is ALWAYS sourced from `partner_profit_rules.share_percent`
+- Capital amount from `investments.amount` must NEVER appear in profit calculation queries
+- A working partner or product partner may have zero investments — this is valid
+- Rule resolution ALWAYS uses `effective_from <= period_start` date — never current date
+- Pending rules (`approved_by IS NULL`) are invisible to all calculation engines
+- Eligibility check must cover entire distribution period — partial coverage = ineligible
+- `effective_to` is set when a rule is superseded — never delete old rules
+- Profit rule history is append-only — no updates, no deletes on `partner_profit_rule_history`
+- Product assignment: check `effective_from <= sale_date AND (effective_to IS NULL OR effective_to >= sale_date)` per sale
+- Settlement type is stored as snapshot in `profit_distribution_items.profit_rule_snapshot` — never recalculated from live config
+- Partner soft delete: existing profit history, capital links, and distribution items are preserved
+
+---
+
+## 18. Profit Calculation Engine Rules (NEW)
+
+- Engine selection is based on `profit_distributions.source_type`:
+    - `investment_based` → legacy CapitalBasedStrategy (backward compatible)
+    - `partner_based` → dispatch to correct strategy per partner's rule_type
+- Strategy classes live in `app/Services/ProfitCalculation/`
+- Each strategy implements `ProfitCalculationStrategyInterface`
+- Engine NEVER modifies any table — it returns a preview array only
+- Snapshot is written by `ProfitDistributionController::store()` — not by the engine
+- Mixed strategy: sum results from each applicable sub-strategy for that partner
+- Product-based strategy: pre-aggregate sale totals per product per partner assignment — never row-by-row in PHP

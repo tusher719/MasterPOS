@@ -9,7 +9,7 @@
 ## Project Identity
 
 - **Name:** Master POS System
-- **Version:** v2.0
+- **Version:** v2.2
 - **Path:** D:/xampp/htdocs/Laravel_12/MasterPOS
 - **Environment:** Windows 10, XAMPP, Git Bash
 
@@ -31,44 +31,64 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4 — Investment-to-Business Tracking (NOT STARTED)
-- **Last Completed:** Step 17 Phase 3 — Investor Statements ✅
+- **Current Step:** Step 17 Phase 4B — Profit Rules + Versioning
+- **Next Step:** Step 17 Phase 4C — Profit Eligibility
+- **Last Completed:** Step 17 Phase 4A — Partner Domain Foundation ✅
+
+## Financial Domain Overview
+
+The system is now organized into two independent financial domains:
+
+| Domain  | Central Entity    | Tracks                                  |
+| ------- | ----------------- | --------------------------------------- |
+| Capital | Investment        | Money entering and leaving the business |
+| Profit  | Partner           | Profit entitlement, rules, distribution |
+| Link    | PartnerInvestment | Which partner owns which investment     |
+
+> Capital and Profit are ALWAYS independent. Investment amount NEVER determines profit share.
 
 ## Completed Modules
 
-| Step       | Module                        | Status |
-| ---------- | ----------------------------- | ------ |
-| 00         | Project Standards             | ✅     |
-| 01         | Project Foundation            | ✅     |
-| 02         | Authentication & Permission   | ✅     |
-| 03         | Business Settings             | ✅     |
-| 04         | Product & Category Management | ✅     |
-| 05         | Notification System           | ✅     |
-| 06         | Supplier Management           | ✅     |
-| 07         | Purchase & Inventory          | ✅     |
-| 08         | Customer Management           | ✅     |
-| 09         | POS (Cart/Sale)               | ✅     |
-| 10         | Invoice & Receipt             | ✅     |
-| 11         | Hold Orders                   | ✅     |
-| 12         | Expense Management            | ✅     |
-| 13         | Investment Management         | ✅     |
-| 14         | Profit Distribution           | ✅     |
-| 15         | Dashboard & Analytics         | ✅     |
-| 16         | Reports                       | ✅     |
-| 17 Phase 1 | Advanced Profit Distribution  | ✅     |
-| 17 Phase 2 | Capital Ledger                | ✅     |
-| 17 Phase 3 | Investor Statements           | ✅     |
+| Step        | Module                        | Status |
+| ----------- | ----------------------------- | ------ |
+| 00          | Project Standards             | ✅     |
+| 01          | Project Foundation            | ✅     |
+| 02          | Authentication & Permission   | ✅     |
+| 03          | Business Settings             | ✅     |
+| 04          | Product & Category Management | ✅     |
+| 05          | Notification System           | ✅     |
+| 06          | Supplier Management           | ✅     |
+| 07          | Purchase & Inventory          | ✅     |
+| 08          | Customer Management           | ✅     |
+| 09          | POS (Cart/Sale)               | ✅     |
+| 10          | Invoice & Receipt             | ✅     |
+| 11          | Hold Orders                   | ✅     |
+| 12          | Expense Management            | ✅     |
+| 13          | Investment Management         | ✅     |
+| 14          | Profit Distribution           | ✅     |
+| 15          | Dashboard & Analytics         | ✅     |
+| 16          | Reports                       | ✅     |
+| 17 Phase 1  | Advanced Profit Distribution  | ✅     |
+| 17 Phase 2  | Capital Ledger                | ✅     |
+| 17 Phase 3  | Investor Statements           | ✅     |
+| 17 Phase 4A | Partner Domain Foundation     | ✅     |
 
 ## Pending Modules
 
-| Step       | Module                          |
-| ---------- | ------------------------------- |
-| 17 Phase 4 | Investment-to-Business Tracking |
-| 17 Phase 5 | Sales Payment Upgrade           |
-| 17 Phase 6 | COD Support                     |
-| 18         | Security Hardening              |
-| 19         | Performance Optimization        |
-| 20         | Testing                         |
+| Step        | Module                                 | Notes                                    |
+| ----------- | -------------------------------------- | ---------------------------------------- |
+| 17 Phase 4B | Profit Rules + Versioning              | partner_profit_rules, rule history       |
+| 17 Phase 4C | Profit Eligibility                     | partner_profit_eligibilities             |
+| 17 Phase 4D | Settlement Config                      | partner_settlement_configs               |
+| 17 Phase 4E | Product Partner & Assignments          | partner_product_assignments              |
+| 17 Phase 4F | Profit Calculation Engine              | Strategy pattern services                |
+| 17 Phase 4G | Investment-to-Business Tracking        | investment_fund_usages                   |
+| 17 Phase 4H | Existing Table Migrations              | Add partner_id + source_type columns     |
+| 17 Phase 5  | Sales Payment Upgrade                  |                                          |
+| 17 Phase 6  | COD Order Management + Fraud Detection | orders, delivery_addresses, fraud_scores |
+| 18          | Security Hardening                     |                                          |
+| 19          | Performance Optimization               |                                          |
+| 20          | Testing                                |                                          |
 
 ## Documentation Structure
 
@@ -90,3 +110,6 @@
 - DATABASE_SCHEMA.md is the single source of truth for column names
 - When in doubt about a column name, check DATABASE_SCHEMA.md first
 - Never assume column names from context — always verify
+- Capital domain = Investment entity (Phase 2 complete — do not redesign)
+- Profit domain = Partner entity (Phase 4 in progress)
+- Never couple capital amount to profit share calculation

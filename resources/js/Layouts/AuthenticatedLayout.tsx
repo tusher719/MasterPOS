@@ -273,6 +273,18 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        label: "Partners",
+        icon: Users,
+        children: [
+            {
+                label: "Partners",
+                icon: Users,
+                href: "backend.partners.index",
+                active: "backend.partners.index*",
+            },
+        ],
+    },
+    {
         label: "Reports",
         icon: BarChart3,
         children: [
@@ -327,7 +339,7 @@ function NavLeaf({
         return (
             <div
                 className={`flex cursor-not-allowed items-center gap-3 rounded-lg ${padding} py-2.5 text-sm font-medium text-gray-300`}
-                title="শীঘ্রই আসছে"
+                title="coming soon"
             >
                 <Icon size={18} />
                 {!collapsed && <span>{item.label}</span>}
@@ -338,7 +350,7 @@ function NavLeaf({
     return (
         <Link
             href={route(item.href as string)}
-            className={`flex items-center gap-3 rounded-lg ${padding} py-2.5 text-sm font-medium transition ${
+            className={`flex items-center gap-2 rounded-lg ${padding} py-1.5 text-sm font-medium transition ${
                 active
                     ? "bg-indigo-50 text-indigo-700"
                     : "text-gray-600 hover:bg-gray-100"
@@ -382,7 +394,7 @@ function NavGroup({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
                         : "text-gray-600 hover:bg-gray-100"
                 }`}
             >
-                <Icon size={18} />
+                <Icon size={16} />
                 <span className="flex-1 text-left">{item.label}</span>
                 {open ? (
                     <ChevronDown size={14} className="opacity-60" />

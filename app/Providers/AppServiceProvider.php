@@ -15,6 +15,7 @@ use App\Models\HoldOrder;
 use App\Models\Investment;
 use App\Models\InvestmentType;
 use App\Models\InvestorProfitBalance;
+use App\Models\Partner;
 use App\Models\PaymentMethod;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
@@ -31,6 +32,7 @@ use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvestorProfitBalancePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\NotificationPolicy;
+use App\Policies\PartnerPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
@@ -98,5 +100,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 17 Policies ─────────────────────────────────────────────────
         Gate::policy(CapitalLedgerEntry::class, CapitalLedgerPolicy::class);
+
+        // ─── Step 17 Phase 4A Policies ─────────────────────────────────────────────────
+        Gate::policy(Partner::class, PartnerPolicy::class);
     }
 }

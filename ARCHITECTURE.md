@@ -13,7 +13,7 @@
 
 ### TypeScript
 
-**Why:** The project involves complex financial data (decimal fields, payment states, distribution snapshots). TypeScript catches type errors at compile time — especially important when Laravel decimal fields serialize as strings in JSON and must be wrapped in Number().
+**Why:** The project involves complex financial data (decimal fields, payment states, distribution snapshots, profit rule versioning). TypeScript catches type errors at compile time — especially important when Laravel decimal fields serialize as strings in JSON and must be wrapped in Number().
 
 ### Tailwind CSS as Primary UI
 
@@ -23,10 +23,10 @@
 
 **Why:** Mantine provides high-quality date pickers, rich text editors, carousels, and charts that would take significant effort to build from scratch. However, Mantine's component model conflicts with the project's native HTML approach for layouts and forms — so Mantine is used ONLY for:
 
-- `@mantine/dates` → date pickers
+- `@mantine/dates` → date pickers (including effective_from/effective_to in profit rule forms)
 - `@mantine/carousel` → image sliders
 - `@mantine/tiptap` → rich text notes
-- `@mantine/charts` → investor/capital analytics charts
+- `@mantine/charts` → investor/capital/partner analytics charts
 - Everything else: native HTML + Tailwind
 
 ### Ziggy for Routing
@@ -35,7 +35,37 @@
 
 ---
 
-## 2. Controller Architecture
+## 2. Financial Domain Architecture — Core Decision
+
+### Two Independent Domains: Capital and Profit
+
+**Why:** The original design coupled investment amount directly to profit share. This caused fundamental business modeling failures — a working partner with zero capital investment could not receive profit, and two investors with different capital amounts could not have the same profit share by negotiation.
+
+The redesign separates:
+
+- **Capital Domain** (Investment entity) — tracks money flow into and out of the business
+- **Profit Domain** (Partner entity) — tracks profit entitlement, rules, and settlement
+
+These domains are linked via `partner_investments` but operate independently.
+
+### Why Investment Remains the Capital Entity (Not Replaced by Partner)
+
+The Capital Ledger (Phase 2) is already built around `investments`. Replacing Investment as the capital entity would require rewriting:
+
+- Capital Ledger entries and queries
+- Capital withdrawal workflow
+- Investor statements
+- InvestorCapitalBalance and InvestorProfitBalance tables
+
+By keeping Investment as the capital entity and introducing Partner as the profit entity, backward compatibility is preserved at zero cost. The `partner_id` column is added as nullable to existing tables — old records remain untouched.
+
+### Why Partner is the Profit Entity (Not Investment)
+
+Because profit entitlement is a business agreement, not a mathematical consequence of capital contributed. Two people might agree that one gets 35% profit and one gets 65% regardless of their relative capital contributions. The system must be able to express this.
+
+---
+
+## 3. Controller Architecture
 
 ### Inertia Controllers (standard)
 
@@ -56,7 +86,7 @@ The POS terminal needs real-time checkout without full page navigation. The dash
 
 ---
 
-## 3. Permission Strategy
+## 4. Permission Strategy
 
 ### Spatie + Gate::policy()
 
@@ -72,42 +102,102 @@ ProfitDistribution has complex authorization needs where the user context may va
 
 Invoice is a view-only module reusing Sale data. Simple permission check (`hasPermissionTo('invoice.view')`) is sufficient — no model-level authorization needed.
 
+### Partner Module Policies
+
+PartnerPolicy and PartnerProfitRulePolicy are registered via `Gate::policy()` in AppServiceProvider. The `PartnerProfitRulePolicy` has a dedicated `approve()` method — separate from `edit()` — because approving a financial rule requires a higher permission than editing a draft.
+
 ---
 
-## 4. Database Architecture
+## 5. Database Architecture
 
 ### Snapshot Accounting for Profit Distribution
 
-**Why:** Financial records must be immutable after approval. If product prices, investment amounts, or expense records change after a distribution is created, the distribution should NOT be affected. Snapshots (frozen copies of investor_name, investment_title, invested_amount, share_percent, share_amount) are written once at store() time and never recalculated.
+**Why:** Financial records must be immutable after approval. If product prices, investment amounts, partner profit percentages, or product assignments change after a distribution is created, the distribution should NOT be affected. Snapshots (frozen copies of investor_name, share_percent, share_amount, profit_rule_snapshot) are written once at store() time and never recalculated.
+
+### Why profit_rule_snapshot is JSON (Not Normalized)
+
+The `profit_rule_snapshot` column stores a JSON copy of the exact `partner_profit_rules` record used at calculation time. Normalizing this into FK relationships would break snapshot integrity — if the rule record changes (versioning), the historical distribution would resolve the wrong rule. JSON snapshot is immutable by design.
 
 ### Polymorphic Stock Movements
 
 **Why:** Stock can change from multiple sources (purchases, sales, returns, adjustments). Polymorphic `reference_type` + `reference_id` allows a single table to track all movements with their source, enabling full audit trail without separate tables per source type.
 
+### Polymorphic Product Assignments
+
+**Why:** `partner_product_assignments.assignable_type` + `assignable_id` follows the same pattern. Currently only `product` is supported, but the schema already accommodates `category`, `brand`, `warehouse` without any migration. This is deliberate future-proofing.
+
 ### Weighted Average Cost
 
 **Why:** More accurate than FIFO for high-volume retail. Average cost is updated on each purchase and stored on the product record for fast COGS calculation without scanning all historical purchases.
 
-### Separate Payment Ledger (Step 17)
+### Separate Payment Ledger (Step 17 Phase 1)
 
-**Why:** The original `profit_distribution_items` had inline payment fields (single payment per item). Phase 1 introduced `profit_distribution_item_payments` as a separate table to support:
-
-- Multiple partial payments per item
-- Deferred and reinvested amounts (not just cash payment)
-- Full payment history with audit trail
-- Cancellation and reopening of individual transactions
+**Why:** The original `profit_distribution_items` had inline payment fields (single payment per item). Phase 1 introduced `profit_distribution_item_payments` as a separate table to support multiple partial payments, deferred and reinvested amounts, and full payment history with cancellation/reopening.
 
 ### InvestorProfitBalance — Denormalized Running Balance
 
-**Why:** Calculating pending balance from raw transaction data on every request requires expensive aggregation queries across multiple tables. A denormalized balance record with direct increment/decrement operations provides O(1) balance reads at the cost of more complex write operations (creditEarned, recordPayment, reverseEarned, etc.).
+**Why:** Calculating pending balance from raw transaction data on every request requires expensive aggregation queries across multiple tables. A denormalized balance record with direct increment/decrement operations provides O(1) balance reads at the cost of more complex write operations.
+
+### Backward Compatibility via Nullable Foreign Keys
+
+All new `partner_id` columns on existing tables are nullable. Old records (investments, profit_distribution_items, capital_ledger_entries, investor_profit_balances, investor_capital_balances) remain valid with `partner_id = null`. New records created under the partner domain populate `partner_id`. This allows gradual migration without data loss.
+
+### profit_distributions.source_type
+
+**Why:** Allows both legacy (investment_based) and new (partner_based) distributions to coexist permanently. Old distributions are never reprocessed. New distributions use the strategy engine. This eliminates the risk of breaking existing financial records during the architecture transition.
 
 ---
 
-## 5. Frontend Architecture
+## 6. Profit Calculation Engine Architecture
+
+### Strategy Pattern
+
+**Why:** Different partner types require completely different profit calculations. A fixed percentage partner, a product-based partner, and a legacy investment-based partner cannot share the same calculation code. The Strategy Pattern isolates each calculation method behind a common interface, allowing:
+
+- New strategies to be added without modifying existing ones
+- Strategies to be composed (MixedStrategy)
+- The engine to dispatch the correct strategy at runtime based on partner rule_type
+
+### Engine is Read-Only
+
+**Why:** The engine produces a preview array. It never writes to the database. This enforces a clean separation between calculation (engine) and persistence (controller). The preview can be shown to the admin before confirmation, and the snapshot is written only on explicit `store()`.
+
+### Rule Resolution at period_start
+
+**Why:** Using `period_start` as the anchor date for rule resolution ensures historical correctness. If a partner's rule changed mid-year, distributions before the change use the old rule and distributions after the change use the new rule — automatically, without any manual intervention.
+
+---
+
+## 7. Profit Rule Versioning Architecture
+
+### Why Effective Dating Instead of Overwriting
+
+Overwriting `share_percent` on the existing rule would silently invalidate historical distributions. With effective dating:
+
+- Old rule: `effective_to = 2026-03-31`
+- New rule: `effective_from = 2026-04-01`
+
+Both rules exist permanently. Rule resolution always finds the correct version for any historical date. This is the only financially safe approach.
+
+### Why partner_profit_rule_history is Append-Only
+
+**Why:** The audit table must be a complete and immutable record of every change. If records could be updated or deleted, the audit trail would be compromised. Append-only guarantees that what happened cannot be hidden.
+
+### Approval Workflow Before Active
+
+**Why:** A rule configured but not yet approved should never affect a live calculation. The `approved_by IS NULL` check acts as a gate — unapproved rules are invisible to the engine. This prevents accidental application of a rule that hasn't been reviewed.
+
+---
+
+## 8. Frontend Architecture
 
 ### \_components/ Pattern
 
 **Why:** Large pages split into `_components/` subfolder. Index.tsx imports all components and passes typed props. This keeps individual files small and focused, and allows shared types to be exported from Index.tsx for reuse across sibling components.
+
+### Partner Page Structure
+
+Partner Show page uses the `lg:grid-cols-3` layout (main content + sidebar) consistent with other detail pages. Complex panels (ProfitRulesPanel, ProductAssignmentsPanel) are extracted into `_components/` to keep Show.tsx readable.
 
 ### Single Dashboard Endpoint
 
@@ -115,11 +205,11 @@ Invoice is a view-only module reusing Sale data. Simple permission check (`hasPe
 
 ### No shadcn/ui in Pages
 
-**Why:** shadcn/ui generates component files that become part of the codebase and require maintenance. The project uses native HTML + Tailwind for all layouts, tables, buttons, and modals to maintain full control over styling without dependency on component library updates. shadcn/ui is only available for import from @/components/ui/ but not used in pages.
+**Why:** shadcn/ui generates component files that become part of the codebase and require maintenance. The project uses native HTML + Tailwind for all layouts, tables, buttons, and modals to maintain full control over styling without dependency on component library updates.
 
 ---
 
-## 6. Export Architecture
+## 9. Export Architecture
 
 ### Three-Format Export Strategy
 
@@ -137,7 +227,7 @@ DomPDF renders HTML to PDF. CSS Grid is NOT supported — only flexbox and HTML 
 
 ---
 
-## 7. Security Architecture
+## 10. Security Architecture
 
 ### SecurityHeaders Middleware
 
@@ -161,9 +251,13 @@ Applied globally to all web routes. Sets:
 
 **Why:** `$fillable` excludes status/lock fields to prevent mass assignment attacks (e.g., a crafted request setting `is_locked=false` to bypass distribution locking). Model methods use `forceFill()->save()` to bypass the guard intentionally and explicitly.
 
+### forceFill() for Approval Fields
+
+Same pattern applied to `partner_profit_rules.approved_by/approved_at` and `partner_product_assignments.approved_by/approved_at`. These fields must only be set through explicit approval controller actions, never through bulk form submissions.
+
 ---
 
-## 8. Service Layer
+## 11. Service Layer
 
 ### ActivityLogService
 
@@ -177,13 +271,38 @@ Handles stock updates on purchase create/update/delete. Calculates weighted aver
 
 Handles stock updates on sale create and reversal. `reverseStock()` called on sale delete.
 
+### ProfitCalculationEngine (New — Phase 4F)
+
+Dispatches to the correct calculation strategy based on `profit_distributions.source_type` and partner's `rule_type`. Returns preview array only — never writes to database.
+
+Located in `app/Services/ProfitCalculation/`:
+
+- `ProfitCalculationEngine.php` — dispatcher
+- `ProfitCalculationStrategyInterface.php` — contract
+- `FixedPercentStrategy.php`
+- `ProductBasedStrategy.php`
+- `CapitalBasedStrategy.php` (legacy)
+- `MixedStrategy.php`
+
+### PartnerEligibilityService (New — Phase 4C)
+
+Resolves whether a partner is eligible for a given distribution period. Encapsulates the eligibility query logic so it is not duplicated across controllers.
+
+### PartnerRuleResolutionService (New — Phase 4B)
+
+Given a `partner_id` and a `period_start` date, returns the correct `partner_profit_rules` record. Encapsulates the `effective_from <= date` versioning query.
+
+### SettlementCalculationService (New — Phase 4D)
+
+Calculates settlement amounts per partner based on their `partner_settlement_configs`. Returns cost_return + profit_share breakdown for product partners.
+
 ### Why services instead of model methods
 
 Business logic involving multiple models (stock update + activity log + notification) belongs in services, not Eloquent models. Models handle single-model concerns; services orchestrate cross-model workflows.
 
 ---
 
-## 9. Hold Order Architecture
+## 12. Hold Order Architecture
 
 ### Why Hard Delete Only
 
@@ -195,7 +314,28 @@ HoldOrderController uses Laravel's `AuthorizesRequests` trait and `$this->author
 
 ---
 
-## 10. Known Constraints & Limitations
+## 13. Domain Events (Deferred)
+
+Laravel's built-in event system is sufficient. No event sourcing infrastructure is needed at this scale.
+
+Events are registered in `EventServiceProvider` as modules grow. Current candidates (fire but no listeners yet):
+
+```
+PartnerCreated
+ProfitRuleChanged
+ProfitRuleApproved
+PartnerEligibilityPaused
+PartnerEligibilityResumed
+ProductAssignmentChanged
+DistributionApproved
+SettlementCompleted
+```
+
+This keeps the system loosely coupled without over-engineering the current phase.
+
+---
+
+## 14. Known Constraints & Limitations
 
 ### DomPDF
 
@@ -222,3 +362,14 @@ HoldOrderController uses Laravel's `AuthorizesRequests` trait and `$this->author
 
 - Empty string query params are converted to null by middleware
 - Use `$request->filled()` instead of `$request->input()` with default value for filter logic
+
+### Profit Rule Approval Timing
+
+- A rule created in January but only approved in March should use `effective_from` (January) not `approved_at` (March) for resolution
+- `approved_at` is for audit purposes only — never used in calculation queries
+
+### Product-Based Calculation Performance
+
+- Aggregating sale totals per product per partner assignment can be expensive on large datasets
+- Always pre-aggregate with GROUP BY in SQL — never iterate sale rows in PHP
+- Future: consider a pre-calculated period summary table if performance degrades

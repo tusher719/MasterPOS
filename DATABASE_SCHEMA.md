@@ -1,7 +1,7 @@
 # Database Schema — Master POS System
 
 > Single source of truth for all table structures.
-> Updated through: Step 17 Phase 1
+> Updated through: Financial Architecture Redesign (Pre Phase 4)
 
 ---
 
@@ -15,6 +15,10 @@
 - `hold_orders` has NO `deleted_at` (hard delete only)
 - `profit_distribution_items` has NO `deleted_at` (cascade from parent)
 - `investor_profit_balances.investment_id` is UNIQUE (one balance per investor)
+- `partner_investments` is the link table — NOT a direct FK on investments
+- `profit_distributions.source_type` determines which calculation engine to use
+- Profit share percent comes from `partner_profit_rules.share_percent` — NEVER from investment amount
+- Pending profit rules have `approved_by IS NULL` — excluded from all calculations
 
 ---
 
@@ -220,10 +224,13 @@ id, investment_type_id(FK restrict), title(varchar), investor_name(varchar),
 amount(dec10,2), investment_date(date), reference(varchar nullable),
 attachment(varchar nullable), note(text nullable),
 status(enum: active/withdrawn default:active),
+partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
 created_by(FK users restrict), updated_by(FK users nullable nullOnDelete),
 timestamps, deleted_at
 Attachment path: storage/app/public/investments/
 Accepted types: jpg, jpeg, png, gif, webp, pdf, doc, docx, xlsx (max 5MB)
+
+Note: investment.amount tracks capital only — it NEVER determines profit share.
 
 ---
 
@@ -237,6 +244,7 @@ total_revenue(dec10,2 default 0), total_cogs(dec10,2 default 0),
 total_expenses(dec10,2 default 0), total_investment(dec10,2 default 0),
 gross_profit(dec10,2 default 0), net_profit(dec10,2 default 0),
 distribution_percent(dec5,2 default 100), distributable_amount(dec10,2 default 0),
+source_type(enum: investment_based/partner_based default: investment_based), ← **Added in Phase 4H**
 status(enum: draft/approved/distributed default:draft), is_locked(bool default false),
 note(text nullable),
 approved_by(FK users nullable nullOnDelete), approved_at(timestamp nullable),
@@ -250,12 +258,16 @@ status, is_locked, approved_by, approved_at, distributed_by, distributed_at
 
 ### profit_distribution_items
 
-id, profit_distribution_id(FK cascade), investment_id(FK restrict),
+id, profit_distribution_id(FK cascade), investment_id(FK restrict nullable), ← nullable in Phase 4H
 investor_name(varchar), investment_title(varchar), investment_type(varchar) — snapshots,
 invested_amount(dec10,2), share_percent(dec8,4), share_amount(dec10,2),
 distribution_percent(dec5,2 default 100), deferred_amount(dec10,2 default 0),
 reinvested_amount(dec10,2 default 0),
 carried_from_distribution_id(FK nullable nullOnDelete),
+partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
+profit_rule_id(FK partner_profit_rules nullable nullOnDelete), ← **Added in Phase 4H**
+profit_rule_snapshot(json nullable), ← **Added in Phase 4H** — frozen rule copy
+settlement_type(enum: profit_only/cost_plus_profit/custom nullable), ← **Added in Phase 4H**
 payment_status(enum: pending/partial/paid/deferred/reinvested/cancelled/reopened default:pending),
 payment_method(varchar nullable), transaction_reference(varchar nullable) — legacy inline fields,
 paid_by(FK users nullable nullOnDelete), paid_at(timestamp nullable),
@@ -292,6 +304,7 @@ Indexes: profit_distribution_item_id, payment_status
 ### investor_profit_balances
 
 id, investment_id(FK investments restrict UNIQUE), investor_name(varchar),
+partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
 total_earned(dec10,2 default 0), total_paid(dec10,2 default 0),
 total_deferred(dec10,2 default 0), total_reinvested(dec10,2 default 0),
 pending_balance(dec10,2 default 0), timestamps
@@ -303,6 +316,7 @@ pending_balance(dec10,2 default 0), timestamps
 ### capital_ledger_entries
 
 id, investment_id(FK investments restrict), investor_name(varchar snapshot),
+partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
 transaction_type(enum: deposit/withdrawal/reinvestment/adjustment),
 direction(enum: credit/debit), amount(dec10,2), running_balance(dec10,2),
 reference_no(varchar unique nullable CL-YYYYMMDD-XXXX),
@@ -318,26 +332,141 @@ Indexes: (investment_id, transaction_type), (source_type, source_id), status
 
 id, investment_id(FK investments restrict UNIQUE),
 investor_name(varchar denormalized),
+partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
 total_deposited(dec10,2 default 0), total_withdrawn(dec10,2 default 0),
 total_reinvested(dec10,2 default 0), total_adjusted(dec10,2 default 0),
 current_balance(dec10,2 default 0), timestamps
 
 ---
 
+## Step 17 Phase 4 — Partner Domain (NEW)
+
+### partners
+
+id, name(varchar), code(varchar unique nullable — PTR-001 format),
+partner_type_capital(bool default false),
+partner_type_working(bool default false),
+partner_type_product(bool default false),
+phone(varchar nullable), email(varchar nullable), address(text nullable),
+user_id(FK users nullable nullOnDelete — optional system user link),
+note(text nullable),
+is_active(bool default true),
+created_by(FK users restrict), updated_by(FK users nullable nullOnDelete),
+timestamps, deleted_at
+
+Note: partner*type*\* are boolean flags — multiple types can be true simultaneously.
+
+### partner_investments
+
+id, partner_id(FK partners restrict), investment_id(FK investments restrict),
+is_primary(bool default true — which investment is primary capital source),
+note(text nullable), timestamps
+UNIQUE constraint: (partner_id, investment_id)
+Indexes: partner_id, investment_id
+
+### partner_profit_rules
+
+id, partner_id(FK partners restrict),
+rule_type(enum: fixed_percent/product_based/capital_based/mixed),
+profit_source(enum: capital_share/working_share/product_share/custom),
+share_percent(dec8,4 — manually configured, NEVER derived from capital amount),
+effective_from(date), effective_to(date nullable — null = currently active),
+is_active(bool default true),
+reason(varchar nullable — why this rule exists or changed),
+approved_by(FK users nullable nullOnDelete — null = pending approval),
+approved_at(timestamp nullable),
+created_by(FK users restrict), timestamps
+
+Note: approved_by/approved_at excluded from $fillable — use forceFill()->save() in approval action.
+Note: effective_to is set when a rule is superseded — old rules are NEVER deleted.
+
+### partner_profit_rule_history
+
+id, partner_profit_rule_id(FK partner_profit_rules restrict),
+changed_by(FK users restrict),
+change_type(enum: created/updated/approved/deactivated),
+previous_value(json nullable), new_value(json),
+change_reason(text), timestamps
+
+Note: Append-only table — no updates, no deletes ever.
+
+### partner_profit_eligibilities
+
+id, partner_id(FK partners restrict),
+profit_start_date(date), profit_end_date(date nullable — null = ongoing),
+status(enum: active/paused/ended default: active),
+pause_reason(text nullable),
+paused_by(FK users nullable nullOnDelete), paused_at(timestamp nullable),
+resumed_by(FK users nullable nullOnDelete), resumed_at(timestamp nullable),
+created_by(FK users restrict), timestamps
+
+Note: Eligibility is completely independent of capital/investment status.
+
+### partner_product_assignments
+
+id, partner_id(FK partners restrict),
+assignable_type(varchar — 'product', future: 'category'/'brand'/'warehouse'),
+assignable_id(bigint),
+effective_from(date), effective_to(date nullable),
+cost_return_enabled(bool default true — partner gets cost back per sale),
+profit_share_percent(dec8,4 — partner's share of product profit),
+is_active(bool default true),
+approved_by(FK users nullable nullOnDelete — null = pending),
+approved_at(timestamp nullable),
+created_by(FK users restrict), timestamps
+Indexes: (assignable_type, assignable_id), (partner_id, effective_from)
+
+Note: Polymorphic assignable_type/id allows future expansion without schema changes.
+Note: approved_by/approved_at excluded from $fillable — use forceFill()->save().
+
+### partner_settlement_configs
+
+id, partner_id(FK partners restrict),
+settlement_type(enum: profit_only/cost_plus_profit/custom),
+payment_preference(enum: cash/bank_transfer/adjustment/reinvestment),
+auto_cost_return(bool default false — auto-calculate cost return for product partners),
+notes(text nullable),
+is_active(bool default true),
+created_by(FK users restrict), timestamps
+
+### investment_fund_usages
+
+id, capital_ledger_entry_id(FK capital_ledger_entries restrict),
+partner_id(FK partners nullable nullOnDelete),
+usable_type(varchar — 'purchase' | 'expense'),
+usable_id(bigint),
+amount(dec10,2),
+note(text nullable),
+created_by(FK users restrict), timestamps
+Indexes: (usable_type, usable_id), capital_ledger_entry_id
+
+---
+
 ## Enum Reference
 
-| Table                             | Column          | Values                                                            |
-| --------------------------------- | --------------- | ----------------------------------------------------------------- |
-| users                             | status          | active, inactive                                                  |
-| purchases                         | purchase_status | draft, ordered, received, partial_received, cancelled             |
-| purchases                         | payment_status  | paid, partial, due                                                |
-| sales                             | payment_status  | paid, partial, due                                                |
-| hold_orders                       | status          | active, processing                                                |
-| investments                       | status          | active, withdrawn                                                 |
-| profit_distributions              | status          | draft, approved, distributed                                      |
-| profit_distribution_items         | payment_status  | pending, partial, paid, deferred, reinvested, cancelled, reopened |
-| profit_distribution_item_payments | payment_status  | pending, partial, paid, deferred, reinvested, cancelled, reopened |
-| stock_movements                   | type            | purchase, sale, return, adjustment, transfer                      |
+| Table                             | Column             | Values                                                            |
+| --------------------------------- | ------------------ | ----------------------------------------------------------------- |
+| users                             | status             | active, inactive                                                  |
+| purchases                         | purchase_status    | draft, ordered, received, partial_received, cancelled             |
+| purchases                         | payment_status     | paid, partial, due                                                |
+| sales                             | payment_status     | paid, partial, due                                                |
+| hold_orders                       | status             | active, processing                                                |
+| investments                       | status             | active, withdrawn                                                 |
+| profit_distributions              | status             | draft, approved, distributed                                      |
+| profit_distributions              | source_type        | investment_based, partner_based                                   |
+| profit_distribution_items         | payment_status     | pending, partial, paid, deferred, reinvested, cancelled, reopened |
+| profit_distribution_items         | settlement_type    | profit_only, cost_plus_profit, custom                             |
+| profit_distribution_item_payments | payment_status     | pending, partial, paid, deferred, reinvested, cancelled, reopened |
+| stock_movements                   | type               | purchase, sale, return, adjustment, transfer                      |
+| capital_ledger_entries            | transaction_type   | deposit, withdrawal, reinvestment, adjustment                     |
+| capital_ledger_entries            | direction          | credit, debit                                                     |
+| capital_ledger_entries            | status             | completed, pending, approved, rejected, cancelled                 |
+| partner_profit_rules              | rule_type          | fixed_percent, product_based, capital_based, mixed                |
+| partner_profit_rules              | profit_source      | capital_share, working_share, product_share, custom               |
+| partner_profit_eligibilities      | status             | active, paused, ended                                             |
+| partner_settlement_configs        | settlement_type    | profit_only, cost_plus_profit, custom                             |
+| partner_settlement_configs        | payment_preference | cash, bank_transfer, adjustment, reinvestment                     |
+| partner_profit_rule_history       | change_type        | created, updated, approved, deactivated                           |
 
 ---
 
@@ -348,3 +477,24 @@ current_balance(dec10,2 default 0), timestamps
 | Sales                | SL-YYYYMMDD-XXXX | SL-20260711-0001 |
 | Hold Orders          | HO-YYYYMMDD-XXXX | HO-20260711-0001 |
 | Profit Distributions | PD-YYYY-000001   | PD-2026-000001   |
+| Capital Ledger       | CL-YYYYMMDD-XXXX | CL-20260711-0001 |
+| Partners             | PTR-001          | PTR-042          |
+
+---
+
+## Relationship Map — Partner Domain
+
+```
+partners
+  ├── partner_investments (many) → investments
+  ├── partner_profit_rules (many, versioned)
+  │     └── partner_profit_rule_history (many, append-only)
+  ├── partner_profit_eligibilities (many)
+  ├── partner_product_assignments (many, polymorphic assignable)
+  ├── partner_settlement_configs (many)
+  ├── profit_distribution_items (many, via partner_id)
+  ├── investor_profit_balances (many, via partner_id)
+  ├── capital_ledger_entries (many, via partner_id)
+  ├── investor_capital_balances (many, via partner_id)
+  └── investment_fund_usages (many, via partner_id)
+```
