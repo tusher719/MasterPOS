@@ -29,6 +29,21 @@ interface Props {
     can: ProfitRuleCan;
 }
 
+// -------------------------------------------------------------------------
+// Date formatting helper
+// -------------------------------------------------------------------------
+
+function formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
+}
+
 export default function ProfitRulesPanel({ partner, profitRules, can }: Props) {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingRule, setEditingRule] = useState<PartnerProfitRule | null>(
@@ -48,7 +63,7 @@ export default function ProfitRulesPanel({ partner, profitRules, can }: Props) {
                 <div class="text-left text-sm space-y-1">
                     <p><strong>Type:</strong> ${RULE_TYPE_LABELS[rule.rule_type]}</p>
                     <p><strong>Share:</strong> ${Number(rule.share_percent).toFixed(2)}%</p>
-                    <p><strong>Effective From:</strong> ${rule.effective_from}</p>
+                    <p><strong>Effective From:</strong> ${formatDate(rule.effective_from)}</p>
                     <p class="mt-2 text-amber-600">This will deactivate the current active rule for this partner.</p>
                 </div>
             `,
@@ -274,14 +289,14 @@ function ActiveRuleCard({ rule }: { rule: PartnerProfitRule }) {
                         <p className="mt-0.5 text-xs text-gray-500">
                             Effective from{" "}
                             <span className="font-medium text-gray-700">
-                                {rule.effective_from}
+                                {formatDate(rule.effective_from)}
                             </span>
                             {rule.effective_to && (
                                 <>
                                     {" "}
                                     to{" "}
                                     <span className="font-medium text-gray-700">
-                                        {rule.effective_to}
+                                        {formatDate(rule.effective_to)}
                                     </span>
                                 </>
                             )}
@@ -305,10 +320,7 @@ function ActiveRuleCard({ rule }: { rule: PartnerProfitRule }) {
                         {rule.approved_by_user.name}
                     </span>
                     {rule.approved_at && (
-                        <>
-                            {" "}
-                            on {new Date(rule.approved_at).toLocaleDateString()}
-                        </>
+                        <> on {formatDate(rule.approved_at)}</>
                     )}
                 </p>
             )}
@@ -354,7 +366,7 @@ function PendingRuleCard({
                         <p className="mt-0.5 text-xs text-gray-500">
                             Effective from{" "}
                             <span className="font-medium text-gray-700">
-                                {rule.effective_from}
+                                {formatDate(rule.effective_from)}
                             </span>
                         </p>
                     </div>
@@ -410,7 +422,8 @@ function HistoricalRuleCard({ rule }: { rule: PartnerProfitRule }) {
                 </span>
             </div>
             <p className="mt-1 text-xs text-gray-400">
-                {rule.effective_from} → {rule.effective_to ?? "—"}
+                {formatDate(rule.effective_from)} →{" "}
+                {rule.effective_to ? formatDate(rule.effective_to) : "—"}
             </p>
         </div>
     );

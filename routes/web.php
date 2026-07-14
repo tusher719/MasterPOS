@@ -21,6 +21,7 @@ use App\Http\Controllers\Backend\InvestorStatementController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\PartnerController;
+use App\Http\Controllers\Backend\PartnerEligibilityController;
 use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
@@ -498,6 +499,16 @@ Route::middleware(['auth', 'verified'])
                 ->name('profit-rules.approve');
             Route::delete('{partner}/profit-rules/{profitRule}', [PartnerProfitRuleController::class, 'destroy'])
                 ->name('profit-rules.destroy');
+
+            // Eligibility (nested) — BEFORE wildcard {partner} routes
+            Route::post('{partner}/eligibilities', [PartnerEligibilityController::class, 'store'])
+                ->name('eligibilities.store');
+            Route::post('{partner}/eligibilities/{eligibility}/pause', [PartnerEligibilityController::class, 'pause'])
+                ->name('eligibilities.pause');
+            Route::post('{partner}/eligibilities/{eligibility}/resume', [PartnerEligibilityController::class, 'resume'])
+                ->name('eligibilities.resume');
+            Route::post('{partner}/eligibilities/{eligibility}/end', [PartnerEligibilityController::class, 'end'])
+                ->name('eligibilities.end');
 
             // ── Explicit CRUD routes ──
             Route::get('/', [PartnerController::class, 'index'])->name('index');

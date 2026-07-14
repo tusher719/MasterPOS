@@ -68,6 +68,7 @@ export interface PartnerUser {
     id: number;
     name: string;
     email?: string;
+    deleted_at?: string | null;
 }
 
 export interface InvestmentOption {
@@ -86,11 +87,13 @@ export type RuleType =
     | "product_based"
     | "capital_based"
     | "mixed";
+
 export type ProfitSource =
     | "capital_share"
     | "working_share"
     | "product_share"
     | "custom";
+
 export type RuleChangeType = "created" | "updated" | "approved" | "deactivated";
 
 export interface PartnerProfitRule {
@@ -145,6 +148,60 @@ export interface ProfitRuleCan {
     create: boolean;
     edit: boolean;
     approve: boolean;
+}
+
+// -------------------------------------------------------------------------
+// Profit Eligibility
+// -------------------------------------------------------------------------
+
+export type EligibilityStatus = "active" | "paused" | "ended";
+
+export interface PartnerEligibility {
+    id: number;
+    partner_id: number;
+    profit_start_date: string; // YYYY-MM-DD
+    profit_end_date: string | null; // null = ongoing
+    status: EligibilityStatus;
+    pause_reason: string | null;
+    paused_by: number | null;
+    paused_at: string | null;
+    resumed_by: number | null;
+    resumed_at: string | null;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+
+    // Accessors
+    is_active: boolean;
+    is_paused: boolean;
+    is_ended: boolean;
+    is_ongoing: boolean;
+
+    // Relations (when eager loaded)
+    creator?: PartnerUser | null;
+    paused_by_user?: PartnerUser | null;
+    resumed_by_user?: PartnerUser | null;
+}
+
+export interface EligibilityFormData {
+    profit_start_date: string;
+    profit_end_date: string;
+}
+
+export interface PauseEligibilityFormData {
+    pause_reason: string;
+}
+
+export interface ResumeEligibilityFormData {
+    resume_date: string;
+    profit_end_date: string;
+}
+
+export interface EligibilityCan {
+    view: boolean;
+    create: boolean;
+    pause: boolean;
+    resume: boolean;
 }
 
 // -------------------------------------------------------------------------
@@ -216,8 +273,10 @@ export interface PartnerShowProps extends PageProps {
     partner: Partner;
     investmentOptions: InvestmentOption[];
     profitRules: PartnerProfitRule[];
+    eligibilities: PartnerEligibility[];
     can: PartnerCan;
     profitRuleCan: ProfitRuleCan;
+    eligibilityCan: EligibilityCan;
 }
 
 // -------------------------------------------------------------------------

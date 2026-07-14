@@ -401,6 +401,8 @@ resumed_by(FK users nullable nullOnDelete), resumed_at(timestamp nullable),
 created_by(FK users restrict), timestamps
 
 Note: Eligibility is completely independent of capital/investment status.
+Note: Resume creates a new active record — old paused record is never mutated back to active.
+Note: scopeCoveringPeriod() is the authoritative query used by PartnerEligibilityService::isEligible().
 
 ### partner_product_assignments
 

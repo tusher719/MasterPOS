@@ -288,6 +288,13 @@ Located in `app/Services/ProfitCalculation/`:
 
 Resolves whether a partner is eligible for a given distribution period. Encapsulates the eligibility query logic so it is not duplicated across controllers.
 
+- `isEligible(Partner, period_start, period_end)` — single authoritative check; Phase 4F calls this directly
+- `isEligibleBatch(partnerIds[], period_start, period_end)` — returns partner_id => bool map; avoids N+1 on multi-partner distributions
+- `create()` — enforces one-active-at-a-time rule; throws RuntimeException if active record exists
+- `pause()` — sets status=paused, stores pause_reason + paused_by/at
+- `resume()` — creates a NEW active record from resume_date; marks old record with resumed_by/at (status stays paused)
+- `end()` — sets status=ended, profit_end_date=today
+
 ### PartnerRuleResolutionService (New — Phase 4B)
 
 Given a `partner_id` and a `period_start` date, returns the correct `partner_profit_rules` record. Encapsulates the `effective_from <= date` versioning query.

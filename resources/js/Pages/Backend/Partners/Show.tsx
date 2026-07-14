@@ -24,6 +24,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import EditPartnerModal from "./_components/EditPartnerModal";
+import EligibilityPanel from "./_components/EligibilityPanel";
 import LinkedInvestmentsCard from "./_components/LinkedInvestmentsCard";
 import LinkInvestmentModal from "./_components/LinkInvestmentModal";
 import ProfitRulesPanel from "./_components/ProfitRulesPanel";
@@ -32,8 +33,10 @@ export default function Show({
     partner,
     investmentOptions,
     profitRules,
+    eligibilities,
     can,
     profitRuleCan,
+    eligibilityCan,
 }: PartnerShowProps) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -337,6 +340,13 @@ export default function Show({
                             partner={partner}
                             profitRules={profitRules}
                             can={profitRuleCan}
+                        />
+
+                        {/* Profit Eligibility Panel */}
+                        <EligibilityPanel
+                            partner={partner}
+                            eligibilities={eligibilities}
+                            can={eligibilityCan}
                         />
                     </div>
 

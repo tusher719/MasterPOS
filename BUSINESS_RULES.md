@@ -149,6 +149,9 @@ Partial coverage = ineligible. The eligibility record must cover the ENTIRE peri
 - Pausing does NOT affect capital — investment remains active
 - Resuming creates a new eligibility record effective from the resume date
 - Historical distributions during pause period are never generated
+- Resuming creates a NEW eligibility record — the old paused record is never mutated back to active
+- The paused record is updated with resumed_by/resumed_at for audit purposes only
+- Only one active eligibility record per partner is allowed at any time
 
 ---
 

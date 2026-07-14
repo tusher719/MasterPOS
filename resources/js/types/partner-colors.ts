@@ -1,7 +1,12 @@
 // Runtime color/label maps for Partner domain.
 // MUST be a .ts file — never .d.ts (Vite cannot resolve runtime values from .d.ts)
 
-import type { ProfitSource, RuleChangeType, RuleType } from "./partner.d";
+import type {
+    EligibilityStatus,
+    ProfitSource,
+    RuleChangeType,
+    RuleType,
+} from "./partner.d";
 
 // -------------------------------------------------------------------------
 // Partner Type
@@ -101,6 +106,22 @@ export const RULE_CHANGE_TYPE_LABELS: Record<RuleChangeType, string> = {
     updated: "Updated",
     approved: "Approved",
     deactivated: "Deactivated",
+};
+
+// -------------------------------------------------------------------------
+// Eligibility Status
+// -------------------------------------------------------------------------
+
+export const ELIGIBILITY_STATUS_COLORS: Record<EligibilityStatus, string> = {
+    active: "bg-green-100 text-green-700",
+    paused: "bg-amber-100 text-amber-700",
+    ended: "bg-gray-100 text-gray-500",
+};
+
+export const ELIGIBILITY_STATUS_LABELS: Record<EligibilityStatus, string> = {
+    active: "Active",
+    paused: "Paused",
+    ended: "Ended",
 };
 
 // -------------------------------------------------------------------------

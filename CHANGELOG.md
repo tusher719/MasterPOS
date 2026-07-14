@@ -2,6 +2,76 @@
 
 ---
 
+## [v2.6 — Step 17 Phase 4C] — Profit Eligibility — 2026-07-14
+
+### New Table
+
+- `partner_profit_eligibilities`: partner_id, profit_start_date, profit_end_date (null=ongoing),
+  status (active/paused/ended), pause_reason, paused_by/at, resumed_by/at, created_by
+
+### New Model
+
+- `PartnerProfitEligibility`: scopeActive/Paused/Ended/CoveringPeriod,
+  is_active/is_paused/is_ended/is_ongoing accessors, all user relations with withTrashed()
+
+### New Service
+
+- `PartnerEligibilityService`: isEligible(), isEligibleBatch(), getActiveRecord(),
+  hasActiveEligibility(), create(), pause(), resume(), end()
+  — isEligible() is the authoritative method for Phase 4F engine
+
+### New Policy
+
+- `PartnerEligibilityPolicy`: viewAny/create/pause/resume/end
+  — no model parameter on any method (ArgumentCountError prevention)
+  — end() reuses eligibility.pause permission
+
+### New Controller
+
+- `PartnerEligibilityController`: store, pause, resume, end
+  — abort_unless($eligibility->partner_id === $partner->id, 404) cross-partner guard
+
+### New Seeder
+
+- `Step17Phase4CPermissionSeeder`: eligibility.view/create/pause/resume
+  Admin all, Staff view only
+
+### Updated Files
+
+- `Partner` model: eligibilities() HasMany relation added
+- `PartnerController::show()`: eligibilities eager load + eligibilityCan array added
+- `AppServiceProvider`: PartnerEligibilityPolicy registered
+- Routes: eligibilities.store/pause/resume/end nested inside partners group
+- `partner.d.ts`: EligibilityStatus, PartnerEligibility, EligibilityFormData,
+  PauseEligibilityFormData, ResumeEligibilityFormData, EligibilityCan added;
+  PartnerShowProps updated with eligibilities + eligibilityCan
+- `partner-colors.ts`: ELIGIBILITY_STATUS_COLORS/LABELS added
+
+### New Frontend Components
+
+- `CreateEligibilityModal.tsx`: profit_start_date, profit_end_date (optional)
+- `PauseEligibilityModal.tsx`: pause_reason mandatory (min 5 chars), amber warning box
+- `ResumeEligibilityModal.tsx`: resume_date (defaults today), new end date optional,
+  info box explains new record creation
+- `EligibilityPanel.tsx`: active record card, paused banner with resume button,
+  history list with full audit trail
+
+### Bug Fixed
+
+- Route name in frontend must include `backend.` prefix:
+  `backend.partners.eligibilities.store` not `partners.eligibilities.store`
+
+### Known Rules Established
+
+- Nested route names always include outer group prefix — verify with
+  `php artisan route:list --name=` before using in frontend components
+- Resume creates a NEW eligibility record — never mutates old paused record back to active
+- One active eligibility record per partner enforced at service layer (create() throws RuntimeException)
+- PartnerEligibilityService::isEligible() is the single authoritative eligibility check —
+  Phase 4F engine calls this directly, no duplicate query logic elsewhere
+
+---
+
 ## [v2.5 — Step 17 Phase 4B] — Profit Rules + Versioning — 2026-07-14
 
 ### New Tables

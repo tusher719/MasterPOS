@@ -172,6 +172,10 @@
 - Profit rule resolution: always query by `effective_from <= period_start AND (effective_to IS NULL OR effective_to >= period_start)`
 - Pending profit rules (`approved_by IS NULL`) must NEVER be included in any profit calculation
 - Partner eligibility check: eligibility record must cover ENTIRE distribution period, not just partial overlap
+- `PartnerEligibilityService::isEligible()` is the single authoritative eligibility check —
+  never duplicate this query in controllers or other services
+- Nested route names always include outer group prefix —
+  verify with `php artisan route:list --name=` before using in frontend components
 
 ---
 
@@ -322,6 +326,8 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - Rule resolution ALWAYS uses `effective_from <= period_start` date — never current date
 - Pending rules (`approved_by IS NULL`) are invisible to all calculation engines
 - Eligibility check must cover entire distribution period — partial coverage = ineligible
+- Resume eligibility creates a NEW record — never mutates old paused record back to active
+- One active eligibility record per partner enforced at service layer (create() throws RuntimeException)
 - `effective_to` is set when a rule is superseded — never delete old rules
 - Profit rule history is append-only — no updates, no deletes on `partner_profit_rule_history`
 - Product assignment: check `effective_from <= sale_date AND (effective_to IS NULL OR effective_to >= sale_date)` per sale

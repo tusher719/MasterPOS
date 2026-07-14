@@ -90,6 +90,11 @@ class Partner extends Model
             ->withTimestamps();
     }
 
+    public function eligibilities(): HasMany
+    {
+        return $this->hasMany(PartnerProfitEligibility::class);
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
@@ -116,4 +121,6 @@ class Partner extends Model
     {
         return $this->hasMany(PartnerProfitRule::class);
     }
+
+
 }
