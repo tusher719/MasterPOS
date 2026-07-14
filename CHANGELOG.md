@@ -2,6 +2,76 @@
 
 ---
 
+## [v2.5 — Step 17 Phase 4B] — Profit Rules + Versioning — 2026-07-14
+
+### New Tables
+
+- `partner_profit_rules`: rule_type, profit_source, share_percent (decimal 8,4),
+  effective_from, effective_to (null = active), approved_by/approved_at (excluded from $fillable)
+- `partner_profit_rule_history`: append-only audit table, change_type enum,
+  previous_value/new_value JSON
+
+### New Models
+
+- `PartnerProfitRule`: scopeApproved/Pending/ActiveAt, getIsPendingAttribute,
+  getIsApprovedAttribute, getIsCurrentlyActiveAttribute, approve() + recordCreatedHistory()
+    - recordUpdatedHistory() business logic methods
+- `PartnerProfitRuleHistory`: append-only, no SoftDeletes
+
+### New Policy
+
+- `PartnerProfitRulePolicy`: viewAny/create/edit/approve — approve() separate from edit()
+  No model parameter on any method (ArgumentCountError prevention)
+
+### New Controller
+
+- `PartnerProfitRuleController`: store/update/approve/destroy
+  update() blocks approved rules, destroy() blocks approved rules
+
+### New Service
+
+- `PartnerRuleResolutionService`: resolve() single partner, resolveForPartners() batch,
+  hasActiveRule() validation helper, getRuleHistory() display helper
+
+### New Seeder
+
+- `Step17Phase4BPermissionSeeder`: profit_rule.view/create/edit/approve —
+  Admin gets all 4, Staff gets view only
+
+### Updated Files
+
+- `Partner` model: profitRules() HasMany relation added, PartnerProfitRule import added
+- `PartnerController::show()`: profitRules eager load with append accessors, profitRuleCan array
+- `partner.d.ts`: RuleType, ProfitSource, RuleChangeType types, PartnerProfitRule,
+  PartnerProfitRuleHistory, ProfitRuleFormData, ProfitRuleCan interfaces added
+- `partner-colors.ts`: RULE_TYPE_COLORS/LABELS, PROFIT_SOURCE_COLORS/LABELS,
+  RULE_CHANGE_TYPE_COLORS/LABELS added
+- Routes: profit-rules nested inside partners prefix group
+
+### New Frontend Components
+
+- `ProfitRulesPanel.tsx`: ActiveRuleCard, PendingRuleCard, HistoricalRuleCard sub-components,
+  approve/delete SweetAlert2 confirms
+- `CreateProfitRuleModal.tsx`: rule_type, profit_source, share_percent, effective_from, reason
+- `EditProfitRuleModal.tsx`: pending rules only, useEffect populate, date slice [0,10]
+- `RuleHistoryDrawer.tsx`: z-[60], timeline UI, all rules history merged + sorted
+
+### Bug Fixes
+
+- Migration typo: `partner_profi_rules` → `partner_profit_rules` (filename + Schema::create)
+- FK constraint failure: history table migration failed due to parent table name typo
+- Accessor not serialized: added ->each(fn($rule) => $rule->append([...])) in controller
+- profit_rule.approve not working: Gate::before() bypass fails for class-string checks —
+  permission must be explicitly assigned to role via seeder
+
+### Known Rules Established
+
+- Accessors must be appended explicitly — never rely on auto-serialization
+- Gate::before() bypass unreliable for class-string Gate::allows() — always assign explicitly
+- Migration filename must match Schema::create() table name exactly
+
+---
+
 ## [v2.4 — Step 17 Phase 4A] — Partner Domain Foundation — 2026-07-14
 
 ### New Tables

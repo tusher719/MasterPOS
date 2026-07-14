@@ -26,11 +26,14 @@ import Swal from "sweetalert2";
 import EditPartnerModal from "./_components/EditPartnerModal";
 import LinkedInvestmentsCard from "./_components/LinkedInvestmentsCard";
 import LinkInvestmentModal from "./_components/LinkInvestmentModal";
+import ProfitRulesPanel from "./_components/ProfitRulesPanel";
 
 export default function Show({
     partner,
     investmentOptions,
+    profitRules,
     can,
+    profitRuleCan,
 }: PartnerShowProps) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -327,6 +330,13 @@ export default function Show({
                             partner={partner}
                             canEdit={can.edit && !partner.deleted_at}
                             onLinkClick={() => setShowLinkModal(true)}
+                        />
+
+                        {/* Profit Rules Panel */}
+                        <ProfitRulesPanel
+                            partner={partner}
+                            profitRules={profitRules}
+                            can={profitRuleCan}
                         />
                     </div>
 

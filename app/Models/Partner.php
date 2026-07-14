@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\PartnerProfitRule;
 
 class Partner extends Model
 {
@@ -109,5 +110,10 @@ class Partner extends Model
         return $this->partner_type_capital
             || $this->partner_type_working
             || $this->partner_type_product;
+    }
+
+    public function profitRules(): HasMany
+    {
+        return $this->hasMany(PartnerProfitRule::class);
     }
 }

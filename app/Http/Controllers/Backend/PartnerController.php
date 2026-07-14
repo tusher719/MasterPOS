@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Investment;
 use App\Models\Partner;
 use App\Models\PartnerInvestment;
+use App\Models\PartnerProfitRule;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -92,39 +93,57 @@ class PartnerController extends Controller
     // -------------------------------------------------------------------------
 
     public function show(Partner $partner): Response
-    {
-        abort_unless(Gate::allows('view', $partner), 403);
+{
+    abort_unless(Gate::allows('view', $partner), 403);
 
-        $partner->load([
-            'investments' => function ($q) {
-                $q->withTrashed()
-                    ->withPivot('id', 'is_primary', 'note')
-                    ->select('investments.id', 'investments.title', 'investments.investor_name', 'investments.amount', 'investments.status', 'investments.investment_date');
-            },
-            'user:id,name,email',
-            'createdBy:id,name',
-            'updatedBy:id,name',
-        ]);
+    $partner->load([
+        'investments' => function ($q) {
+            $q->withTrashed()
+                ->withPivot('id', 'is_primary', 'note')
+                ->select('investments.id', 'investments.title', 'investments.investor_name', 'investments.amount', 'investments.status', 'investments.investment_date');
+        },
+        'user:id,name,email',
+        'createdBy:id,name',
+        'updatedBy:id,name',
+    ]);
 
-        // Investment options not already linked to this partner
-        $linkedIds = $partner->investments->pluck('id')->toArray();
+    // Investment options not already linked to this partner
+    $linkedIds = $partner->investments->pluck('id')->toArray();
 
-        $investmentOptions = Investment::where('status', 'active')
-            ->when(!empty($linkedIds), fn($q) => $q->whereNotIn('id', $linkedIds))
-            ->orderBy('title')
-            ->get(['id', 'title', 'investor_name', 'amount']);
+    $investmentOptions = Investment::where('status', 'active')
+        ->when(!empty($linkedIds), fn($q) => $q->whereNotIn('id', $linkedIds))
+        ->orderBy('title')
+        ->get(['id', 'title', 'investor_name', 'amount']);
 
-        return Inertia::render('Backend/Partners/Show', [
-            'partner'           => $partner,
-            'investmentOptions' => $investmentOptions,
-            'can'               => [
-                'edit'        => Gate::allows('update', $partner),
-                'delete'      => Gate::allows('delete', $partner),
-                'restore'     => Gate::allows('restore', Partner::class),
-                'forceDelete' => Auth::user()->hasRole('Super Admin'),
-            ],
-        ]);
-    }
+    // Profit rules — all versions, with history and user relations
+    $profitRules = $partner->profitRules()
+        ->with([
+            'history' => fn($q) => $q->with(['changedBy:id,name,deleted_at']),
+            'approvedBy:id,name,deleted_at',
+            'createdBy:id,name,deleted_at',
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->each(fn($rule) => $rule->append(['is_pending', 'is_approved', 'is_currently_active']));
+
+    return Inertia::render('Backend/Partners/Show', [
+        'partner'           => $partner,
+        'investmentOptions' => $investmentOptions,
+        'profitRules'       => $profitRules,
+        'can'               => [
+            'edit'        => Gate::allows('update', $partner),
+            'delete'      => Gate::allows('delete', $partner),
+            'restore'     => Gate::allows('restore', Partner::class),
+            'forceDelete' => Auth::user()->hasRole('Super Admin'),
+        ],
+        'profitRuleCan'     => [
+            'view'    => Gate::allows('viewAny', PartnerProfitRule::class),
+            'create'  => Gate::allows('create', PartnerProfitRule::class),
+            'edit'    => Gate::allows('edit', PartnerProfitRule::class),
+            'approve' => Gate::allows('approve', PartnerProfitRule::class),
+        ],
+    ]);
+}
 
     // -------------------------------------------------------------------------
     // Store

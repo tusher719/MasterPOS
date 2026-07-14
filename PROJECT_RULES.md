@@ -327,6 +327,16 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - Product assignment: check `effective_from <= sale_date AND (effective_to IS NULL OR effective_to >= sale_date)` per sale
 - Settlement type is stored as snapshot in `profit_distribution_items.profit_rule_snapshot` — never recalculated from live config
 - Partner soft delete: existing profit history, capital links, and distribution items are preserved
+- Profit rule accessors (is_pending, is_approved, is_currently_active) must be explicitly
+  appended via ->each(fn($rule) => $rule->append([...])) in controller —
+  Laravel does not auto-include them in JSON serialization
+- profit_rule.approve permission must be explicitly assigned to Admin role via seeder —
+  Gate::before() bypass does NOT work for class-string based Gate::allows() checks
+- Migration file names must exactly match Schema::create() table name —
+  typo in filename causes FK constraint failure in history table
+- PartnerProfitRule has no SoftDeletes — rules are versioned via effective_from/effective_to, never deleted
+- Pending rules (approved_by IS NULL) are invisible to frontend calculation engine AND
+  must be filtered in ProfitRulesPanel via is_pending accessor
 
 ---
 

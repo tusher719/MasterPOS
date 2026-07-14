@@ -21,6 +21,7 @@ use App\Http\Controllers\Backend\InvestorStatementController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\PartnerController;
+use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
@@ -488,7 +489,17 @@ Route::middleware(['auth', 'verified'])
             Route::delete('{partner}/investments/{partnerInvestment}/unlink', [PartnerController::class, 'unlinkInvestment'])
                 ->name('unlink-investment');
 
-            // ── Explicit CRUD routes (replaces Route::resource('/', ...)) ──
+            // Profit Rules (nested) — BEFORE wildcard {partner} routes
+            Route::post('{partner}/profit-rules', [PartnerProfitRuleController::class, 'store'])
+                ->name('profit-rules.store');
+            Route::put('{partner}/profit-rules/{profitRule}', [PartnerProfitRuleController::class, 'update'])
+                ->name('profit-rules.update');
+            Route::post('{partner}/profit-rules/{profitRule}/approve', [PartnerProfitRuleController::class, 'approve'])
+                ->name('profit-rules.approve');
+            Route::delete('{partner}/profit-rules/{profitRule}', [PartnerProfitRuleController::class, 'destroy'])
+                ->name('profit-rules.destroy');
+
+            // ── Explicit CRUD routes ──
             Route::get('/', [PartnerController::class, 'index'])->name('index');
             Route::post('/', [PartnerController::class, 'store'])->name('store');
             Route::get('/{partner}', [PartnerController::class, 'show'])->name('show');

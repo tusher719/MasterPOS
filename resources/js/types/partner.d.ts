@@ -78,6 +78,76 @@ export interface InvestmentOption {
 }
 
 // -------------------------------------------------------------------------
+// Profit Rules
+// -------------------------------------------------------------------------
+
+export type RuleType =
+    | "fixed_percent"
+    | "product_based"
+    | "capital_based"
+    | "mixed";
+export type ProfitSource =
+    | "capital_share"
+    | "working_share"
+    | "product_share"
+    | "custom";
+export type RuleChangeType = "created" | "updated" | "approved" | "deactivated";
+
+export interface PartnerProfitRule {
+    id: number;
+    partner_id: number;
+    rule_type: RuleType;
+    profit_source: ProfitSource;
+    share_percent: string; // decimal serialized as string — always wrap in Number()
+    effective_from: string; // YYYY-MM-DD
+    effective_to: string | null; // null = currently active
+    is_active: boolean;
+    reason: string | null;
+    approved_by: number | null;
+    approved_at: string | null;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+    // Accessors
+    is_pending: boolean;
+    is_approved: boolean;
+    is_currently_active: boolean;
+    // Relations (when eager loaded)
+    approved_by_user?: PartnerUser | null;
+    created_by_user?: PartnerUser | null;
+    history?: PartnerProfitRuleHistory[];
+}
+
+export interface PartnerProfitRuleHistory {
+    id: number;
+    partner_profit_rule_id: number;
+    changed_by: number;
+    change_type: RuleChangeType;
+    previous_value: Record<string, unknown> | null;
+    new_value: Record<string, unknown>;
+    change_reason: string;
+    created_at: string;
+    updated_at: string;
+    // Relations (when eager loaded)
+    changed_by_user?: PartnerUser | null;
+}
+
+export interface ProfitRuleFormData {
+    rule_type: RuleType | "";
+    profit_source: ProfitSource | "";
+    share_percent: string;
+    effective_from: string;
+    reason: string;
+}
+
+export interface ProfitRuleCan {
+    view: boolean;
+    create: boolean;
+    edit: boolean;
+    approve: boolean;
+}
+
+// -------------------------------------------------------------------------
 // Filters & Stats
 // -------------------------------------------------------------------------
 
@@ -145,7 +215,9 @@ export interface PartnerIndexProps extends PageProps {
 export interface PartnerShowProps extends PageProps {
     partner: Partner;
     investmentOptions: InvestmentOption[];
+    profitRules: PartnerProfitRule[];
     can: PartnerCan;
+    profitRuleCan: ProfitRuleCan;
 }
 
 // -------------------------------------------------------------------------

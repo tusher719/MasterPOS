@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4B — Profit Rules + Versioning
-- **Next Step:** Step 17 Phase 4C — Profit Eligibility
-- **Last Completed:** Step 17 Phase 4A — Partner Domain Foundation ✅
+- **Current Step:** Step 17 Phase 4C — Profit Eligibility
+- **Next Step:** Step 17 Phase 4D — Settlement Config
+- **Last Completed:** Step 17 Phase 4B — Profit Rules + Versioning ✅
 
 ## Financial Domain Overview
 
@@ -72,12 +72,12 @@ The system is now organized into two independent financial domains:
 | 17 Phase 2  | Capital Ledger                | ✅     |
 | 17 Phase 3  | Investor Statements           | ✅     |
 | 17 Phase 4A | Partner Domain Foundation     | ✅     |
+| 17 Phase 4B | Profit Rules + Versioning     | ✅     |
 
 ## Pending Modules
 
 | Step        | Module                                 | Notes                                    |
 | ----------- | -------------------------------------- | ---------------------------------------- |
-| 17 Phase 4B | Profit Rules + Versioning              | partner_profit_rules, rule history       |
 | 17 Phase 4C | Profit Eligibility                     | partner_profit_eligibilities             |
 | 17 Phase 4D | Settlement Config                      | partner_settlement_configs               |
 | 17 Phase 4E | Product Partner & Assignments          | partner_product_assignments              |
