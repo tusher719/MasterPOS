@@ -8,6 +8,7 @@ use App\Models\Partner;
 use App\Models\PartnerInvestment;
 use App\Models\PartnerProfitEligibility;
 use App\Models\PartnerProfitRule;
+use App\Models\PartnerSettlementConfig;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -137,11 +138,17 @@ public function show(Partner $partner): Response
             ->orderBy('profit_start_date', 'desc')
             ->get();
 
+        $settlementConfigs = $partner->settlementConfigs()
+            ->with(['createdBy:id,name,deleted_at'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return Inertia::render('Backend/Partners/Show', [
             'partner'           => $partner,
             'investmentOptions' => $investmentOptions,
             'profitRules'       => $profitRules,
             'eligibilities'     => $eligibilities,
+            'settlementConfigs' => $settlementConfigs,
             'can'               => [
                 'edit'        => Gate::allows('update', $partner),
                 'delete'      => Gate::allows('delete', $partner),
@@ -159,6 +166,12 @@ public function show(Partner $partner): Response
                 'create' => Gate::allows('create', PartnerProfitEligibility::class),
                 'pause'  => Gate::allows('pause', PartnerProfitEligibility::class),
                 'resume' => Gate::allows('resume', PartnerProfitEligibility::class),
+            ],
+            'settlementConfigCan' => [                          // ← ADD
+                'view'   => Gate::allows('viewAny', PartnerSettlementConfig::class),
+                'create' => Gate::allows('create', PartnerSettlementConfig::class),
+                'edit'   => Gate::allows('edit', PartnerSettlementConfig::class),
+                'delete' => Gate::allows('delete', PartnerSettlementConfig::class),
             ],
         ]);
     }

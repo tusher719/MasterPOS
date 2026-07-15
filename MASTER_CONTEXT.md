@@ -15,25 +15,25 @@
 
 ## Tech Stack
 
-| Layer       | Technology                                                 |
-| ----------- | ---------------------------------------------------------- |
-| Backend     | Laravel 12                                                 |
-| Frontend    | React 18 + Inertia.js + TypeScript                         |
-| Styling     | Tailwind CSS (primary) + Mantine UI v8 (selective)         |
-| Routing     | Ziggy                                                      |
-| Permissions | Spatie laravel-permission                                  |
-| PDF         | barryvdh/laravel-dompdf                                    |
-| Charts      | recharts (bundled) + @mantine/charts (investor pages only) |
-| Toast       | sonner                                                     |
-| Confirm     | SweetAlert2                                                |
-| Icons       | lucide-react                                               |
-| Excel       | maatwebsite/excel                                          |
+| Layer       | Technology                                                                     |
+| ----------- | ------------------------------------------------------------------------------ |
+| Backend     | Laravel 12                                                                     |
+| Frontend    | React 18 + Inertia.js + TypeScript                                             |
+| Styling     | Tailwind CSS (primary) + Mantine UI v8 (selective — see PROJECT_RULES Rule 11) |
+| Routing     | Ziggy                                                                          |
+| Permissions | Spatie laravel-permission                                                      |
+| PDF         | barryvdh/laravel-dompdf                                                        |
+| Charts      | recharts (bundled) + @mantine/charts (investor/capital/partner pages only)     |
+| Toast       | sonner                                                                         |
+| Confirm     | SweetAlert2                                                                    |
+| Icons       | lucide-react                                                                   |
+| Excel       | maatwebsite/excel                                                              |
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4D — Settlement Config
-- **Next Step:** Step 17 Phase 4E — Product Partner & Assignments
-- **Last Completed:** Step 17 Phase 4C — Profit Eligibility ✅
+- **Current Step:** Step 17 Phase 4E — Product Partner & Assignments
+- **Next Step:** Step 17 Phase 4F — Profit Calculation Engine
+- **Last Completed:** Step 17 Phase 4D — Settlement Config ✅
 
 ## Financial Domain Overview
 
@@ -74,12 +74,12 @@ The system is now organized into two independent financial domains:
 | 17 Phase 4A | Partner Domain Foundation     | ✅     |
 | 17 Phase 4B | Profit Rules + Versioning     | ✅     |
 | 17 Phase 4C | Profit Eligibility            | ✅     |
+| 17 Phase 4D | Settlement Config             | ✅     |
 
 ## Pending Modules
 
 | Step        | Module                                 | Notes                                    |
 | ----------- | -------------------------------------- | ---------------------------------------- |
-| 17 Phase 4D | Settlement Config                      | partner_settlement_configs               |
 | 17 Phase 4E | Product Partner & Assignments          | partner_product_assignments              |
 | 17 Phase 4F | Profit Calculation Engine              | Strategy pattern services                |
 | 17 Phase 4G | Investment-to-Business Tracking        | investment_fund_usages                   |

@@ -274,9 +274,11 @@ export interface PartnerShowProps extends PageProps {
     investmentOptions: InvestmentOption[];
     profitRules: PartnerProfitRule[];
     eligibilities: PartnerEligibility[];
+    settlementConfigs: PartnerSettlementConfig[];
     can: PartnerCan;
     profitRuleCan: ProfitRuleCan;
     eligibilityCan: EligibilityCan;
+    settlementConfigCan: SettlementConfigCan;
 }
 
 // -------------------------------------------------------------------------
@@ -300,4 +302,50 @@ export interface LinkInvestmentFormData {
     investment_id: string;
     is_primary: boolean;
     note: string;
+}
+
+// -------------------------------------------------------------------------
+// Settlement Config
+// -------------------------------------------------------------------------
+
+export type SettlementType = "profit_only" | "cost_plus_profit" | "custom";
+
+export type PaymentPreference =
+    | "cash"
+    | "bank_transfer"
+    | "adjustment"
+    | "reinvestment";
+
+export interface PartnerSettlementConfig {
+    id: number;
+    partner_id: number;
+    settlement_type: SettlementType;
+    payment_preference: PaymentPreference;
+    auto_cost_return: boolean;
+    notes: string | null;
+    is_active: boolean;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+
+    // Accessors
+    settlement_type_label: string;
+    payment_preference_label: string;
+
+    // Relations (when eager loaded)
+    created_by_user?: PartnerUser | null;
+}
+
+export interface SettlementConfigFormData {
+    settlement_type: SettlementType | "";
+    payment_preference: PaymentPreference | "";
+    auto_cost_return: boolean;
+    notes: string;
+}
+
+export interface SettlementConfigCan {
+    view: boolean;
+    create: boolean;
+    edit: boolean;
+    delete: boolean;
 }

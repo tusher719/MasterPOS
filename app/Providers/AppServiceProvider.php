@@ -18,6 +18,7 @@ use App\Models\InvestorProfitBalance;
 use App\Models\Partner;
 use App\Models\PartnerProfitEligibility;
 use App\Models\PartnerProfitRule;
+use App\Models\PartnerSettlementConfig;
 use App\Models\PaymentMethod;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
@@ -37,6 +38,7 @@ use App\Policies\NotificationPolicy;
 use App\Policies\PartnerEligibilityPolicy;
 use App\Policies\PartnerPolicy;
 use App\Policies\PartnerProfitRulePolicy;
+use App\Policies\PartnerSettlementConfigPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
@@ -113,5 +115,9 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 17 Phase 4C Policies ─────────────────────────────────────────────────
         Gate::policy(PartnerProfitEligibility::class, PartnerEligibilityPolicy::class);
+
+        // ─── Step 17 Phase 4D Policies ─────────────────────────────────────────────────
+        Gate::policy(PartnerSettlementConfig::class, PartnerSettlementConfigPolicy::class);
+
     }
 }

@@ -23,6 +23,7 @@ use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\PartnerController;
 use App\Http\Controllers\Backend\PartnerEligibilityController;
 use App\Http\Controllers\Backend\PartnerProfitRuleController;
+use App\Http\Controllers\Backend\PartnerSettlementConfigController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
@@ -509,6 +510,14 @@ Route::middleware(['auth', 'verified'])
                 ->name('eligibilities.resume');
             Route::post('{partner}/eligibilities/{eligibility}/end', [PartnerEligibilityController::class, 'end'])
                 ->name('eligibilities.end');
+
+            // Settlement Configs — nested under partners/{partner}
+            Route::post('{partner}/settlement-configs', [PartnerSettlementConfigController::class, 'store'])
+                ->name('settlement-configs.store');
+            Route::put('{partner}/settlement-configs/{config}', [PartnerSettlementConfigController::class, 'update'])
+                ->name('settlement-configs.update');
+            Route::delete('{partner}/settlement-configs/{config}', [PartnerSettlementConfigController::class, 'destroy'])
+                ->name('settlement-configs.destroy');
 
             // ── Explicit CRUD routes ──
             Route::get('/', [PartnerController::class, 'index'])->name('index');

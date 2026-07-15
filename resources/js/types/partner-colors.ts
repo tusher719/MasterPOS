@@ -3,9 +3,11 @@
 
 import type {
     EligibilityStatus,
+    PaymentPreference,
     ProfitSource,
     RuleChangeType,
     RuleType,
+    SettlementType,
 } from "./partner.d";
 
 // -------------------------------------------------------------------------
@@ -139,3 +141,37 @@ export function getPartnerTypes(partner: {
     if (partner.partner_type_product) types.push("product");
     return types;
 }
+
+// -------------------------------------------------------------------------
+// Settlement Type
+// -------------------------------------------------------------------------
+
+export const SETTLEMENT_TYPE_COLORS: Record<SettlementType, string> = {
+    profit_only: "bg-indigo-100 text-indigo-700",
+    cost_plus_profit: "bg-orange-100 text-orange-700",
+    custom: "bg-purple-100 text-purple-700",
+};
+
+export const SETTLEMENT_TYPE_LABELS: Record<SettlementType, string> = {
+    profit_only: "Profit Only",
+    cost_plus_profit: "Cost + Profit",
+    custom: "Custom",
+};
+
+// -------------------------------------------------------------------------
+// Payment Preference
+// -------------------------------------------------------------------------
+
+export const PAYMENT_PREFERENCE_COLORS: Record<PaymentPreference, string> = {
+    cash: "bg-green-100 text-green-700",
+    bank_transfer: "bg-blue-100 text-blue-700",
+    adjustment: "bg-amber-100 text-amber-700",
+    reinvestment: "bg-purple-100 text-purple-700",
+};
+
+export const PAYMENT_PREFERENCE_LABELS: Record<PaymentPreference, string> = {
+    cash: "Cash",
+    bank_transfer: "Bank Transfer",
+    adjustment: "Adjustment",
+    reinvestment: "Reinvestment",
+};

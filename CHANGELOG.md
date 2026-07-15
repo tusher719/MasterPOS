@@ -2,6 +2,75 @@
 
 ---
 
+## [v2.7 — Step 17 Phase 4D] — Settlement Config — 2026-07-15
+
+### New Table
+
+- `partner_settlement_configs`: partner_id, settlement_type (profit_only/cost_plus_profit/custom),
+  payment_preference (cash/bank_transfer/adjustment/reinvestment),
+  auto_cost_return (bool), notes, is_active, created_by — no soft delete
+
+### New Model
+
+- `PartnerSettlementConfig`: scopeActive(), settlement_type_label + payment_preference_label accessors,
+  partner() + createdBy() BelongsTo with withTrashed()
+
+### New Policy
+
+- `PartnerSettlementConfigPolicy`: viewAny/create/edit/delete
+  — no model parameter on any method (ArgumentCountError prevention, Phase 4B/4C pattern)
+
+### New Service
+
+- `SettlementCalculationService`: calculate(), getActiveConfig(), hasActiveConfig(),
+  getSettlementType(), getPaymentPreference()
+  — calculateCostReturn() placeholder with full SQL documented; Phase 4F fills it in
+  — engine contract respected: never writes to database, returns array only
+
+### New Controller
+
+- `PartnerSettlementConfigController`: store/update/destroy
+  — one active config per partner enforced in store()
+  — cross-partner guard: abort_unless($config->partner_id === $partner->id, 404)
+  — hard delete only (no restore route)
+
+### New Seeder
+
+- `Step17Phase4DPermissionSeeder`: settlement_config.view/create/edit/delete
+  Admin all, Staff view only
+
+### Updated Files
+
+- Routes: settlement-configs.store/update/destroy nested inside partners group
+  with correct {partner} segment in URI
+- `AppServiceProvider`: PartnerSettlementConfigPolicy registered via Gate::policy()
+- `Partner` model: settlementConfigs() HasMany relation added; PartnerSettlementConfig imported
+- `PartnerController::show()`: settlementConfigs eager load + settlementConfigCan array added
+- `partner.d.ts`: SettlementType, PaymentPreference, PartnerSettlementConfig,
+  SettlementConfigFormData, SettlementConfigCan added;
+  PartnerShowProps updated with settlementConfigs + settlementConfigCan
+- `partner-colors.ts`: SETTLEMENT_TYPE_COLORS/LABELS, PAYMENT_PREFERENCE_COLORS/LABELS added;
+  import block updated with SettlementType + PaymentPreference types
+
+### New Frontend Components
+
+- `SettlementConfigPanel.tsx`: active config card with badges, inactive config history,
+  empty state with create button, edit/delete actions
+- `CreateSettlementConfigModal.tsx`: radio card settlement type selector,
+  payment preference select, auto_cost_return conditional checkbox (cost_plus_profit only),
+  notes textarea
+- `EditSettlementConfigModal.tsx`: useEffect populates from config prop,
+  same field layout as create modal
+
+### Known Rules Established
+
+- One active settlement config per partner — store() returns error if active config exists
+- auto_cost_return resets to false when switching away from cost_plus_profit in frontend
+- SettlementCalculationService::calculate() falls back to profit_only/cash when no config set
+- calculateCostReturn() is a placeholder until Phase 4E partner_product_assignments exists
+
+---
+
 ## [v2.6 — Step 17 Phase 4C] — Profit Eligibility — 2026-07-14
 
 ### New Table

@@ -28,15 +28,18 @@ import EligibilityPanel from "./_components/EligibilityPanel";
 import LinkedInvestmentsCard from "./_components/LinkedInvestmentsCard";
 import LinkInvestmentModal from "./_components/LinkInvestmentModal";
 import ProfitRulesPanel from "./_components/ProfitRulesPanel";
+import SettlementConfigPanel from "./_components/SettlementConfigPanel";
 
 export default function Show({
     partner,
     investmentOptions,
     profitRules,
     eligibilities,
+    settlementConfigs,
     can,
     profitRuleCan,
     eligibilityCan,
+    settlementConfigCan,
 }: PartnerShowProps) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -347,6 +350,12 @@ export default function Show({
                             partner={partner}
                             eligibilities={eligibilities}
                             can={eligibilityCan}
+                        />
+                        {/* Settlement Config Panel */}
+                        <SettlementConfigPanel
+                            partner={partner}
+                            settlementConfigs={settlementConfigs}
+                            can={settlementConfigCan}
                         />
                     </div>
 

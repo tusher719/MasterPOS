@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\PartnerProfitRule;
+use App\Models\PartnerSettlementConfig;
 
 class Partner extends Model
 {
@@ -120,6 +121,12 @@ class Partner extends Model
     public function profitRules(): HasMany
     {
         return $this->hasMany(PartnerProfitRule::class);
+    }
+
+    // Settlement Configs
+    public function settlementConfigs(): HasMany
+    {
+        return $this->hasMany(PartnerSettlementConfig::class);
     }
 
 

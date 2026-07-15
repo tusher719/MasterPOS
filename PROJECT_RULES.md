@@ -257,6 +257,31 @@
 - `@mantine/charts` → charts in investor/capital/partner pages only
 - Page layout, tables, buttons, modals → always native HTML + Tailwind
 
+### Mantine Usage (selective — STRICT RULE)
+
+Mantine v8 IS installed. Use it for these cases ONLY:
+
+- `@mantine/dates` → DatePickerInput for date fields in forms
+  (effective_from, effective_to, profit_start_date, period_start, period_end etc.)
+- `@mantine/carousel` → image sliders (product images)
+- `@mantine/tiptap` → rich text notes fields
+- `@mantine/charts` → AreaChart, BarChart in investor/capital/partner analytics pages
+
+DO NOT use Mantine for:
+
+- Page layout, grid, containers
+- Tables, thead, tbody, tr, td
+- Buttons, links, badges, tags
+- Modals, drawers, overlays
+- Form inputs (text, select, textarea, checkbox, radio) — use native HTML
+- Any general UI element — always native HTML + Tailwind
+
+When writing date input fields in modals or forms:
+
+- ALWAYS use Mantine DatePickerInput, NOT <input type="date">
+- Import: import { DatePickerInput } from '@mantine/dates'
+- Wrap in MantineProvider if not already at layout level
+
 ### Sidebar Nav
 
 - Sidebar nav group labels must be unique (duplicate labels cause React key collision warnings)
