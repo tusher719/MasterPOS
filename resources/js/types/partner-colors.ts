@@ -161,7 +161,6 @@ export const SETTLEMENT_TYPE_LABELS: Record<SettlementType, string> = {
 // -------------------------------------------------------------------------
 // Payment Preference
 // -------------------------------------------------------------------------
-
 export const PAYMENT_PREFERENCE_COLORS: Record<PaymentPreference, string> = {
     cash: "bg-green-100 text-green-700",
     bank_transfer: "bg-blue-100 text-blue-700",
@@ -175,3 +174,31 @@ export const PAYMENT_PREFERENCE_LABELS: Record<PaymentPreference, string> = {
     adjustment: "Adjustment",
     reinvestment: "Reinvestment",
 };
+
+// -------------------------------------------------------------------------
+// Product Assignment — Approval Status
+// -------------------------------------------------------------------------
+export const ASSIGNMENT_STATUS_COLORS: Record<string, string> = {
+    pending: "bg-amber-100 text-amber-700",
+    approved: "bg-green-100 text-green-700",
+    inactive: "bg-gray-100 text-gray-500",
+};
+
+export const ASSIGNMENT_STATUS_LABELS: Record<string, string> = {
+    pending: "Pending Approval",
+    approved: "Approved",
+    inactive: "Inactive",
+};
+
+// -------------------------------------------------------------------------
+// Product Assignment — helper to get display status string
+// -------------------------------------------------------------------------
+export function getAssignmentStatus(assignment: {
+    is_pending: boolean;
+    is_approved: boolean;
+    is_active: boolean;
+}): string {
+    if (assignment.is_pending) return "pending";
+    if (!assignment.is_active) return "inactive";
+    return "approved";
+}

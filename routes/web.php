@@ -22,6 +22,7 @@ use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
 use App\Http\Controllers\Backend\PartnerController;
 use App\Http\Controllers\Backend\PartnerEligibilityController;
+use App\Http\Controllers\Backend\PartnerProductAssignmentController;
 use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\PartnerSettlementConfigController;
 use App\Http\Controllers\Backend\ProductCategoryController;
@@ -518,6 +519,14 @@ Route::middleware(['auth', 'verified'])
                 ->name('settlement-configs.update');
             Route::delete('{partner}/settlement-configs/{config}', [PartnerSettlementConfigController::class, 'destroy'])
                 ->name('settlement-configs.destroy');
+
+                // Product Assignments — nested inside partners group
+            Route::prefix('{partner}/product-assignments')->name('product-assignments.')->group(function () {
+                Route::post('/', [PartnerProductAssignmentController::class, 'store'])->name('store');
+                Route::put('/{assignment}', [PartnerProductAssignmentController::class, 'update'])->name('update');
+                Route::post('/{assignment}/approve', [PartnerProductAssignmentController::class, 'approve'])->name('approve');
+                Route::delete('/{assignment}', [PartnerProductAssignmentController::class, 'destroy'])->name('destroy');
+            });
 
             // ── Explicit CRUD routes ──
             Route::get('/', [PartnerController::class, 'index'])->name('index');

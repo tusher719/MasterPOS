@@ -27,6 +27,7 @@ import EditPartnerModal from "./_components/EditPartnerModal";
 import EligibilityPanel from "./_components/EligibilityPanel";
 import LinkedInvestmentsCard from "./_components/LinkedInvestmentsCard";
 import LinkInvestmentModal from "./_components/LinkInvestmentModal";
+import ProductAssignmentsPanel from "./_components/ProductAssignmentsPanel";
 import ProfitRulesPanel from "./_components/ProfitRulesPanel";
 import SettlementConfigPanel from "./_components/SettlementConfigPanel";
 
@@ -36,10 +37,13 @@ export default function Show({
     profitRules,
     eligibilities,
     settlementConfigs,
+    productAssignments,
+    products,
     can,
     profitRuleCan,
     eligibilityCan,
     settlementConfigCan,
+    assignmentCan,
 }: PartnerShowProps) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -330,21 +334,18 @@ export default function Show({
                                 )}
                             </div>
                         </div>
-
                         {/* Linked Investments Card */}
                         <LinkedInvestmentsCard
                             partner={partner}
                             canEdit={can.edit && !partner.deleted_at}
                             onLinkClick={() => setShowLinkModal(true)}
                         />
-
                         {/* Profit Rules Panel */}
                         <ProfitRulesPanel
                             partner={partner}
                             profitRules={profitRules}
                             can={profitRuleCan}
                         />
-
                         {/* Profit Eligibility Panel */}
                         <EligibilityPanel
                             partner={partner}
@@ -356,6 +357,13 @@ export default function Show({
                             partner={partner}
                             settlementConfigs={settlementConfigs}
                             can={settlementConfigCan}
+                        />
+                        {/* Product Assignments Panel */} {/* ← add এটা */}
+                        <ProductAssignmentsPanel
+                            partnerId={partner.id}
+                            assignments={productAssignments}
+                            products={products}
+                            can={assignmentCan}
                         />
                     </div>
 

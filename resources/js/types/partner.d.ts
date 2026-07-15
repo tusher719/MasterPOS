@@ -275,10 +275,13 @@ export interface PartnerShowProps extends PageProps {
     profitRules: PartnerProfitRule[];
     eligibilities: PartnerEligibility[];
     settlementConfigs: PartnerSettlementConfig[];
+    productAssignments: PartnerProductAssignment[];
+    products: ProductOption[];
     can: PartnerCan;
     profitRuleCan: ProfitRuleCan;
     eligibilityCan: EligibilityCan;
     settlementConfigCan: SettlementConfigCan;
+    assignmentCan: AssignmentCan;
 }
 
 // -------------------------------------------------------------------------
@@ -348,4 +351,55 @@ export interface SettlementConfigCan {
     create: boolean;
     edit: boolean;
     delete: boolean;
+}
+
+// -------------------------------------------------------------------------
+// Product Assignments
+// -------------------------------------------------------------------------
+export interface PartnerProductAssignment {
+    id: number;
+    partner_id: number;
+    assignable_type: string;
+    assignable_id: number;
+    effective_from: string; // YYYY-MM-DD
+    effective_to: string | null; // null = ongoing
+    cost_return_enabled: boolean;
+    profit_share_percent: string; // decimal serialized as string — always wrap in Number()
+    is_active: boolean;
+    approved_by: number | null;
+    approved_at: string | null;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+
+    // Accessors
+    is_pending: boolean;
+    is_approved: boolean;
+    is_currently_active: boolean;
+
+    // Relations (when eager loaded)
+    product?: ProductOption | null;
+    created_by_user?: PartnerUser | null;
+    approved_by_user?: PartnerUser | null;
+}
+
+export interface ProductOption {
+    id: number;
+    name: string;
+    sku: string;
+}
+
+export interface ProductAssignmentFormData {
+    assignable_id: string;
+    effective_from: string;
+    effective_to: string;
+    cost_return_enabled: boolean;
+    profit_share_percent: string;
+}
+
+export interface AssignmentCan {
+    view: boolean;
+    create: boolean;
+    edit: boolean;
+    approve: boolean;
 }

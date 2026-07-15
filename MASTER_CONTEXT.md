@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4E — Product Partner & Assignments
-- **Next Step:** Step 17 Phase 4F — Profit Calculation Engine
-- **Last Completed:** Step 17 Phase 4D — Settlement Config ✅
+- **Current Step:** Step 17 Phase 4F — Profit Calculation Engine
+- **Next Step:** Step 17 Phase 4G — Investment-to-Business Tracking
+- **Last Completed:** Step 17 Phase 4E — Product Partner & Assignments ✅
 
 ## Financial Domain Overview
 
@@ -75,12 +75,12 @@ The system is now organized into two independent financial domains:
 | 17 Phase 4B | Profit Rules + Versioning     | ✅     |
 | 17 Phase 4C | Profit Eligibility            | ✅     |
 | 17 Phase 4D | Settlement Config             | ✅     |
+| 17 Phase 4E | Product Partner & Assignments | ✅     |
 
 ## Pending Modules
 
 | Step        | Module                                 | Notes                                    |
 | ----------- | -------------------------------------- | ---------------------------------------- |
-| 17 Phase 4E | Product Partner & Assignments          | partner_product_assignments              |
 | 17 Phase 4F | Profit Calculation Engine              | Strategy pattern services                |
 | 17 Phase 4G | Investment-to-Business Tracking        | investment_fund_usages                   |
 | 17 Phase 4H | Existing Table Migrations              | Add partner_id + source_type columns     |

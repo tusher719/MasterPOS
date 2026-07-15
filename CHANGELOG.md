@@ -2,6 +2,86 @@
 
 ---
 
+## [v2.8 — Step 17 Phase 4E] — Product Partner & Assignments — 2026-07-15
+
+### New Table
+
+- `partner_product_assignments`: partner_id, assignable_type (default 'product'),
+  assignable_id, effective_from, effective_to (nullable), cost_return_enabled (bool),
+  profit_share_percent (dec8,4), is_active, approved_by/approved_at (excluded from $fillable),
+  created_by — no soft delete
+  Indexes: (assignable_type, assignable_id), (partner_id, effective_from)
+
+### New Model
+
+- `PartnerProductAssignment`: scopeApproved/Pending/Active/CoveringSaleDate/CoveringPeriod,
+  is_pending/is_approved/is_currently_active accessors, approve() business method,
+  product() + partner() + createdBy() + approvedBy() BelongsTo relations (all withTrashed)
+
+### New Policy
+
+- `PartnerProductAssignmentPolicy`: viewAny/create/edit/approve/delete
+  — no model parameter on any method (ArgumentCountError prevention, Phase 4B/4C/4D pattern)
+  — delete() reuses edit permission
+
+### New Service
+
+- `PartnerProductAssignmentService`: create(), update(), approve(), delete(), deactivate(),
+  getAssignmentsForProduct(), getAssignmentsForPartner()
+  — update()/delete() block approved assignments with RuntimeException guard
+  — getAssignmentsForProduct(): Phase 4F helper — coveringSaleDate() scope
+  — getAssignmentsForPartner(): Phase 4F helper — coveringPeriod() scope
+  — never duplicated in controllers or other services
+
+### New Controller
+
+- `PartnerProductAssignmentController`: store/update/approve/destroy
+  — cross-partner guard: abort_unless($assignment->partner_id === $partner->id, 404)
+  — update()/destroy() block approved assignments with early return
+  — approve() uses forceFill()->save() via model's approve() method (Rule 66)
+  — hard delete only (no restore route)
+
+### New Seeder
+
+- `Step17Phase4EPermissionSeeder`: product_assignment.view/create/edit/approve
+  Admin all, Staff view only
+
+### Updated Files
+
+- Routes: product-assignments.store/update/approve/destroy nested inside partners group
+  using prefix+name group pattern, before explicit CRUD routes
+- `AppServiceProvider`: PartnerProductAssignmentPolicy registered via Gate::policy()
+- `Partner` model: productAssignments() HasMany relation added
+- `PartnerController::show()`: productAssignments eager load with appended accessors,
+  products prop (active products only), assignmentCan array added
+- `partner.d.ts`: PartnerProductAssignment, ProductOption, ProductAssignmentFormData,
+  AssignmentCan interfaces added; PartnerShowProps updated with productAssignments,
+  products, assignmentCan
+- `partner-colors.ts`: ASSIGNMENT_STATUS_COLORS/LABELS, getAssignmentStatus() helper added
+
+### New Frontend Components
+
+- `CreateProductAssignmentModal.tsx`: product select, effective_from/to DatePickerInput,
+  profit_share_percent input, cost_return_enabled checkbox with info box,
+  pending approval info banner
+- `EditProductAssignmentModal.tsx`: useEffect populates from assignment prop,
+  date slice [0,10] for DatePickerInput, Number() wrap on profit_share_percent
+- `ProductAssignmentsPanel.tsx`: three sections (pending/active/historical),
+  approve SweetAlert2 (confirmButtonColor: #4f46e5), delete SweetAlert2 (#ef4444),
+  empty state with create button
+
+### Known Rules Established
+
+- `PartnerProductAssignment` excludes approved_by/approved_at from $fillable —
+  use forceFill()->save() via approve() model method (Rule 66 pattern)
+- Pending assignments (approved_by IS NULL) invisible to Phase 4F engine —
+  scopeCoveringSaleDate() and scopeCoveringPeriod() both filter whereNotNull('approved_by')
+- getAssignmentsForProduct() and getAssignmentsForPartner() are Phase 4F entry points —
+  never duplicate these queries in controllers or calculation engine directly
+- Policy delete() reuses edit permission — no separate delete permission needed
+
+---
+
 ## [v2.7 — Step 17 Phase 4D] — Settlement Config — 2026-07-15
 
 ### New Table

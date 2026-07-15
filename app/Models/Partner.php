@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
+use App\Models\PartnerProductAssignment;
 
 class Partner extends Model
 {
@@ -129,5 +130,9 @@ class Partner extends Model
         return $this->hasMany(PartnerSettlementConfig::class);
     }
 
+    public function productAssignments(): HasMany
+    {
+        return $this->hasMany(PartnerProductAssignment::class);
+    }
 
 }
