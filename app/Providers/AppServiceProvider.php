@@ -13,6 +13,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\HoldOrder;
 use App\Models\Investment;
+use App\Models\InvestmentFundUsage;
 use App\Models\InvestmentType;
 use App\Models\InvestorProfitBalance;
 use App\Models\Partner;
@@ -31,6 +32,7 @@ use App\Policies\CapitalLedgerPolicy;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\ExpensePolicy;
 use App\Policies\HoldOrderPolicy;
+use App\Policies\InvestmentFundUsagePolicy;
 use App\Policies\InvestmentPolicy;
 use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvestorProfitBalancePolicy;
@@ -124,5 +126,7 @@ class AppServiceProvider extends ServiceProvider
         // ─── Step 17 Phase 4E Policies ─────────────────────────────────────────────────
         Gate::policy(PartnerProductAssignment::class, PartnerProductAssignmentPolicy::class);
 
+        // ─── Step 17 Phase 4G Policies ─────────────────────────────────────────────────
+        Gate::policy(InvestmentFundUsage::class, InvestmentFundUsagePolicy::class);
     }
 }

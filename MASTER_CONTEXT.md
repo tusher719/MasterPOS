@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4G — Investment-to-Business Tracking
-- **Next Step:** Step 17 Phase 4H — Existing Table Migrations
-- **Last Completed:** Step 17 Phase 4F — Profit Calculation Engine ✅
+- **Current Step:** Step 17 Phase 4H — Existing Table Migrations
+- **Next Step:** Step 17 Phase 5 — Sales Payment Upgrade
+- **Last Completed:** Step 17 Phase 4G — Investment-to-Business Tracking ✅
 
 ## Financial Domain Overview
 
@@ -49,40 +49,40 @@ The system is now organized into two independent financial domains:
 
 ## Completed Modules
 
-| Step        | Module                        | Status |
-| ----------- | ----------------------------- | ------ |
-| 00          | Project Standards             | ✅     |
-| 01          | Project Foundation            | ✅     |
-| 02          | Authentication & Permission   | ✅     |
-| 03          | Business Settings             | ✅     |
-| 04          | Product & Category Management | ✅     |
-| 05          | Notification System           | ✅     |
-| 06          | Supplier Management           | ✅     |
-| 07          | Purchase & Inventory          | ✅     |
-| 08          | Customer Management           | ✅     |
-| 09          | POS (Cart/Sale)               | ✅     |
-| 10          | Invoice & Receipt             | ✅     |
-| 11          | Hold Orders                   | ✅     |
-| 12          | Expense Management            | ✅     |
-| 13          | Investment Management         | ✅     |
-| 14          | Profit Distribution           | ✅     |
-| 15          | Dashboard & Analytics         | ✅     |
-| 16          | Reports                       | ✅     |
-| 17 Phase 1  | Advanced Profit Distribution  | ✅     |
-| 17 Phase 2  | Capital Ledger                | ✅     |
-| 17 Phase 3  | Investor Statements           | ✅     |
-| 17 Phase 4A | Partner Domain Foundation     | ✅     |
-| 17 Phase 4B | Profit Rules + Versioning     | ✅     |
-| 17 Phase 4C | Profit Eligibility            | ✅     |
-| 17 Phase 4D | Settlement Config             | ✅     |
-| 17 Phase 4E | Product Partner & Assignments | ✅     |
-| 17 Phase 4F | Profit Calculation Engine     | ✅     |
+| Step        | Module                          | Status |
+| ----------- | ------------------------------- | ------ |
+| 00          | Project Standards               | ✅     |
+| 01          | Project Foundation              | ✅     |
+| 02          | Authentication & Permission     | ✅     |
+| 03          | Business Settings               | ✅     |
+| 04          | Product & Category Management   | ✅     |
+| 05          | Notification System             | ✅     |
+| 06          | Supplier Management             | ✅     |
+| 07          | Purchase & Inventory            | ✅     |
+| 08          | Customer Management             | ✅     |
+| 09          | POS (Cart/Sale)                 | ✅     |
+| 10          | Invoice & Receipt               | ✅     |
+| 11          | Hold Orders                     | ✅     |
+| 12          | Expense Management              | ✅     |
+| 13          | Investment Management           | ✅     |
+| 14          | Profit Distribution             | ✅     |
+| 15          | Dashboard & Analytics           | ✅     |
+| 16          | Reports                         | ✅     |
+| 17 Phase 1  | Advanced Profit Distribution    | ✅     |
+| 17 Phase 2  | Capital Ledger                  | ✅     |
+| 17 Phase 3  | Investor Statements             | ✅     |
+| 17 Phase 4A | Partner Domain Foundation       | ✅     |
+| 17 Phase 4B | Profit Rules + Versioning       | ✅     |
+| 17 Phase 4C | Profit Eligibility              | ✅     |
+| 17 Phase 4D | Settlement Config               | ✅     |
+| 17 Phase 4E | Product Partner & Assignments   | ✅     |
+| 17 Phase 4F | Profit Calculation Engine       | ✅     |
+| 17 Phase 4G | Investment-to-Business Tracking | ✅     |
 
 ## Pending Modules
 
 | Step        | Module                                 | Notes                                    |
 | ----------- | -------------------------------------- | ---------------------------------------- |
-| 17 Phase 4G | Investment-to-Business Tracking        | investment_fund_usages                   |
 | 17 Phase 4H | Existing Table Migrations              | Add partner_id + source_type columns     |
 | 17 Phase 5  | Sales Payment Upgrade                  |                                          |
 | 17 Phase 6  | COD Order Management + Fraud Detection | orders, delivery_addresses, fraud_scores |

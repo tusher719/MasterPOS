@@ -1,6 +1,11 @@
 // resources/js/Pages/Backend/CapitalLedger/Show.tsx
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import type {
+    ExpenseOption,
+    FundUsage,
+    PurchaseOption,
+} from "@/types/fund-usage";
 import { Head, router } from "@inertiajs/react";
 import {
     ArrowLeft,
@@ -17,6 +22,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import AdjustmentModal from "./_components/AdjustmentModal";
 import DepositModal from "./_components/DepositModal";
+import FundUsagePanel from "./_components/FundUsagePanel";
 import LedgerTable from "./_components/LedgerTable";
 import WithdrawalApprovalModal from "./_components/WithdrawalApprovalModal";
 import WithdrawalModal from "./_components/WithdrawalModal";
@@ -44,6 +50,15 @@ interface PendingWithdrawal {
     created_at: string;
 }
 
+interface FundUsageEntry {
+    entry_id: number;
+    reference_no: string | null;
+    amount: string;
+    linked_amount: number;
+    remaining_amount: number;
+    usages: FundUsage[];
+}
+
 interface Props {
     investment: Investment;
     balance: Balance;
@@ -53,11 +68,16 @@ interface Props {
         links: any[];
     };
     pendingWithdrawals: PendingWithdrawal[];
+    fundUsageData: FundUsageEntry[];
+    availablePurchases: PurchaseOption[];
+    availableExpenses: ExpenseOption[];
     can: {
         deposit: boolean;
         adjust: boolean;
         request_withdrawal: boolean;
         approve_withdrawal: boolean;
+        fund_usage_create: boolean;
+        fund_usage_delete: boolean;
     };
 }
 
@@ -69,6 +89,9 @@ export default function CapitalLedgerShow({
     balance,
     entries,
     pendingWithdrawals,
+    fundUsageData,
+    availablePurchases,
+    availableExpenses,
     can,
 }: Props) {
     const [showDeposit, setShowDeposit] = useState(false);
@@ -298,6 +321,44 @@ export default function CapitalLedgerShow({
 
                 {/* Ledger Table */}
                 <LedgerTable entries={entries} />
+                {/* Fund Usage Panels — approved withdrawals only */}
+                {fundUsageData.length > 0 && (
+                    <div className="space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-700">
+                            Withdrawal Fund Usages
+                        </h2>
+                        {fundUsageData.map((entry) => (
+                            <div key={entry.entry_id}>
+                                <p className="mb-2 text-xs text-gray-500">
+                                    Withdrawal{" "}
+                                    <span className="font-medium text-gray-700">
+                                        {entry.reference_no ??
+                                            `#${entry.entry_id}`}
+                                    </span>{" "}
+                                    ·{" "}
+                                    {Number(entry.amount).toLocaleString(
+                                        "en-US",
+                                        { minimumFractionDigits: 2 },
+                                    )}{" "}
+                                    BDT
+                                </p>
+                                <FundUsagePanel
+                                    entryId={entry.entry_id}
+                                    entryAmount={Number(entry.amount)}
+                                    linkedAmount={entry.linked_amount}
+                                    remainingAmount={entry.remaining_amount}
+                                    usages={entry.usages}
+                                    purchases={availablePurchases}
+                                    expenses={availableExpenses}
+                                    can={{
+                                        create: can.fund_usage_create,
+                                        delete: can.fund_usage_delete,
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Modals */}

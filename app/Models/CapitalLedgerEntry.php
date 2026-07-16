@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\Auth;
 
@@ -62,6 +63,10 @@ class CapitalLedgerEntry extends Model
     public function source(): MorphTo
     {
         return $this->morphTo();
+    }
+    public function fundUsages(): HasMany
+    {
+        return $this->hasMany(InvestmentFundUsage::class, 'capital_ledger_entry_id');
     }
 
     // ─── Scopes ───────────────────────────────────────────────────────────────

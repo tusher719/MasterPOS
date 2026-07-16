@@ -15,6 +15,7 @@ use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\ExpenseController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentController;
+use App\Http\Controllers\Backend\InvestmentFundUsageController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
 use App\Http\Controllers\Backend\InvestorBalanceController;
 use App\Http\Controllers\Backend\InvestorStatementController;
@@ -461,6 +462,18 @@ Route::middleware(['auth', 'verified'])
             ->name('capital-ledger.store');
         Route::get('capital-ledger/{investmentId}', [CapitalLedgerController::class, 'show'])
             ->name('capital-ledger.show');
+
+        // ── Fund Usages (nested under capital-ledger entry) ───────────────────────
+        // Declared AFTER capital-ledger routes — uses {capitalLedgerEntry} model binding
+        Route::post(
+            'capital-ledger/{capitalLedgerEntry}/fund-usages',
+            [InvestmentFundUsageController::class, 'store']
+        )->name('capital-ledger.fund-usages.store');
+
+        Route::delete(
+            'capital-ledger/{capitalLedgerEntry}/fund-usages/{investmentFundUsage}',
+            [InvestmentFundUsageController::class, 'destroy']
+        )->name('capital-ledger.fund-usages.destroy');
 
         // Investor Statements (read-only — export before resource pattern)
         Route::get('investor-statements/{investment}/pdf', [InvestorStatementController::class, 'pdf'])

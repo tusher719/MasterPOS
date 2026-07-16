@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $this->call(Step04PermissionSeeder::class);
 
         $this->call(Step17Phase2PermissionSeeder::class);
+        $this->call(Step17Phase4GPermissionSeeder::class);
 
         // Notification
         $this->call(NotificationSeeder::class);

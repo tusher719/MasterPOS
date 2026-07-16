@@ -9,6 +9,7 @@ use App\Models\CapitalLedgerEntry;
 use App\Models\Investment;
 use App\Models\InvestorCapitalBalance;
 use App\Services\ActivityLogService;
+use App\Services\InvestmentFundUsageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -61,7 +62,7 @@ class CapitalLedgerController extends Controller
 
     // ─── Show — Per-Investor Ledger ───────────────────────────────────────────
 
-    public function show(int $investmentId): Response
+    public function show(int $investmentId, InvestmentFundUsageService $fundUsageService): Response
     {
         abort_unless(Gate::allows('view', CapitalLedgerEntry::class), 403);
 
@@ -86,6 +87,28 @@ class CapitalLedgerController extends Controller
             ->pendingWithdrawals()
             ->get(['id', 'amount', 'note', 'created_at']);
 
+        // ── Fund Usage data — approved withdrawals only ────────────────────────
+        $approvedWithdrawals = CapitalLedgerEntry::forInvestment($investmentId)
+            ->where('transaction_type', 'withdrawal')
+            ->where('status', 'approved')
+            ->orderByDesc('id')
+            ->get();
+
+        $fundUsageData = $approvedWithdrawals->map(function (CapitalLedgerEntry $entry) use ($fundUsageService) {
+            return [
+                'entry_id'         => $entry->id,
+                'reference_no'     => $entry->reference_no,
+                'amount'           => $entry->amount,
+                'linked_amount'    => $fundUsageService->linkedAmount($entry),
+                'remaining_amount' => $fundUsageService->remainingAmount($entry),
+                'usages'           => $fundUsageService->getUsagesForEntry($entry),
+            ];
+        });
+
+        // Available purchases + expenses for link modal
+        $availablePurchases = $fundUsageService->getAvailablePurchases();
+        $availableExpenses  = $fundUsageService->getAvailableExpenses();
+
         return Inertia::render('Backend/CapitalLedger/Show', [
             'investment' => [
                 'id'              => $investment->id,
@@ -101,13 +124,18 @@ class CapitalLedgerController extends Controller
                 'total_adjusted'    => $balance->total_adjusted,
                 'current_balance'   => $balance->current_balance,
             ],
-            'entries'             => $entries,
-            'pendingWithdrawals'  => $pendingWithdrawals,
+            'entries'              => $entries,
+            'pendingWithdrawals'   => $pendingWithdrawals,
+            'fundUsageData'        => $fundUsageData,
+            'availablePurchases'   => $availablePurchases,
+            'availableExpenses'    => $availableExpenses,
             'can' => [
                 'deposit'            => optional(Auth::user())->can('deposit', CapitalLedgerEntry::class),
                 'adjust'             => optional(Auth::user())->can('adjust', CapitalLedgerEntry::class),
                 'request_withdrawal' => optional(Auth::user())->can('requestWithdrawal', CapitalLedgerEntry::class),
                 'approve_withdrawal' => optional(Auth::user())->can('approveWithdrawal', CapitalLedgerEntry::class),
+                'fund_usage_create'  => optional(Auth::user())->hasPermissionTo('fund_usage.create'),
+                'fund_usage_delete'  => optional(Auth::user())->hasPermissionTo('fund_usage.delete'),
             ],
         ]);
     }

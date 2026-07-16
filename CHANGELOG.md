@@ -2,6 +2,51 @@
 
 ---
 
+## [v2.10 — Step 17 Phase 4G] — Investment-to-Business Tracking — 2026-07-16
+
+### New Files
+
+- `create_investment_fund_usages_table.php`: Migration for investment_fund_usages table
+- `InvestmentFundUsage.php`: Model with usable() MorphTo, scopeForEntry/Purchases/Expenses, usable_label accessor
+- `InvestmentFundUsageService.php`: create(), delete(), linkedAmount(), remainingAmount(),
+  getUsagesForEntry(), getAvailablePurchases(), getAvailableExpenses(), resolveUsable()
+  — all business guards (approved withdrawal only, no duplicate usable, amount within limit)
+- `InvestmentFundUsagePolicy.php`: viewAny/create/delete — no model parameter pattern
+- `Step17Phase4GPermissionSeeder.php`: fund_usage.view/create/delete — Admin all, Staff view only
+- `InvestmentFundUsageController.php`: store/destroy — cross-entry guard on destroy
+- `fund-usage.d.ts`: FundUsage, FundUsageFormData, PurchaseOption, ExpenseOption,
+  FundUsagePanelProps, FundUsageCan interfaces
+- `FundUsagePanel.tsx`: Progress bar, linked/remaining summary, usages list, unlink SweetAlert2
+- `LinkFundUsageModal.tsx`: Purchase/Expense type selector, auto-fill amount from usable,
+  remaining amount cap validation
+
+### Updated Files
+
+- `routes/web.php`: fund-usages.store + fund-usages.destroy nested under capital-ledger
+- `AppServiceProvider.php`: InvestmentFundUsage + InvestmentFundUsagePolicy registered
+- `CapitalLedgerEntry` model: fundUsages() HasMany relation added
+- `CapitalLedgerController::show()`: fundUsageData, availablePurchases, availableExpenses props added;
+  fund_usage_create + fund_usage_delete added to can array
+- `CapitalLedger/Show.tsx`: FundUsagePanel integrated — shows per approved withdrawal entry;
+  FundUsageEntry interface + new props added to destructure
+
+### New Table
+
+- `investment_fund_usages`: capital_ledger_entry_id, partner_id (nullable), usable_type,
+  usable_id, amount, note, created_by
+  Indexes: (usable_type, usable_id), capital_ledger_entry_id
+
+### Business Rules Enforced
+
+- Fund usage only linkable to approved withdrawal entries (transaction_type=withdrawal, status=approved)
+- One purchase/expense can only be linked once — duplicate check at service layer
+- Linked amount cannot exceed withdrawal entry amount (partial linking allowed)
+- One withdrawal → multiple fund usages (one-to-many)
+- withTrashed() on usable resolution — soft-deleted purchases/expenses still visible
+- partner_id auto-populated from entry.partner_id at link time
+
+---
+
 ## [v2.9 — Step 17 Phase 4F] — Profit Calculation Engine — 2026-07-16
 
 ### New Files
