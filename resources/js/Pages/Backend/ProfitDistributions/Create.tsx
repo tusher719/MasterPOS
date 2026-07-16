@@ -1,34 +1,34 @@
-import { useState } from "react";
-import { Head, router } from "@inertiajs/react";
-import { route } from "ziggy-js";
-import { toast } from "sonner";
-import { Calculator, Save, ArrowLeft, RefreshCw } from "lucide-react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import type {
+    EnginePreviewData,
+    InvestmentPreviewItem,
+    PartnerPreviewItem,
+    SourceType,
+} from "@/types/profit-calculation";
+import { Head, router } from "@inertiajs/react";
 import axios from "axios";
+import { ArrowLeft, Calculator, RefreshCw, Save } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { route } from "ziggy-js";
+import PartnerBasedPreviewTable from "./_components/PartnerBasedPreviewTable";
 
-interface PreviewItem {
-    investment_id: number;
-    investor_name: string;
-    investment_title: string;
-    investment_type: string;
-    invested_amount: number;
-    share_percent: number;
-    share_amount: number;
-    note: string | null;
-    [key: string]: string | number | null;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(value: number | string): string {
+    return Number(value).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 }
 
-interface PreviewData {
-    total_revenue: number;
-    total_cogs: number;
-    total_expenses: number;
-    total_investment: number;
-    gross_profit: number;
-    net_profit: number;
-    distribution_percent: number;
-    distributable_amount: number;
-    items: PreviewItem[];
+function isPartnerItem(
+    item: PartnerPreviewItem | InvestmentPreviewItem,
+): item is PartnerPreviewItem {
+    return "partner_id" in item;
 }
+
+// ─── Form State ───────────────────────────────────────────────────────────────
 
 interface FormData {
     title: string;
@@ -37,27 +37,22 @@ interface FormData {
     period_end: string;
     distribution_percent: string;
     distributable_amount: string;
+    source_type: SourceType;
     note: string;
-    // Financial snapshots filled after calculate
     total_revenue: string;
     total_cogs: string;
     total_expenses: string;
     total_investment: string;
     gross_profit: string;
     net_profit: string;
-    items: PreviewItem[];
+    items: (PartnerPreviewItem | InvestmentPreviewItem)[];
 }
 
 interface Errors {
     [key: string]: string;
 }
 
-function fmt(value: number | string): string {
-    return Number(value).toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Create() {
     const [form, setForm] = useState<FormData>({
@@ -67,6 +62,7 @@ export default function Create() {
         period_end: "",
         distribution_percent: "100",
         distributable_amount: "",
+        source_type: "investment_based",
         note: "",
         total_revenue: "",
         total_cogs: "",
@@ -80,20 +76,21 @@ export default function Create() {
     const [errors, setErrors] = useState<Errors>({});
     const [calculating, setCalculating] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [preview, setPreview] = useState<PreviewData | null>(null);
+    const [preview, setPreview] = useState<EnginePreviewData | null>(null);
 
-    // -----------------------------------------------------------------------
-    // Field update
-    // -----------------------------------------------------------------------
+    // ─── Field Update ──────────────────────────────────────────────────────────
 
     function update(field: keyof FormData, value: string) {
         setForm((prev) => ({ ...prev, [field]: value }));
         setErrors((prev) => ({ ...prev, [field]: "" }));
     }
 
-    // -----------------------------------------------------------------------
-    // Calculate preview
-    // -----------------------------------------------------------------------
+    function resetPreview() {
+        setPreview(null);
+        setForm((prev) => ({ ...prev, items: [] }));
+    }
+
+    // ─── Calculate ────────────────────────────────────────────────────────────
 
     async function handleCalculate() {
         if (!form.period_start || !form.period_end) {
@@ -104,21 +101,21 @@ export default function Create() {
         setCalculating(true);
         try {
             const response = await axios.get(
-                route("backend.profit-distributions.calculate-preview"),
+                route("backend.profit-calculation.preview"),
                 {
                     params: {
                         period_start: form.period_start,
                         period_end: form.period_end,
                         distribution_percent:
                             form.distribution_percent || "100",
+                        source_type: form.source_type,
                     },
                 },
             );
 
-            const data: PreviewData = response.data;
+            const data: EnginePreviewData = response.data;
             setPreview(data);
 
-            // Fill financial snapshots into form
             setForm((prev) => ({
                 ...prev,
                 total_revenue: String(data.total_revenue),
@@ -132,10 +129,19 @@ export default function Create() {
             }));
 
             if (data.items.length === 0) {
-                toast.warning("No active investments found for this period.");
+                toast.warning(
+                    "No active partners or investments found for this period.",
+                );
             } else {
+                const eligibleCount =
+                    form.source_type === "partner_based"
+                        ? (data.items as PartnerPreviewItem[]).filter(
+                              (i) => i.is_eligible,
+                          ).length
+                        : data.items.length;
+
                 toast.success(
-                    `Preview calculated — ${data.items.length} investor(s) found.`,
+                    `Preview calculated — ${eligibleCount} eligible record(s) found.`,
                 );
             }
         } catch (err: any) {
@@ -148,9 +154,7 @@ export default function Create() {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Update item note inline
-    // -----------------------------------------------------------------------
+    // ─── Note Update ──────────────────────────────────────────────────────────
 
     function updateItemNote(index: number, note: string) {
         setForm((prev) => {
@@ -160,17 +164,13 @@ export default function Create() {
         });
     }
 
-    // -----------------------------------------------------------------------
-    // Submit
-    // -----------------------------------------------------------------------
+    // ─── Submit ───────────────────────────────────────────────────────────────
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
 
         if (form.items.length === 0) {
-            toast.error(
-                "Please calculate the preview first to generate investor shares.",
-            );
+            toast.error("Please calculate the preview first.");
             return;
         }
 
@@ -186,6 +186,7 @@ export default function Create() {
                 period_end: form.period_end,
                 distribution_percent: form.distribution_percent,
                 distributable_amount: form.distributable_amount,
+                source_type: form.source_type,
                 note: form.note,
                 total_revenue: form.total_revenue,
                 total_cogs: form.total_cogs,
@@ -207,6 +208,8 @@ export default function Create() {
 
     const hasPreview = preview !== null && form.items.length > 0;
 
+    // ─── Render ───────────────────────────────────────────────────────────────
+
     return (
         <AuthenticatedLayout>
             <Head title="New Profit Distribution" />
@@ -226,8 +229,8 @@ export default function Create() {
                             New Profit Distribution
                         </h1>
                         <p className="mt-0.5 text-sm text-gray-500">
-                            Select a period, calculate financials, then save as
-                            draft.
+                            Select a period and distribution type, calculate,
+                            then save as draft.
                         </p>
                     </div>
                 </div>
@@ -238,7 +241,6 @@ export default function Create() {
                         <h2 className="mb-4 text-base font-semibold text-gray-700">
                             Basic Information
                         </h2>
-
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {/* Title */}
                             <div className="sm:col-span-2">
@@ -316,6 +318,52 @@ export default function Create() {
                                 )}
                             </div>
 
+                            {/* Source type selector */}
+                            <div className="sm:col-span-2">
+                                <label className="mb-2 block text-sm font-medium text-gray-700">
+                                    Distribution Type{" "}
+                                    <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex gap-3">
+                                    {(
+                                        [
+                                            "investment_based",
+                                            "partner_based",
+                                        ] as SourceType[]
+                                    ).map((type) => (
+                                        <button
+                                            key={type}
+                                            type="button"
+                                            onClick={() => {
+                                                update("source_type", type);
+                                                resetPreview();
+                                            }}
+                                            className={`flex-1 rounded-lg border-2 px-4 py-3 text-left text-sm transition-colors ${
+                                                form.source_type === type
+                                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                                            }`}
+                                        >
+                                            <p className="font-semibold">
+                                                {type === "investment_based"
+                                                    ? "Investment Based"
+                                                    : "Partner Based"}
+                                            </p>
+                                            <p className="mt-0.5 text-xs opacity-70">
+                                                {type === "investment_based"
+                                                    ? "Legacy — share divided by capital amount ratio"
+                                                    : "New — share from manually configured partner rules"}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                                {errors.source_type && (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {errors.source_type}
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Note */}
                             <div className="sm:col-span-2">
                                 <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -344,7 +392,6 @@ export default function Create() {
                         <h2 className="mb-4 text-base font-semibold text-gray-700">
                             Period & Calculation
                         </h2>
-
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             {/* Period start */}
                             <div>
@@ -357,7 +404,7 @@ export default function Create() {
                                     value={form.period_start}
                                     onChange={(e) => {
                                         update("period_start", e.target.value);
-                                        setPreview(null);
+                                        resetPreview();
                                     }}
                                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
@@ -379,7 +426,7 @@ export default function Create() {
                                     value={form.period_end}
                                     onChange={(e) => {
                                         update("period_end", e.target.value);
-                                        setPreview(null);
+                                        resetPreview();
                                     }}
                                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
@@ -415,7 +462,7 @@ export default function Create() {
                             </div>
                         </div>
 
-                        {/* Financial summary — shown after calculate */}
+                        {/* Financial summary */}
                         {hasPreview && (
                             <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
                                 <h3 className="mb-3 text-sm font-semibold text-gray-700">
@@ -521,147 +568,185 @@ export default function Create() {
                         )}
                     </div>
 
-                    {/* ── Section 3: Investor Shares ── */}
+                    {/* ── Section 3: Share Breakdown ── */}
                     {hasPreview && (
                         <div className="rounded-lg border border-gray-200 bg-white">
                             <div className="border-b border-gray-100 px-6 py-4">
                                 <h2 className="text-base font-semibold text-gray-700">
-                                    Investor Share Breakdown
+                                    {form.source_type === "partner_based"
+                                        ? "Partner Share Breakdown"
+                                        : "Investor Share Breakdown"}
                                     <span className="ml-2 text-sm font-normal text-gray-500">
-                                        ({form.items.length} investor
+                                        ({form.items.length} record
                                         {form.items.length !== 1 ? "s" : ""})
                                     </span>
                                 </h2>
                             </div>
 
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 border-b border-gray-100">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                                #
-                                            </th>
-                                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                                Investor
-                                            </th>
-                                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                                Investment
-                                            </th>
-                                            <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                                Invested
-                                            </th>
-                                            <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                                Share %
-                                            </th>
-                                            <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                                Share Amount
-                                            </th>
-                                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                                Note
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {form.items.map((item, i) => (
-                                            <tr
-                                                key={item.investment_id}
-                                                className="hover:bg-gray-50"
-                                            >
-                                                <td className="px-4 py-3 text-gray-500">
-                                                    {i + 1}
-                                                </td>
-                                                <td className="px-4 py-3 font-medium text-gray-800">
-                                                    {item.investor_name}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <p className="text-gray-700">
-                                                        {item.investment_title}
-                                                    </p>
-                                                    <p className="text-xs text-gray-400">
-                                                        {item.investment_type}
-                                                    </p>
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-gray-700">
-                                                    ৳{" "}
-                                                    {fmt(item.invested_amount)}
-                                                </td>
-                                                <td className="px-4 py-3 text-right text-gray-700">
-                                                    {Number(
-                                                        item.share_percent,
-                                                    ).toFixed(4)}
-                                                    %
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-semibold text-indigo-700">
-                                                    ৳ {fmt(item.share_amount)}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <input
-                                                        type="text"
-                                                        value={item.note ?? ""}
-                                                        onChange={(e) =>
-                                                            updateItemNote(
-                                                                i,
-                                                                e.target.value,
+                            <div className="p-5">
+                                {/* Partner-based table */}
+                                {form.source_type === "partner_based" && (
+                                    <PartnerBasedPreviewTable
+                                        items={
+                                            form.items as PartnerPreviewItem[]
+                                        }
+                                        onNoteChange={updateItemNote}
+                                    />
+                                )}
+
+                                {/* Investment-based table (legacy) */}
+                                {form.source_type === "investment_based" && (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 border-b border-gray-100">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                                        #
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                                        Investor
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                                        Investment
+                                                    </th>
+                                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                                        Invested
+                                                    </th>
+                                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                                        Share %
+                                                    </th>
+                                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                                        Share Amount
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                                        Note
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {(
+                                                    form.items as InvestmentPreviewItem[]
+                                                ).map((item, i) => (
+                                                    <tr
+                                                        key={item.investment_id}
+                                                        className="hover:bg-gray-50"
+                                                    >
+                                                        <td className="px-4 py-3 text-gray-500">
+                                                            {i + 1}
+                                                        </td>
+                                                        <td className="px-4 py-3 font-medium text-gray-800">
+                                                            {item.investor_name}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <p className="text-gray-700">
+                                                                {
+                                                                    item.investment_title
+                                                                }
+                                                            </p>
+                                                            <p className="text-xs text-gray-400">
+                                                                {
+                                                                    item.investment_type
+                                                                }
+                                                            </p>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                            ৳{" "}
+                                                            {fmt(
+                                                                item.invested_amount,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right text-gray-700">
+                                                            {Number(
+                                                                item.share_percent,
+                                                            ).toFixed(4)}
+                                                            %
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-semibold text-indigo-700">
+                                                            ৳{" "}
+                                                            {fmt(
+                                                                item.share_amount,
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <input
+                                                                type="text"
+                                                                value={
+                                                                    item.note ??
+                                                                    ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                    updateItemNote(
+                                                                        i,
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder="Optional…"
+                                                                className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-indigo-400 focus:outline-none"
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="border-t border-gray-200 bg-gray-50">
+                                                <tr>
+                                                    <td
+                                                        colSpan={3}
+                                                        className="px-4 py-3 text-sm font-semibold text-gray-700"
+                                                    >
+                                                        Total
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                                                        ৳{" "}
+                                                        {fmt(
+                                                            (
+                                                                form.items as InvestmentPreviewItem[]
+                                                            ).reduce(
+                                                                (s, i) =>
+                                                                    s +
+                                                                    Number(
+                                                                        i.invested_amount,
+                                                                    ),
+                                                                0,
+                                                            ),
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                                                        {(
+                                                            form.items as InvestmentPreviewItem[]
+                                                        )
+                                                            .reduce(
+                                                                (s, i) =>
+                                                                    s +
+                                                                    Number(
+                                                                        i.share_percent,
+                                                                    ),
+                                                                0,
                                                             )
-                                                        }
-                                                        placeholder="Optional…"
-                                                        className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:border-indigo-400 focus:outline-none"
-                                                    />
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="border-t border-gray-200 bg-gray-50">
-                                        <tr>
-                                            <td
-                                                colSpan={3}
-                                                className="px-4 py-3 text-sm font-semibold text-gray-700"
-                                            >
-                                                Total
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                                                ৳{" "}
-                                                {fmt(
-                                                    form.items.reduce(
-                                                        (s, i) =>
-                                                            s +
-                                                            Number(
-                                                                i.invested_amount,
+                                                            .toFixed(4)}
+                                                        %
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm font-semibold text-indigo-700">
+                                                        ৳{" "}
+                                                        {fmt(
+                                                            (
+                                                                form.items as InvestmentPreviewItem[]
+                                                            ).reduce(
+                                                                (s, i) =>
+                                                                    s +
+                                                                    Number(
+                                                                        i.share_amount,
+                                                                    ),
+                                                                0,
                                                             ),
-                                                        0,
-                                                    ),
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                                                {form.items
-                                                    .reduce(
-                                                        (s, i) =>
-                                                            s +
-                                                            Number(
-                                                                i.share_percent,
-                                                            ),
-                                                        0,
-                                                    )
-                                                    .toFixed(4)}
-                                                %
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold text-indigo-700">
-                                                ৳{" "}
-                                                {fmt(
-                                                    form.items.reduce(
-                                                        (s, i) =>
-                                                            s +
-                                                            Number(
-                                                                i.share_amount,
-                                                            ),
-                                                        0,
-                                                    ),
-                                                )}
-                                            </td>
-                                            <td />
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                                        )}
+                                                    </td>
+                                                    <td />
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

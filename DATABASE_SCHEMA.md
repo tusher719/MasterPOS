@@ -277,6 +277,15 @@ note(text nullable), timestamps
 Fields excluded from $fillable (set only via model methods):
 payment_status, payment_method, transaction_reference, paid_by, paid_at
 
+Phase 4F Migration Notes:
+
+- investment_id: nullable (partner-based items have no investment_id)
+- invested_amount: nullable (partner-based items have no invested_amount)
+- partner_id: FK partners nullable — added Phase 4F
+- profit_rule_id: FK partner_profit_rules nullable — added Phase 4F
+- profit_rule_snapshot: json nullable — added Phase 4F
+- settlement_type: enum nullable — added Phase 4F
+
 ---
 
 ## Step 17 Phase 1 — Advanced Profit Distribution

@@ -27,6 +27,7 @@ use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\PartnerSettlementConfigController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
+use App\Http\Controllers\Backend\ProfitCalculationController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
 use App\Http\Controllers\Backend\ProfitPaymentController;
 use App\Http\Controllers\Backend\PurchaseController;
@@ -370,6 +371,9 @@ Route::middleware(['auth', 'verified'])
         Route::get('/reports/investments',    [ReportController::class, 'investments'])
             ->name('reports.investments');
 
+        // ── Step 17 Phase 4F: Profit Calculation Engine ───────────────────────────
+        Route::get('profit-calculation/preview', [ProfitCalculationController::class, 'preview'])
+            ->name('profit-calculation.preview');
 
         // ── Step 17: Profit Distributions (replaces Step 14 routes entirely) ──────
         Route::prefix('profit-distributions')->name('profit-distributions.')->group(function () {

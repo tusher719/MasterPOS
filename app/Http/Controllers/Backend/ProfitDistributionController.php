@@ -227,13 +227,26 @@ class ProfitDistributionController extends Controller
             ]);
 
             // Insert items — snapshots written once, never updated from source
+            // source_type determines which fields are populated:
+            // investment_based → investment_id, investor_name, invested_amount etc.
+            // partner_based    → partner_id, partner_name, profit_rule_snapshot etc.
+            $sourceType = $validated['source_type'] ?? 'investment_based';
+
             $items = array_map(fn($item) => [
                 'profit_distribution_id' => $distribution->id,
-                'investment_id'          => $item['investment_id'],
-                'investor_name'          => $item['investor_name'],
-                'investment_title'       => $item['investment_title'],
-                'investment_type'        => $item['investment_type'],
-                'invested_amount'        => $item['invested_amount'],
+                // Investment-based fields
+                'investment_id'          => $item['investment_id'] ?? null,
+                'investor_name'          => $item['investor_name'] ?? ($item['partner_name'] ?? null),
+                'investment_title'       => $item['investment_title'] ?? ($item['partner_code'] ?? null),
+                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? null),
+                'invested_amount'        => $item['invested_amount'] ?? null,
+                // Partner-based fields (Phase 4H columns — nullable until migration)
+                'partner_id'             => $item['partner_id'] ?? null,
+                'profit_rule_snapshot'   => isset($item['profit_rule_snapshot'])
+                    ? json_encode($item['profit_rule_snapshot'])
+                    : null,
+                'settlement_type'        => $item['settlement_type'] ?? null,
+                // Common fields
                 'share_percent'          => $item['share_percent'],
                 'share_amount'           => $item['share_amount'],
                 'note'                   => $item['note'] ?? null,

@@ -38,18 +38,32 @@ class StoreProfitDistributionRequest extends FormRequest
             'distribution_percent' => ['required', 'numeric', 'min:0', 'max:100'],
             'distributable_amount' => ['required', 'numeric', 'min:0'],
 
+            // Source type
+            'source_type' => ['required', 'in:investment_based,partner_based'],
+
             // Notes
             'note' => ['nullable', 'string', 'max:2000'],
 
-            // Items — at least one active investment must exist
+            // Items — investment_based requires investment_id, partner_based requires partner_id
             'items'                        => ['required', 'array', 'min:1'],
-            'items.*.investment_id'        => ['required', 'integer', 'exists:investments,id'],
-            'items.*.investor_name'        => ['required', 'string', 'max:255'],
-            'items.*.investment_title'     => ['required', 'string', 'max:255'],
-            'items.*.investment_type'      => ['required', 'string', 'max:255'],
-            'items.*.invested_amount'      => ['required', 'numeric', 'min:0'],
-            'items.*.share_percent'        => ['required', 'numeric', 'min:0', 'max:100'],
+            'items.*.investment_id'        => ['nullable', 'integer', 'exists:investments,id'],
+            'items.*.investor_name'        => ['nullable', 'string', 'max:255'],
+            'items.*.investment_title'     => ['nullable', 'string', 'max:255'],
+            'items.*.investment_type'      => ['nullable', 'string', 'max:255'],
+            'items.*.invested_amount'      => ['nullable', 'numeric', 'min:0'],
+            'items.*.partner_id'           => ['nullable', 'integer', 'exists:partners,id'],
+            'items.*.partner_name'         => ['nullable', 'string', 'max:255'],
+            'items.*.partner_code'         => ['nullable', 'string', 'max:50'],
+            'items.*.rule_type'            => ['nullable', 'string', 'max:50'],
+            'items.*.profit_source'        => ['nullable', 'string', 'max:50'],
+            'items.*.share_percent'        => ['required', 'numeric', 'min:0'],
             'items.*.share_amount'         => ['required', 'numeric', 'min:0'],
+            'items.*.cost_return_amount'   => ['nullable', 'numeric', 'min:0'],
+            'items.*.settlement_type'      => ['nullable', 'string', 'max:50'],
+            'items.*.payment_preference'   => ['nullable', 'string', 'max:50'],
+            'items.*.profit_rule_snapshot' => ['nullable', 'array'],
+            'items.*.is_eligible'          => ['nullable', 'boolean'],
+            'items.*.eligibility_reason'   => ['nullable', 'string', 'max:500'],
             'items.*.note'                 => ['nullable', 'string', 'max:1000'],
         ];
     }

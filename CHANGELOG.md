@@ -2,6 +2,42 @@
 
 ---
 
+## [v2.9 — Step 17 Phase 4F] — Profit Calculation Engine — 2026-07-16
+
+### New Files
+
+- `ProfitCalculationStrategyInterface.php`: Contract for all strategies
+- `FixedPercentStrategy.php`: fixed_percent rule_type calculation
+- `ProductBasedStrategy.php`: product_based — SQL GROUP BY aggregation per partner assignment
+- `CapitalBasedStrategy.php`: Legacy capital_based — backward compat only
+- `MixedStrategy.php`: Composes FixedPercent + ProductBased strategies
+- `ProfitCalculationEngine.php`: Dispatcher — source_type routing, batch eligibility + rule resolution
+- `ProfitCalculationController.php`: GET profit-calculation/preview — AJAX JSON endpoint
+- `profit-calculation.d.ts`: TypeScript interfaces for engine output
+- `PartnerBasedPreviewTable.tsx`: Partner preview table with eligibility split + product breakdown expand
+- `Step17Phase4FPermissionSeeder.php`: profit_calculation.preview permission
+
+### Updated Files
+
+- `routes/web.php`: profit-calculation.preview route added
+- `Create.tsx`: source_type selector + partner-based preview integration
+- `StoreProfitDistributionRequest.php`: source_type + partner item fields added (nullable)
+- `ProfitDistributionController::store()`: partner-based item snapshot writing
+
+### New Migrations
+
+- `make_invested_amount_nullable_in_profit_distribution_items`
+- `add_partner_fields_to_profit_distribution_items`: partner_id, profit_rule_id, profit_rule_snapshot, settlement_type
+- `make_investment_id_nullable_in_profit_distribution_items`
+
+### Known Issues (deferred to Phase 4H)
+
+- `Edit.tsx`: React key warning — investment_id null for partner-based items
+- `ProfitPaymentController`: 500 error on partner-based distribution payment — investment_id null
+- Both will be fixed in Phase 4H when Show/Edit pages are updated for partner-based distributions
+
+---
+
 ## [v2.8 — Step 17 Phase 4E] — Product Partner & Assignments — 2026-07-15
 
 ### New Table
