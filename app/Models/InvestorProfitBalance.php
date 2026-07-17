@@ -10,6 +10,7 @@ class InvestorProfitBalance extends Model
     protected $fillable = [
         'investment_id',
         'investor_name',
+        'partner_id',
         'total_earned',
         'total_paid',
         'total_deferred',
@@ -30,6 +31,11 @@ class InvestorProfitBalance extends Model
     public function investment(): BelongsTo
     {
         return $this->belongsTo(Investment::class)->withTrashed();
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     // ─── Balance Mutation Methods ─────────────────────────────

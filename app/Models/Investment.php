@@ -22,6 +22,7 @@ class Investment extends Model
         'attachment',
         'note',
         'status',
+        'partner_id',       // ← Added Phase 4H
         'created_by',
         'updated_by',
     ];
@@ -48,6 +49,12 @@ class Investment extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by')->withTrashed();
+    }
+
+    // Added Phase 4H — optional partner link
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     // -------------------------------------------------------------------------

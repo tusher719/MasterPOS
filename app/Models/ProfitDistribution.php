@@ -28,6 +28,7 @@ class ProfitDistribution extends Model
         'net_profit',
         'distribution_percent',
         'distributable_amount',
+        'source_type',
         'note',
         'created_by',
         'updated_by',
@@ -147,10 +148,12 @@ class ProfitDistribution extends Model
         ])->save();
 
         foreach ($this->items()->with('investment')->get() as $item) {
-            if ($item->investment) {
-                $balance = InvestorProfitBalance::findOrCreateForInvestment($item->investment);
-                $balance->creditEarned($item->effectiveAmount());
+            // Partner-based items have no investment_id — skip capital balance credit
+            if (! $item->investment_id || ! $item->investment) {
+                continue;
             }
+            $balance = InvestorProfitBalance::findOrCreateForInvestment($item->investment);
+            $balance->creditEarned($item->effectiveAmount());
         }
     }
 

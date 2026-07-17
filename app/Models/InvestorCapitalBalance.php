@@ -12,6 +12,7 @@ class InvestorCapitalBalance extends Model
     protected $fillable = [
         'investment_id',
         'investor_name',
+        'partner_id',
         'total_deposited',
         'total_withdrawn',
         'total_reinvested',
@@ -32,6 +33,11 @@ class InvestorCapitalBalance extends Model
     public function investment(): BelongsTo
     {
         return $this->belongsTo(Investment::class)->withTrashed();
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     // ─── Static Resolver ──────────────────────────────────────────────────────

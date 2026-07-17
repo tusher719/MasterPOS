@@ -124,10 +124,11 @@ class ProfitPaymentController extends Controller
                 // Phase 1 already debited InvestorProfitBalance.
                 // Phase 2 now credits InvestorCapitalBalance.
                 if ($action === 'reinvest') {
-                    $reinvestedAmount = (float) $item->remainingAmount()
-                        ?: (float) $request->input('amount', $item->share_amount);
+                    // Guard: partner-based items have no investment_id — skip capital bridge
+                    if (! $item->investment_id) {
+                        return;
+                    }
 
-                    // Use the actual reinvested_amount set by markAsReinvested()
                     $item->refresh();
                     $capitalAmount = (float) $item->reinvested_amount;
 
@@ -145,6 +146,7 @@ class ProfitPaymentController extends Controller
 
                             CapitalLedgerEntry::create([
                                 'investment_id'    => $item->investment_id,
+                                'partner_id'       => $item->partner_id ?? null,  // ← Added Phase 4H
                                 'investor_name'    => $item->investor_name,
                                 'transaction_type' => 'reinvestment',
                                 'direction'        => 'credit',

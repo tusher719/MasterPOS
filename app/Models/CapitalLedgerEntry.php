@@ -15,6 +15,7 @@ class CapitalLedgerEntry extends Model
     protected $fillable = [
         'investment_id',
         'investor_name',
+        'partner_id',
         'transaction_type',
         'direction',
         'amount',
@@ -43,6 +44,11 @@ class CapitalLedgerEntry extends Model
     public function investment(): BelongsTo
     {
         return $this->belongsTo(Investment::class)->withTrashed();
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     public function createdBy(): BelongsTo

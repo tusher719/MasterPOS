@@ -172,8 +172,10 @@ class ProfitDistributionItem extends Model
             'paid_at'               => now(),
         ]);
 
-        $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
-        $balance->recordPayment($amount);
+        if ($this->investment_id && $this->investment) {
+            $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
+            $balance->recordPayment($amount);
+        }
 
         $this->syncPaymentStatus();
 
@@ -201,8 +203,10 @@ class ProfitDistributionItem extends Model
 
         $this->increment('deferred_amount', $amount);
 
-        $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
-        $balance->recordDeferred($amount);
+        if ($this->investment_id && $this->investment) {
+            $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
+            $balance->recordDeferred($amount);
+        }
 
         $this->syncPaymentStatus();
 
@@ -230,8 +234,10 @@ class ProfitDistributionItem extends Model
 
         $this->increment('reinvested_amount', $amount);
 
-        $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
-        $balance->recordReinvested($amount);
+        if ($this->investment_id && $this->investment) {
+            $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
+            $balance->recordReinvested($amount);
+        }
 
         $this->syncPaymentStatus();
 
@@ -254,25 +260,36 @@ class ProfitDistributionItem extends Model
             'payment_status' => ProfitDistributionItemPayment::STATUS_CANCELLED,
         ]);
 
-        $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
+        if ($this->investment_id && $this->investment) {
+            $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
 
-        match ($status) {
-            ProfitDistributionItemPayment::STATUS_PAID,
-            ProfitDistributionItemPayment::STATUS_PARTIAL => $balance->reversePayment($amount),
+            match ($status) {
+                ProfitDistributionItemPayment::STATUS_PAID,
+                ProfitDistributionItemPayment::STATUS_PARTIAL => $balance->reversePayment($amount),
 
-            ProfitDistributionItemPayment::STATUS_DEFERRED => (function () use ($amount, $balance) {
-                $this->decrement('deferred_amount', $amount);
-                $balance->reverseDeferred($amount);
-            })(),
+                ProfitDistributionItemPayment::STATUS_DEFERRED => (function () use ($amount, $balance) {
+                    $this->decrement('deferred_amount', $amount);
+                    $balance->reverseDeferred($amount);
+                })(),
 
-            ProfitDistributionItemPayment::STATUS_REINVESTED => (function () use ($amount, $balance) {
-                $this->decrement('reinvested_amount', $amount);
-                $balance->reverseReinvested($amount);
-            })(),
-            ProfitDistributionItemPayment::STATUS_REOPENED => $balance->reversePayment($amount),
+                ProfitDistributionItemPayment::STATUS_REINVESTED => (function () use ($amount, $balance) {
+                    $this->decrement('reinvested_amount', $amount);
+                    $balance->reverseReinvested($amount);
+                })(),
+                ProfitDistributionItemPayment::STATUS_REOPENED => $balance->reversePayment($amount),
 
-            default => null,
-        };
+                default => null,
+            };
+        } else {
+            // Partner-based items — no profit balance, but still decrement amounts
+            match ($status) {
+                ProfitDistributionItemPayment::STATUS_DEFERRED =>
+                    $this->decrement('deferred_amount', $amount),
+                ProfitDistributionItemPayment::STATUS_REINVESTED =>
+                    $this->decrement('reinvested_amount', $amount),
+                default => null,
+            };
+        }
 
         $this->syncPaymentStatus();
     }
