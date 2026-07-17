@@ -1,4 +1,4 @@
-# Architecture — Master POS System
+# Architecture — Master Business Suite
 
 > Architectural decisions and WHY they exist.
 > Do not override these decisions without explicit discussion.

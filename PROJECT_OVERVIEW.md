@@ -1,6 +1,6 @@
 # PROJECT_STATUS.md
 
-Project: Master POS System
+Project: Master Business Suite
 Document Version: v1.0
 Last Updated Step: Step 02 — Authentication & Permission
 Last Updated Date: 2026-06-30

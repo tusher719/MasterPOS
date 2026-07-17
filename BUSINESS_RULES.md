@@ -1,4 +1,4 @@
-# Business Rules — Master POS System
+# Business Rules — Master Business Suite
 
 > Describes HOW the business works. Permanent domain logic.
 > These rules must be respected regardless of implementation changes.

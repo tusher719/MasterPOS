@@ -1,4 +1,4 @@
-# Database Schema — Master POS System
+# Database Schema — Master Business Suite
 
 > Single source of truth for all table structures.
 > Updated through: Financial Architecture Redesign (Pre Phase 4)

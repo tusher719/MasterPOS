@@ -380,6 +380,7 @@ class ProfitDistributionController extends Controller
                 'net_profit'           => $validated['net_profit'],
                 'distribution_percent' => $validated['distribution_percent'],
                 'distributable_amount' => $validated['distributable_amount'],
+                'source_type'          => $validated['source_type'] ?? $profitDistribution->source_type,  // ← Added
                 'note'                 => $validated['note'] ?? null,
                 'updated_by'           => Auth::id(),
             ]);
@@ -389,11 +390,16 @@ class ProfitDistributionController extends Controller
 
             $items = array_map(fn($item) => [
                 'profit_distribution_id' => $profitDistribution->id,
-                'investment_id'          => $item['investment_id'],
-                'investor_name'          => $item['investor_name'],
-                'investment_title'       => $item['investment_title'],
-                'investment_type'        => $item['investment_type'],
-                'invested_amount'        => $item['invested_amount'],
+                'investment_id'          => $item['investment_id'] ?? null,
+                'investor_name'          => $item['investor_name'] ?? ($item['partner_name'] ?? null),
+                'investment_title'       => $item['investment_title'] ?? ($item['partner_code'] ?? null),
+                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? null),
+                'invested_amount'        => $item['invested_amount'] ?? null,
+                'partner_id'             => $item['partner_id'] ?? null,
+                'profit_rule_snapshot'   => isset($item['profit_rule_snapshot'])
+                    ? json_encode($item['profit_rule_snapshot'])
+                    : null,
+                'settlement_type'        => $item['settlement_type'] ?? null,
                 'share_percent'          => $item['share_percent'],
                 'share_amount'           => $item['share_amount'],
                 'note'                   => $item['note'] ?? null,

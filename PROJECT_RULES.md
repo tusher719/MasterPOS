@@ -1,4 +1,4 @@
-# Project Rules — Master POS System
+# Project Rules — Master Business Suite
 
 > Permanent coding rules. Apply to every file, every step, every phase.
 

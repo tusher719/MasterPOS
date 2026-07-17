@@ -381,7 +381,7 @@
             @endif
             <div>
                 <div class="header-title">Investor Statement</div>
-                <div class="header-subtitle">Master POS System — Confidential</div>
+                <div class="header-subtitle">Master Business Suite — Confidential</div>
             </div>
         </div>
         <div class="header-right">
@@ -782,7 +782,7 @@
      PDF FOOTER — fixed position
      ════════════════════════════════════════ --}}
     <div class="pdf-footer">
-        <span>Generated: {{ $generated_at }} · Master POS System · Confidential</span>
+        <span>Generated: {{ $generated_at }} · Master Business Suite · Confidential</span>
         <span>Page <span class="pagenum"></span></span>
     </div>
 

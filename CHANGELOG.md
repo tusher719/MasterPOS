@@ -1,4 +1,81 @@
-# Changelog — Master POS System
+# Changelog — Master Business Suite
+
+---
+
+## [v2.11 — Step 17 Phase 4H] — Existing Table Migrations — 2026-07-17
+
+### New Migrations (5)
+
+- `add_partner_id_to_investments_table`: partner_id (FK partners nullable nullOnDelete)
+- `add_source_type_to_profit_distributions_table`: source_type enum(investment_based/partner_based) default investment_based
+- `add_partner_id_to_investor_profit_balances_table`: partner_id (FK partners nullable nullOnDelete)
+- `add_partner_id_to_capital_ledger_entries_table`: partner_id (FK partners nullable nullOnDelete)
+- `add_partner_id_to_investor_capital_balances_table`: partner_id (FK partners nullable nullOnDelete)
+
+### Updated Models (5)
+
+- `Investment`: partner_id added to $fillable; partner() BelongsTo relation added
+- `ProfitDistribution`: source_type added to $fillable
+- `InvestorProfitBalance`: partner_id added to $fillable; partner() BelongsTo relation added
+- `CapitalLedgerEntry`: partner_id added to $fillable; partner() BelongsTo relation added
+- `InvestorCapitalBalance`: partner_id added to $fillable; partner() BelongsTo relation added
+
+### Bug Fixes
+
+- `ProfitDistribution::approve()`: partner-based items (investment_id=null) now skipped
+  in InvestorProfitBalance credit loop — prevents TypeError on null investment
+- `ProfitDistributionItem::markAsPaid/Deferred/Reinvested/cancelPayment()`:
+  investment_id null guard added — partner-based items skip InvestorProfitBalance
+  operations entirely; cancelPayment() still decrements deferred/reinvested amounts
+- `ProfitPaymentController::store()`: investment_id null guard added before reinvest
+  capital bridge — partner-based reinvest skips CapitalLedgerEntry creation
+- `ProfitDistributionController::update()`: source_type now saved on update;
+  partner-based fields (partner_id, profit_rule_snapshot, settlement_type) now
+  included in items array on update
+- `Edit.tsx`: key={item.investment_id} → key={i} — React key warning fixed for
+  partner-based items where investment_id is null
+- `Edit.tsx`: fmt() null-safe — invested_amount null no longer crashes
+- `Edit.tsx`: recalculate endpoint updated to profit-calculation.preview with
+  source_type param — partner-based recalculation now works correctly
+- `Show.tsx`: source_type added to Distribution interface; Invested column
+  conditional on investment_based; EligibilityPanel hidden for partner_based
+
+### Known Issues Fixed from Phase 4F
+
+- Edit.tsx React key warning — FIXED (key={i} instead of key={item.investment_id})
+- ProfitPaymentController 500 error on partner-based distribution payment — FIXED
+  (null investment_id guard in ProfitDistributionItem payment methods)
+
+### Errors Encountered & Lessons Learned
+
+1. **source_type not set on store()** — Distribution 23 was created as
+   investment_based even though items were partner-based. Root cause: store()
+   was not passing source_type to ProfitDistribution::create(). Fix: source_type
+   already existed in store() — the specific test record needed a manual tinker fix:
+   `$pd->forceFill(['source_type' => 'partner_based'])->save()`
+
+2. **TypeError on null investment in payment flow** — InvestorProfitBalance
+   ::findOrCreateForInvestment() typed-hinted Investment, not nullable.
+   Called from ProfitDistributionItem with null investment for partner-based items.
+   Fix: add `if ($this->investment_id && $this->investment)` guard before
+   every InvestorProfitBalance call in markAsPaid/Deferred/Reinvested/cancelPayment.
+   Rule to remember: any method touching InvestorProfitBalance must guard
+   against null investment_id — partner-based items never have one.
+
+3. **cancelPayment() deferred/reinvested amounts not reversed** — When investment
+   guard was added naively, deferred_amount/reinvested_amount decrement was also
+   skipped for partner-based items. Fix: add else branch to decrement amounts
+   even when investment_id is null.
+
+4. **Edit.tsx recalculate hitting wrong endpoint** — Old endpoint
+   `calculate-preview` was investment_based only. Partner-based recalculation
+   requires `profit-calculation.preview` with source_type param.
+   Rule: Edit.tsx and Create.tsx must always use the same calculation endpoint.
+
+5. **React key={item.investment_id} warning** — investment_id null for
+   partner-based items causes duplicate/null React keys.
+   Rule: never use a nullable field as React key — always use item.id
+   (from DB) or array index as fallback.
 
 ---
 

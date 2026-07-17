@@ -50,6 +50,7 @@ interface Distribution {
     net_profit: string;
     distribution_percent: string;
     distributable_amount: string;
+    source_type: "investment_based" | "partner_based";
     status: "draft" | "approved" | "distributed";
     is_locked: boolean;
     note: string | null;
@@ -512,9 +513,12 @@ export default function Show({ distribution, can }: Props) {
                                             <th className="px-4 py-3 text-left font-medium text-gray-500">
                                                 Investment
                                             </th>
-                                            <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                                Invested
-                                            </th>
+                                            {distribution.source_type ===
+                                                "investment_based" && (
+                                                <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                                    Invested
+                                                </th>
+                                            )}
                                             <th className="px-4 py-3 text-right font-medium text-gray-500">
                                                 Share %
                                             </th>
@@ -556,10 +560,16 @@ export default function Show({ distribution, can }: Props) {
                                                         {item.investment_type}
                                                     </p>
                                                 </td>
-                                                <td className="px-4 py-3 text-right text-gray-700">
-                                                    ৳{" "}
-                                                    {fmt(item.invested_amount)}
-                                                </td>
+                                                {distribution.source_type ===
+                                                    "investment_based" && (
+                                                    <td className="px-4 py-3 text-right text-gray-700">
+                                                        ৳{" "}
+                                                        {fmt(
+                                                            item.invested_amount ??
+                                                                0,
+                                                        )}
+                                                    </td>
+                                                )}
                                                 <td className="px-4 py-3 text-right text-gray-700">
                                                     {Number(
                                                         item.share_percent,
@@ -661,7 +671,8 @@ export default function Show({ distribution, can }: Props) {
                         </div>
 
                         {/* Eligibility Panel */}
-                        {distribution.eligibilities &&
+                        {distribution.source_type === "investment_based" &&
+                            distribution.eligibilities &&
                             distribution.eligibilities.length > 0 && (
                                 <EligibilityPanel
                                     distributionId={distribution.id}

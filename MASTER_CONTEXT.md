@@ -1,4 +1,4 @@
-# Master POS System — Master Context
+# Master Business Suite — Master Context
 
 > Paste this file + any other context files at the start of every new chat.
 > All documentation files together form one combined project context.
@@ -8,7 +8,7 @@
 
 ## Project Identity
 
-- **Name:** Master POS System
+- **Name:** Master Business Suite
 - **Version:** v2.2
 - **Path:** D:/xampp/htdocs/Laravel_12/MasterPOS
 - **Environment:** Windows 10, XAMPP, Git Bash
@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Step 17 Phase 4H — Existing Table Migrations
-- **Next Step:** Step 17 Phase 5 — Sales Payment Upgrade
-- **Last Completed:** Step 17 Phase 4G — Investment-to-Business Tracking ✅
+- **Current Step:** Step 17 Phase 5 — Sales Payment Upgrade
+- **Next Step:** Step 17 Phase 6 — COD Order Management + Fraud Detection
+- **Last Completed:** Step 17 Phase 4H — Existing Table Migrations ✅
 
 ## Financial Domain Overview
 
@@ -78,17 +78,17 @@ The system is now organized into two independent financial domains:
 | 17 Phase 4E | Product Partner & Assignments   | ✅     |
 | 17 Phase 4F | Profit Calculation Engine       | ✅     |
 | 17 Phase 4G | Investment-to-Business Tracking | ✅     |
+| 17 Phase 4H | Existing Table Migrations       | ✅     |
 
 ## Pending Modules
 
-| Step        | Module                                 | Notes                                    |
-| ----------- | -------------------------------------- | ---------------------------------------- |
-| 17 Phase 4H | Existing Table Migrations              | Add partner_id + source_type columns     |
-| 17 Phase 5  | Sales Payment Upgrade                  |                                          |
-| 17 Phase 6  | COD Order Management + Fraud Detection | orders, delivery_addresses, fraud_scores |
-| 18          | Security Hardening                     |                                          |
-| 19          | Performance Optimization               |                                          |
-| 20          | Testing                                |                                          |
+| Step       | Module                                 | Notes                                    |
+| ---------- | -------------------------------------- | ---------------------------------------- |
+| 17 Phase 5 | Sales Payment Upgrade                  |                                          |
+| 17 Phase 6 | COD Order Management + Fraud Detection | orders, delivery_addresses, fraud_scores |
+| 18         | Security Hardening                     |                                          |
+| 19         | Performance Optimization               |                                          |
+| 20         | Testing                                |                                          |
 
 ## Documentation Structure
 

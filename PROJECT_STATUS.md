@@ -1,4 +1,4 @@
-# Master POS System — Persistent Context File
+# Master Business Suite — Persistent Context File
 
 # Paste this ENTIRE file at the start of every new chat.
 
@@ -6,7 +6,7 @@
 
 ## PROJECT IDENTITY
 
-- Name: Master POS System
+- Name: Master Business Suite
 - Version: v2.0
 - Current Step: Step 16 — Reports ✅ COMPLETE
 - Dev Environment: Windows 10, XAMPP, Git Bash
