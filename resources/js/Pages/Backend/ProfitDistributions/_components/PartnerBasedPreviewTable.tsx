@@ -1,4 +1,5 @@
 import type {
+    EffectivePeriodInfo,
     PartnerPreviewItem,
     ProductBreakdownItem,
 } from "@/types/profit-calculation";
@@ -22,6 +23,13 @@ function fmt(value: number | string): string {
     });
 }
 
+function fmtDate(d: string): string {
+    return new Date(d).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+    });
+}
+
 function RuleTypeBadge({ ruleType }: { ruleType: string | null }) {
     if (!ruleType) return <span className="text-gray-400">—</span>;
 
@@ -31,7 +39,6 @@ function RuleTypeBadge({ ruleType }: { ruleType: string | null }) {
         capital_based: "bg-gray-100 text-gray-600",
         mixed: "bg-purple-100 text-purple-700",
     };
-
     const labels: Record<string, string> = {
         fixed_percent: "Fixed %",
         product_based: "Product",
@@ -45,6 +52,37 @@ function RuleTypeBadge({ ruleType }: { ruleType: string | null }) {
         >
             {labels[ruleType] ?? ruleType}
         </span>
+    );
+}
+
+function EffectivePeriodCell({ ep }: { ep: EffectivePeriodInfo | null }) {
+    if (!ep) return <span className="text-gray-300">—</span>;
+
+    const isAdjusted =
+        ep.start !== ep.selected_start || ep.end !== ep.selected_end;
+
+    return (
+        <div className="space-y-0.5">
+            {/* Date range — amber when adjusted, normal when full selected period */}
+            <p
+                className={`text-xs font-medium ${isAdjusted ? "text-amber-700" : "text-gray-700"}`}
+            >
+                {fmtDate(ep.start)} – {fmtDate(ep.end)}
+            </p>
+
+            {/* Already Paid badge (Gap 4.4) */}
+            {ep.last_paid_info && (
+                <span className="inline-flex items-center rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-600 border border-red-100">
+                    Already Paid up to {fmtDate(ep.last_paid_info.paid_up_to)}{" "}
+                    (from {ep.last_paid_info.distribution_no})
+                </span>
+            )}
+
+            {/* Eligibility-only adjustment note */}
+            {ep.adjustment_reason && !ep.last_paid_info && (
+                <p className="text-xs text-amber-600">{ep.adjustment_reason}</p>
+            )}
+        </div>
     );
 }
 
@@ -141,6 +179,9 @@ export default function PartnerBasedPreviewTable({
                                     <th className="px-4 py-3 text-left font-medium text-gray-500">
                                         Rule Type
                                     </th>
+                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                        Effective Period
+                                    </th>
                                     <th className="px-4 py-3 text-right font-medium text-gray-500">
                                         Share %
                                     </th>
@@ -177,10 +218,7 @@ export default function PartnerBasedPreviewTable({
                                         <Fragment
                                             key={`partner-row-${item.partner_id}-${i}`}
                                         >
-                                            <tr
-                                                key={item.partner_id}
-                                                className="hover:bg-gray-50"
-                                            >
+                                            <tr className="hover:bg-gray-50">
                                                 <td className="px-4 py-3">
                                                     {hasBreakdown && (
                                                         <button
@@ -217,6 +255,15 @@ export default function PartnerBasedPreviewTable({
                                                     <RuleTypeBadge
                                                         ruleType={
                                                             item.rule_type
+                                                        }
+                                                    />
+                                                </td>
+                                                {/* Effective Period (Gap 4.4 + 4.5) */}
+                                                <td className="px-4 py-3">
+                                                    <EffectivePeriodCell
+                                                        ep={
+                                                            item.effective_period ??
+                                                            null
                                                         }
                                                     />
                                                 </td>
@@ -273,7 +320,7 @@ export default function PartnerBasedPreviewTable({
                                                     key={`breakdown-${item.partner_id}`}
                                                 >
                                                     <td
-                                                        colSpan={10}
+                                                        colSpan={11}
                                                         className="px-6 pb-4 pt-0"
                                                     >
                                                         <ProductBreakdownRow
@@ -291,7 +338,7 @@ export default function PartnerBasedPreviewTable({
                             <tfoot className="border-t border-gray-200 bg-gray-50">
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="px-4 py-3 text-sm font-semibold text-gray-700"
                                     >
                                         Total
@@ -355,7 +402,7 @@ export default function PartnerBasedPreviewTable({
                         {ineligibleItems.map((item) => (
                             <div
                                 key={item.partner_id}
-                                className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm border border-amber-100"
+                                className="flex items-start justify-between rounded-md bg-white px-3 py-2 text-sm border border-amber-100"
                             >
                                 <span className="font-medium text-gray-700">
                                     {item.partner_name}
@@ -363,9 +410,21 @@ export default function PartnerBasedPreviewTable({
                                         {item.partner_code}
                                     </span>
                                 </span>
-                                <span className="text-xs text-amber-600">
-                                    {item.eligibility_reason}
-                                </span>
+                                <div className="text-right">
+                                    <p className="text-xs text-amber-600">
+                                        {item.eligibility_reason}
+                                    </p>
+                                    {/* Show effective period dates even for ineligible — helps admin understand why */}
+                                    {item.effective_period?.start &&
+                                        item.effective_period?.end && (
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                {item.effective_period.start >
+                                                item.effective_period.end
+                                                    ? `No unpaid window remaining (prior payment covers up to ${fmtDate(item.effective_period.last_paid_info?.paid_up_to ?? item.effective_period.start)})`
+                                                    : `Computed: ${fmtDate(item.effective_period.start)} – ${fmtDate(item.effective_period.end)}`}
+                                            </p>
+                                        )}
+                                </div>
                             </div>
                         ))}
                     </div>

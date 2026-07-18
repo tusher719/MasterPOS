@@ -2,6 +2,89 @@
 
 ---
 
+## [v2.12 — Gap 4.4 + 4.5] — Duplicate Prevention + Per-Partner Effective Period Resolution — 2026-07-18
+
+### New Files (2)
+
+- `PartnerPeriodResolutionService.php`: Core service — resolves effective period per partner.
+    - `resolveAll()`: computes Effective Period per partner using eligibility window + last-paid-up-to date
+    - `groupByEffectivePeriod()`: groups partners sharing same Effective Period for Financial Summary reuse
+    - `getEligibilityWindows()`: queries partner_profit_eligibilities for active + overlapping records
+    - `getLastPaidUpTo()`: queries prior settled distributions for each partner's latest paid period_end
+    - `buildAdjustmentReason()`: human-readable note explaining why effective period differs from selected
+- `EffectivePeriodGroup.php` (DTO): holds one unique Effective Period + its partner IDs + Financial Summary
+    - `attachSummary()`: called by engine after computing Financial Summary for this period group
+    - `distributableAmount()`: applies distribution_percent to net_profit for this group
+    - `fromArray()`: builds from PartnerPeriodResolutionService::groupByEffectivePeriod() output
+
+### Updated Files (5)
+
+- `ProfitCalculationEngine.php`:
+    - `preview()` now accepts `$excludeDistributionId` (nullable) — passed to period resolution service
+    - `previewPartnerBased()` replaces `calculatePartnerBased()` — computes Financial Summary ONCE per
+      unique Effective Period group, not once per distribution
+    - Rule resolution now uses per-partner `effective_start` date, NOT global `$periodStart` —
+      fixes bug where partner with `effective_from = Jul 7` was missed when selected period started Jul 6
+    - `ineligibleResult()` now accepts optional `$resolved` array — attaches effective_period info
+      to ineligible items for frontend display
+    - `emptyPartnerPreview()` helper added for when no active partners exist
+- `ProfitCalculationController.php`:
+    - `exclude_distribution_id` validation + parameter added — passed to engine for Edit page overlap exclusion
+- `profit-calculation.d.ts`:
+    - `AlreadyPaidInfo` interface added: `paid_up_to`, `paid_up_to_next_day`, `distribution_no`
+    - `EffectivePeriodInfo` interface added: `start`, `end`, `selected_start`, `selected_end`,
+      `adjustment_reason`, `last_paid_info`, `financial_summary`
+    - `PartnerPreviewItem.effective_period` field added (optional `EffectivePeriodInfo | null`)
+    - Index signature updated to include `EffectivePeriodInfo`
+- `PartnerBasedPreviewTable.tsx`:
+    - `EffectivePeriodCell` component added — shows computed date range, "Already Paid up to X" badge,
+      adjustment reason note
+    - "Effective Period" column added to eligible partners table
+    - Ineligible section now shows computed effective period dates for admin transparency
+    - `colSpan` values updated throughout (10 → 11)
+- `Edit.tsx`:
+    - `PartnerPreviewItem` import + `PartnerBasedPreviewTable` import added
+    - `ItemData` interface extended: `cost_return_amount`, `rule_type`, `partner_name`, `partner_code`,
+      `effective_period` fields added; index signature updated to include `undefined`
+    - `handleRecalculate()`: `exclude_distribution_id: distribution.id` param added to axios call
+    - `handleRecalculate()` toast: eligible count now correctly computed for partner_based
+    - Section 3 Share Breakdown: partner_based now renders `PartnerBasedPreviewTable` (was plain table)
+
+### Business Logic Implemented
+
+- **Overlap check:** `new.period_start <= existing.period_end AND new.period_end >= existing.period_start`
+- **Settled statuses:** `paid`, `reinvested`, `deferred`
+- **Scope:** both `investment_based` AND `partner_based` distributions checked
+- **Effective Period formula per partner:**
+
+Effective Start = MAX(selected_start, eligibility_start, last_paid_up_to + 1 day)
+Effective End = MIN(selected_end, eligibility_end)
+If Effective Start > Effective End → partner fully ineligible
+
+- **Financial Summary grouping:** partners sharing identical Effective Period reuse same computed summary
+- **UI label:** "Already Paid up to {date} (from {distribution_no})"
+
+### Errors Encountered & Lessons Learned
+
+1. **`ProductBasedStrategy.php` contained wrong class** — `ProfitCalculationController` code was
+   accidentally written into `ProductBasedStrategy.php`, causing FatalError:
+   "Cannot declare class ProfitCalculationController, because the name is already in use".
+   Fix: restore `ProductBasedStrategy.php` to original content, create `ProfitCalculationController.php`
+   as a separate file.
+   Rule to remember: when delivering multiple files in sequence, always verify namespace and class name
+   match the file path before saving.
+
+2. **Rule resolution using global `$periodStart` instead of per-partner `effective_start`** —
+   A partner with `effective_from = Jul 7` was marked ineligible ("No approved profit rule active
+   at period start") when selected period started Jul 6, because `resolveForPartners()` was called
+   with the global selected start date.
+   Fix: resolve rules per-partner using `effective_start` from resolved period, not global `$periodStart`.
+   Rule to remember: rule resolution anchor date must always be the partner's own effective_start,
+   never the distribution's selected period_start. These differ when eligibility or prior payments
+   push the effective start forward.
+
+---
+
 ## [v2.11 — Step 17 Phase 4H] — Existing Table Migrations — 2026-07-17
 
 ### New Migrations (5)

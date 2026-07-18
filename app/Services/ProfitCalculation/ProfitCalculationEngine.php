@@ -5,6 +5,7 @@ namespace App\Services\ProfitCalculation;
 use App\Models\Investment;
 use App\Models\Partner;
 use App\Services\PartnerEligibilityService;
+use App\Services\PartnerPeriodResolutionService;
 use App\Services\PartnerRuleResolutionService;
 use App\Services\SettlementCalculationService;
 use Illuminate\Support\Facades\DB;
@@ -12,14 +13,15 @@ use Illuminate\Support\Facades\DB;
 class ProfitCalculationEngine
 {
     public function __construct(
-        private FixedPercentStrategy         $fixedStrategy,
-        private ProductBasedStrategy         $productStrategy,
-        private CapitalBasedStrategy         $capitalStrategy,
-        private MixedStrategy                $mixedStrategy,
-        private PartnerEligibilityService    $eligibilityService,
-        private PartnerRuleResolutionService $ruleService,
-        private SettlementCalculationService $settlementService
-    ) {}
+    private FixedPercentStrategy              $fixedStrategy,
+    private ProductBasedStrategy              $productStrategy,
+    private CapitalBasedStrategy              $capitalStrategy,
+    private MixedStrategy                     $mixedStrategy,
+    private PartnerEligibilityService         $eligibilityService,
+    private PartnerRuleResolutionService      $ruleService,
+    private SettlementCalculationService      $settlementService,
+    private PartnerPeriodResolutionService $periodResolutionService
+) {}
 
     // -----------------------------------------------------------------------
     // Main Entry Point
@@ -50,20 +52,22 @@ class ProfitCalculationEngine
         string $periodStart,
         string $periodEnd,
         float  $distributionPercent,
-        string $sourceType = 'investment_based'
+        string $sourceType = 'investment_based',
+        ?int   $excludeDistributionId = null
     ): array {
-        // Financial aggregates — same for both source types
-        $financials = $this->calculateFinancials($periodStart, $periodEnd, $distributionPercent);
-
-        $items = $sourceType === 'partner_based'
-            ? $this->calculatePartnerBased(
+        if ($sourceType === 'partner_based') {
+            return $this->previewPartnerBased(
                 $periodStart,
                 $periodEnd,
-                $financials['distributable_amount']
-            )
-            : $this->calculateInvestmentBased(
-                $financials['distributable_amount']
+                $distributionPercent,
+                $excludeDistributionId
             );
+        }
+
+        // investment_based — legacy path (single financial summary for full period)
+        $financials = $this->calculateFinancials($periodStart, $periodEnd, $distributionPercent);
+
+        $items = $this->calculateInvestmentBased($financials['distributable_amount']);
 
         return array_merge($financials, [
             'source_type' => $sourceType,
@@ -150,63 +154,135 @@ class ProfitCalculationEngine
     // Partner-Based (New)
     // -----------------------------------------------------------------------
 
-    private function calculatePartnerBased(
+    /**
+     * Partner-based preview — computes Financial Summary ONCE per unique Effective Period.
+     * Each partner gets their own Effective Period via PartnerPeriodResolutionService.
+     */
+    private function previewPartnerBased(
         string $periodStart,
         string $periodEnd,
-        float  $distributableAmount
+        float  $distributionPercent,
+        ?int   $excludeDistributionId
     ): array {
-        // Load all active partners
         $partners = Partner::where('is_active', true)
             ->whereNull('deleted_at')
             ->get();
 
         if ($partners->isEmpty()) {
-            return [];
+            return $this->emptyPartnerPreview($periodStart, $periodEnd, $distributionPercent);
         }
 
         $partnerIds = $partners->pluck('id')->all();
 
-        // Batch eligibility check — avoids N+1
-        $eligibilityMap = $this->eligibilityService->isEligibleBatch(
+        // --- Step 1: Resolve effective period per partner ---
+        $resolvedPeriods = $this->periodResolutionService->resolveAll(
             $partnerIds,
             $periodStart,
-            $periodEnd
+            $periodEnd,
+            $excludeDistributionId
         );
 
-        // Batch rule resolution — avoids N+1
-        $ruleMap = $this->ruleService->resolveForPartners($partnerIds, $periodStart);
+        // --- Step 2: Group partners by unique Effective Period ---
+        $periodGroups = $this->periodResolutionService
+            ->groupByEffectivePeriod($resolvedPeriods)
+            ->map(fn($g) => EffectivePeriodGroup::fromArray($g));
 
+        // --- Step 3: Compute Financial Summary ONCE per unique Effective Period ---
+        foreach ($periodGroups as $group) {
+            $summary = $this->calculateFinancials(
+                $group->effectiveStart,
+                $group->effectiveEnd,
+                $distributionPercent
+            );
+            $group->attachSummary($summary);
+        }
+
+        // --- Step 4: Build a lookup: partner_id → EffectivePeriodGroup ---
+        $partnerGroupMap = [];
+        foreach ($periodGroups as $group) {
+            foreach ($group->partnerIds as $pid) {
+                $partnerGroupMap[$pid] = $group;
+            }
+        }
+
+        // --- Step 5: Resolve rules per partner using their effective start date ---
+        // Rule resolution must use each partner's effective_start, not the selected period_start.
+        // A partner whose eligibility starts Jul 7 may have a rule effective_from Jul 7 —
+        // resolving with Jul 6 would miss it.
+        $ruleMap = [];
+        foreach ($partnerIds as $pid) {
+            $resolved = $resolvedPeriods->get($pid);
+            // Use effective_start if eligible, otherwise fall back to selected period_start
+            $ruleAnchorDate = ($resolved && $resolved['is_eligible'])
+                ? $resolved['effective_start']
+                : $periodStart;
+            $rule = $this->ruleService->resolve($pid, $ruleAnchorDate);
+            if ($rule) {
+                $ruleMap[$pid] = $rule;
+            }
+        }
+
+        // --- Step 6: Build items per partner ---
         $items = [];
 
         foreach ($partners as $partner) {
-            $isEligible = $eligibilityMap[$partner->id] ?? false;
+            $resolved = $resolvedPeriods->get($partner->id);
 
-            // Ineligible partner — include in preview with zero amounts
-            if (! $isEligible) {
-                $items[] = $this->ineligibleResult($partner, 'No active eligibility record covering this period.');
+            // Ineligible (no eligibility record, or effective period is empty)
+            if (! $resolved || ! $resolved['is_eligible']) {
+                $items[] = $this->ineligibleResult(
+                    $partner,
+                    $resolved['adjustment_reason'] ?? 'No active eligibility record covering this period.',
+                    $resolved
+                );
                 continue;
             }
 
             $rule = $ruleMap[$partner->id] ?? null;
 
-            // No approved rule — skip with reason
             if (! $rule) {
-                $items[] = $this->ineligibleResult($partner, 'No approved profit rule active at period start.');
+                $items[] = $this->ineligibleResult(
+                    $partner,
+                    'No approved profit rule active at period start.',
+                    $resolved
+                );
                 continue;
             }
+
+            /** @var EffectivePeriodGroup $group */
+            $group = $partnerGroupMap[$partner->id];
 
             $context = [
                 'partner'              => $partner,
                 'rule'                 => $rule,
-                'period_start'         => $periodStart,
-                'period_end'           => $periodEnd,
-                'distributable_amount' => $distributableAmount,
+                'period_start'         => $group->effectiveStart,
+                'period_end'           => $group->effectiveEnd,
+                'distributable_amount' => $group->distributableAmount($distributionPercent),
             ];
 
-            $items[] = $this->dispatch($rule->rule_type, $context);
+            $item = $this->dispatch($rule->rule_type, $context);
+
+            // Attach effective period info to item for frontend display
+            $item['effective_period'] = [
+                'start'              => $group->effectiveStart,
+                'end'                => $group->effectiveEnd,
+                'selected_start'     => $periodStart,
+                'selected_end'       => $periodEnd,
+                'adjustment_reason'  => $resolved['adjustment_reason'],
+                'last_paid_info'     => $resolved['last_paid_info'],
+                'financial_summary'  => $group->financialSummary,
+            ];
+
+            $items[] = $item;
         }
 
-        return $items;
+        // Top-level financials = selected period (for display in distribution header)
+        $headerFinancials = $this->calculateFinancials($periodStart, $periodEnd, $distributionPercent);
+
+        return array_merge($headerFinancials, [
+            'source_type' => 'partner_based',
+            'items'       => $items,
+        ]);
     }
 
     // -----------------------------------------------------------------------
@@ -231,7 +307,7 @@ class ProfitCalculationEngine
     // Helpers
     // -----------------------------------------------------------------------
 
-    private function ineligibleResult(Partner $partner, string $reason): array
+    private function ineligibleResult(Partner $partner, string $reason, ?array $resolved = null): array
     {
         return [
             'partner_id'           => $partner->id,
@@ -247,6 +323,31 @@ class ProfitCalculationEngine
             'profit_rule_snapshot' => [],
             'is_eligible'          => false,
             'eligibility_reason'   => $reason,
+            'effective_period'     => $resolved ? [
+                'start'             => $resolved['effective_start'],
+                'end'               => $resolved['effective_end'],
+                'selected_start'    => $resolved['selected_start'],
+                'selected_end'      => $resolved['selected_end'],
+                'adjustment_reason' => $resolved['adjustment_reason'],
+                'last_paid_info'    => $resolved['last_paid_info'],
+                'financial_summary' => null,
+            ] : null,
         ];
+    }
+
+    /**
+     * Empty preview response when no active partners exist.
+     */
+    private function emptyPartnerPreview(
+        string $periodStart,
+        string $periodEnd,
+        float  $distributionPercent
+    ): array {
+        $financials = $this->calculateFinancials($periodStart, $periodEnd, $distributionPercent);
+
+        return array_merge($financials, [
+            'source_type' => 'partner_based',
+            'items'       => [],
+        ]);
     }
 }

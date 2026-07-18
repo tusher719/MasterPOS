@@ -16,7 +16,7 @@ class ProfitCalculationController extends Controller
 
     /**
      * Calculate profit preview for a distribution period.
-     * Called via AJAX from Create.tsx before form submission.
+     * Called via AJAX from Create.tsx and Edit.tsx before form submission.
      * Returns JSON — not an Inertia response.
      */
     public function preview(Request $request): JsonResponse
@@ -27,23 +27,28 @@ class ProfitCalculationController extends Controller
         );
 
         $request->validate([
-            'period_start'         => ['required', 'date'],
-            'period_end'           => ['required', 'date', 'after_or_equal:period_start'],
-            'distribution_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-            'source_type'          => ['required', 'in:investment_based,partner_based'],
+            'period_start'              => ['required', 'date'],
+            'period_end'                => ['required', 'date', 'after_or_equal:period_start'],
+            'distribution_percent'      => ['required', 'numeric', 'min:0', 'max:100'],
+            'source_type'               => ['required', 'in:investment_based,partner_based'],
+            'exclude_distribution_id'   => ['nullable', 'integer', 'exists:profit_distributions,id'],
         ]);
 
-        $periodStart         = $request->input('period_start');
-        $periodEnd           = $request->input('period_end');
-        $distributionPercent = (float) $request->input('distribution_percent', 100);
-        $sourceType          = $request->input('source_type', 'investment_based');
+        $periodStart           = $request->input('period_start');
+        $periodEnd             = $request->input('period_end');
+        $distributionPercent   = (float) $request->input('distribution_percent', 100);
+        $sourceType            = $request->input('source_type', 'investment_based');
+        $excludeDistributionId = $request->input('exclude_distribution_id')
+            ? (int) $request->input('exclude_distribution_id')
+            : null;
 
         try {
             $preview = $this->engine->preview(
                 $periodStart,
                 $periodEnd,
                 $distributionPercent,
-                $sourceType
+                $sourceType,
+                $excludeDistributionId
             );
 
             return response()->json($preview);

@@ -382,3 +382,13 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - Snapshot is written by `ProfitDistributionController::store()` — not by the engine
 - Mixed strategy: sum results from each applicable sub-strategy for that partner
 - Product-based strategy: pre-aggregate sale totals per product per partner assignment — never row-by-row in PHP
+- Rule resolution anchor date must ALWAYS be the partner's own `effective_start` date,
+  never the distribution's selected `period_start`. These differ when eligibility or
+  prior payments push the effective start forward. Using `$periodStart` globally causes
+  partners with `effective_from` after the selected start to be falsely marked ineligible.
+- Engine Financial Summary must be computed ONCE per unique Effective Period group —
+  never once per partner and never once per distribution when partner_based.
+- `exclude_distribution_id` must always be passed from Edit page to the preview endpoint —
+  prevents the current distribution from being included in its own overlap check.
+- Never write multiple class definitions into one PHP file — each class gets its own file
+  matching the namespace path exactly.

@@ -38,6 +38,52 @@ export interface ProductBreakdownItem {
     cost_return: number;
 }
 
+// ─── Already Paid Info (Gap 4.4) ──────────────────────────────────────────────
+
+export interface AlreadyPaidInfo {
+    /** The date up to which this partner was already paid (inclusive) */
+    paid_up_to: string;
+    /** paid_up_to + 1 day — the first day of the remaining unpaid window */
+    paid_up_to_next_day: string;
+    /** Distribution number of the prior settled distribution e.g. PD-2026-000001 */
+    distribution_no: string;
+}
+
+// ─── Effective Period Info (Gap 4.5) ──────────────────────────────────────────
+
+export interface EffectivePeriodInfo {
+    /** Computed effective start for this partner (may differ from selected_start) */
+    start: string;
+    /** Computed effective end for this partner (may differ from selected_end) */
+    end: string;
+    /** The admin-selected period_start */
+    selected_start: string;
+    /** The admin-selected period_end */
+    selected_end: string;
+    /**
+     * Human-readable note explaining why the effective period differs from the selected period.
+     * null when no adjustment was made (full selected period applies).
+     * Example: "Jul 1–31 already paid via PD-2026-000001; Eligibility starts Jul 7"
+     */
+    adjustment_reason: string | null;
+    /** Prior payment info that caused the start to be pushed forward — null if none */
+    last_paid_info: AlreadyPaidInfo | null;
+    /**
+     * Financial summary computed for this specific effective period.
+     * null for ineligible partners.
+     */
+    financial_summary: {
+        total_revenue: number;
+        total_cogs: number;
+        total_expenses: number;
+        total_investment: number;
+        gross_profit: number;
+        net_profit: number;
+        distribution_percent: number;
+        distributable_amount: number;
+    } | null;
+}
+
 // ─── Partner Preview Item (partner_based) ────────────────────────────────────
 
 export interface PartnerPreviewItem {
@@ -55,6 +101,11 @@ export interface PartnerPreviewItem {
     is_eligible: boolean;
     eligibility_reason: string | null;
     product_breakdown?: ProductBreakdownItem[];
+    /**
+     * Effective period info for this partner — always present for partner_based distributions.
+     * null only for investment_based items.
+     */
+    effective_period?: EffectivePeriodInfo | null;
     // extra note field editable on frontend before store
     note?: string | null;
     [key: string]:
@@ -64,7 +115,8 @@ export interface PartnerPreviewItem {
         | null
         | undefined
         | ProfitRuleSnapshot
-        | ProductBreakdownItem[];
+        | ProductBreakdownItem[]
+        | EffectivePeriodInfo;
 }
 
 // ─── Investment Preview Item (investment_based — legacy) ──────────────────────

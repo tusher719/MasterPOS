@@ -134,12 +134,11 @@ export default function Create() {
                 );
             } else {
                 const eligibleCount =
-                    form.source_type === "partner_based"
+                    data.source_type === "partner_based"
                         ? (data.items as PartnerPreviewItem[]).filter(
                               (i) => i.is_eligible,
                           ).length
                         : data.items.length;
-
                 toast.success(
                     `Preview calculated — ${eligibleCount} eligible record(s) found.`,
                 );
@@ -194,7 +193,7 @@ export default function Create() {
                 total_investment: form.total_investment,
                 gross_profit: form.gross_profit,
                 net_profit: form.net_profit,
-                items: form.items,
+                items: form.items as any,
             },
             {
                 onError: (errs) => {

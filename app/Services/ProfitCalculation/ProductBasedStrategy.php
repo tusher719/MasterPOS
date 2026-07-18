@@ -23,8 +23,6 @@ class ProductBasedStrategy implements ProfitCalculationStrategyInterface
 
         $sharePercent = (float) $rule->share_percent;
 
-        // Pre-aggregate sale totals per product for this partner in the period.
-        // SQL GROUP BY — never row-by-row in PHP (Architecture Rule).
         $productTotals = $this->aggregateProductSales($partner->id, $periodStart, $periodEnd);
 
         $shareAmount      = 0.0;
@@ -91,15 +89,6 @@ class ProductBasedStrategy implements ProfitCalculationStrategyInterface
         ];
     }
 
-    // -----------------------------------------------------------------------
-    // Private — SQL aggregation
-    // -----------------------------------------------------------------------
-
-    /**
-     * Aggregate sale totals per product for a partner in a given period.
-     * Only approved assignments covering the sale date are included.
-     * Uses SQL GROUP BY — never iterates sale rows in PHP.
-     */
     private function aggregateProductSales(
         int    $partnerId,
         string $periodStart,
