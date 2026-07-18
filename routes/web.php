@@ -530,6 +530,9 @@ Route::middleware(['auth', 'verified'])
                 ->name('eligibilities.end');
 
             // Settlement Configs — nested under partners/{partner}
+            // approve BEFORE update/destroy to prevent wildcard swallowing
+            Route::post('{partner}/settlement-configs/{config}/approve', [PartnerSettlementConfigController::class, 'approve'])
+                ->name('settlement-configs.approve');
             Route::post('{partner}/settlement-configs', [PartnerSettlementConfigController::class, 'store'])
                 ->name('settlement-configs.store');
             Route::put('{partner}/settlement-configs/{config}', [PartnerSettlementConfigController::class, 'update'])

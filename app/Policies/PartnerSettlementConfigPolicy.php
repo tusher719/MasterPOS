@@ -7,7 +7,7 @@ use App\Models\User;
 class PartnerSettlementConfigPolicy
 {
     // No model parameter on any method — prevents ArgumentCountError
-    // when called with class-string via Gate::allows() (Phase 4B/4C pattern)
+    // when called with class-string via Gate::allows() (Phase 4B/4C/4D pattern)
 
     public function viewAny(User $user): bool
     {
@@ -22,6 +22,11 @@ class PartnerSettlementConfigPolicy
     public function edit(User $user): bool
     {
         return $user->hasPermissionTo('settlement_config.edit');
+    }
+
+    public function approve(User $user): bool
+    {
+        return $user->hasPermissionTo('settlement_config.approve');
     }
 
     public function delete(User $user): bool

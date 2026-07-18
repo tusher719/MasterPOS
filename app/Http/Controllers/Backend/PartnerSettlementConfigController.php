@@ -37,6 +37,7 @@ class PartnerSettlementConfigController extends Controller
             'auto_cost_return' => $request->boolean('auto_cost_return'),
             'is_active'        => true,
             'created_by'       => Auth::id(),
+            // approved_by / approved_at intentionally omitted — pending until approved
         ]);
 
         ActivityLogService::log(
@@ -47,7 +48,7 @@ class PartnerSettlementConfigController extends Controller
             ['partner_id' => $partner->id, 'settlement_type' => $config->settlement_type]
         );
 
-        return back()->with('success', 'Settlement config created successfully.');
+        return back()->with('success', 'Settlement config created successfully. Pending Super Admin approval.');
     }
 
     // ─── Update ───────────────────────────────────────────────────────────────
@@ -56,6 +57,11 @@ class PartnerSettlementConfigController extends Controller
     {
         abort_unless(Gate::allows('edit', PartnerSettlementConfig::class), 403);
         abort_unless($config->partner_id === $partner->id, 404);
+
+        // Block editing approved configs — same pattern as partner_profit_rules
+        if ($config->is_approved) {
+            return back()->with('error', 'Approved settlement configs cannot be edited. Delete and create a new one.');
+        }
 
         $validated = $request->validate([
             'settlement_type'    => ['required', 'in:profit_only,cost_plus_profit,custom'],
@@ -86,12 +92,45 @@ class PartnerSettlementConfigController extends Controller
         return back()->with('success', 'Settlement config updated successfully.');
     }
 
+    // ─── Approve ──────────────────────────────────────────────────────────────
+
+    public function approve(Partner $partner, PartnerSettlementConfig $config): RedirectResponse
+    {
+        abort_unless(Gate::allows('approve', PartnerSettlementConfig::class), 403);
+        abort_unless($config->partner_id === $partner->id, 404);
+
+        if ($config->is_approved) {
+            return back()->with('error', 'This settlement config is already approved.');
+        }
+
+        $config->approve();
+
+        ActivityLogService::log(
+            'partners',
+            'settlement_config_approved',
+            "Settlement config approved for partner [{$partner->name}]: {$config->settlement_type} / {$config->payment_preference}",
+            $config,
+            [
+                'partner_id'      => $partner->id,
+                'settlement_type' => $config->settlement_type,
+                'approved_by'     => Auth::id(),
+            ]
+        );
+
+        return back()->with('success', 'Settlement config approved successfully.');
+    }
+
     // ─── Destroy ──────────────────────────────────────────────────────────────
 
     public function destroy(Partner $partner, PartnerSettlementConfig $config): RedirectResponse
     {
         abort_unless(Gate::allows('delete', PartnerSettlementConfig::class), 403);
         abort_unless($config->partner_id === $partner->id, 404);
+
+        // Block deleting approved configs
+        if ($config->is_approved) {
+            return back()->with('error', 'Approved settlement configs cannot be deleted.');
+        }
 
         ActivityLogService::log(
             'partners',

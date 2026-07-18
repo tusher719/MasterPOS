@@ -212,7 +212,11 @@ At distribution approval time, the settlement type is frozen into `profit_distri
 
 ### Settlement Config Approval
 
-Changes to `partner_settlement_configs` require Super Admin approval.
+- Changes to `partner_settlement_configs` require Super Admin approval
+- Pending configs (approved_by IS NULL) are immutable-pending — visible but not yet in effect
+- Approved configs are immutable — edit/delete blocked; delete and recreate to change
+- Only paid/reinvested distribution statuses lock a partner's period in overlap checks
+- Deferred status = unpaid/postponed — period remains open for the next distribution
 
 ---
 

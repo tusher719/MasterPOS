@@ -166,7 +166,8 @@ class PartnerPeriodResolutionService
 
     /**
      * For each partner, find the latest period_end among prior distributions
-     * where that partner's item was settled (paid / reinvested / deferred)
+     * where that partner's item was settled (paid / reinvested only — deferred is not considered
+     * paid, so the period remains open for the next distribution)
      * AND the distribution period overlaps with the selected period.
      *
      * Returns: partner_id → ['paid_up_to' => date, 'paid_up_to_next_day' => date, 'distribution_no' => string]
@@ -180,7 +181,7 @@ class PartnerPeriodResolutionService
         $query = DB::table('profit_distribution_items as pdi')
             ->join('profit_distributions as pd', 'pd.id', '=', 'pdi.profit_distribution_id')
             ->whereIn('pdi.partner_id', $partnerIds)
-            ->whereIn('pdi.payment_status', ['paid', 'reinvested', 'deferred'])
+            ->whereIn('pdi.payment_status', ['paid', 'reinvested'])
             ->whereIn('pd.status', ['approved', 'distributed'])
             ->whereNull('pd.deleted_at')
             // Overlap check: existing period overlaps with selected period

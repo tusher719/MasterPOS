@@ -10,7 +10,14 @@ import {
     SETTLEMENT_TYPE_LABELS,
 } from "@/types/partner-colors";
 import { router } from "@inertiajs/react";
-import { Pencil, Plus, Settings, Trash2 } from "lucide-react";
+import {
+    CheckCircle,
+    Clock,
+    Pencil,
+    Plus,
+    Settings,
+    Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -34,6 +41,37 @@ export default function SettlementConfigPanel({
 
     const activeConfig = settlementConfigs.find((c) => c.is_active) ?? null;
     const inactiveConfigs = settlementConfigs.filter((c) => !c.is_active);
+
+    // -------------------------------------------------------------------------
+    // Approve
+    // -------------------------------------------------------------------------
+
+    const handleApprove = (config: PartnerSettlementConfig) => {
+        Swal.fire({
+            title: "Approve Settlement Config?",
+            text: "Once approved, this config cannot be edited or deleted.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#4f46e5",
+            confirmButtonText: "Yes, approve it!",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(
+                    route("backend.partners.settlement-configs.approve", {
+                        partner: partner.id,
+                        config: config.id,
+                    }),
+                    {},
+                    {
+                        onSuccess: () =>
+                            toast.success("Settlement config approved."),
+                        onError: () =>
+                            toast.error("Failed to approve settlement config."),
+                    },
+                );
+            }
+        });
+    };
 
     // -------------------------------------------------------------------------
     // Delete
@@ -77,11 +115,17 @@ export default function SettlementConfigPanel({
         isActive: boolean;
     }) => (
         <div
-            className={`rounded-lg border p-4 ${isActive ? "border-indigo-200 bg-indigo-50/40" : "border-gray-100 bg-gray-50"}`}
+            className={`rounded-lg border p-4 ${
+                isActive
+                    ? config.is_pending
+                        ? "border-yellow-200 bg-yellow-50/40"
+                        : "border-indigo-200 bg-indigo-50/40"
+                    : "border-gray-100 bg-gray-50"
+            }`}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="space-y-2 flex-1 min-w-0">
-                    {/* Settlement type + payment preference badges */}
+                    {/* Badges row */}
                     <div className="flex flex-wrap gap-2">
                         <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${SETTLEMENT_TYPE_COLORS[config.settlement_type]}`}
@@ -102,6 +146,20 @@ export default function SettlementConfigPanel({
                                 Auto Cost Return
                             </span>
                         )}
+
+                        {/* Approval status badge */}
+                        {config.is_pending ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">
+                                <Clock className="h-3 w-3" />
+                                Pending Approval
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                                <CheckCircle className="h-3 w-3" />
+                                Approved
+                            </span>
+                        )}
+
                         {!isActive && (
                             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
                                 Inactive
@@ -121,22 +179,32 @@ export default function SettlementConfigPanel({
                         Created{" "}
                         {new Date(config.created_at).toLocaleDateString(
                             "en-GB",
-                            {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                            },
+                            { day: "2-digit", month: "short", year: "numeric" },
                         )}
                         {config.created_by_user && (
                             <> by {config.created_by_user.name}</>
                         )}
+                        {config.is_approved && config.approved_by_user && (
+                            <> · Approved by {config.approved_by_user.name}</>
+                        )}
                     </p>
                 </div>
 
-                {/* Actions */}
+                {/* Actions — only for active config */}
                 {isActive && (
                     <div className="flex items-center gap-1 shrink-0">
-                        {can.edit && (
+                        {/* Approve button — only when pending */}
+                        {config.is_pending && can.approve && (
+                            <button
+                                onClick={() => handleApprove(config)}
+                                className="rounded-md p-1.5 text-gray-400 hover:bg-white hover:text-indigo-600"
+                                title="Approve config"
+                            >
+                                <CheckCircle className="h-4 w-4" />
+                            </button>
+                        )}
+                        {/* Edit — only when pending */}
+                        {config.is_pending && can.edit && (
                             <button
                                 onClick={() => setEditingConfig(config)}
                                 className="rounded-md p-1.5 text-gray-400 hover:bg-white hover:text-indigo-600"
@@ -145,7 +213,8 @@ export default function SettlementConfigPanel({
                                 <Pencil className="h-4 w-4" />
                             </button>
                         )}
-                        {can.delete && (
+                        {/* Delete — only when pending */}
+                        {config.is_pending && can.delete && (
                             <button
                                 onClick={() => handleDelete(config)}
                                 className="rounded-md p-1.5 text-gray-400 hover:bg-white hover:text-red-500"

@@ -438,7 +438,12 @@ payment_preference(enum: cash/bank_transfer/adjustment/reinvestment),
 auto_cost_return(bool default false — auto-calculate cost return for product partners),
 notes(text nullable),
 is_active(bool default true),
+approved_by(FK users nullable nullOnDelete),
+approved_at(timestamp nullable),
 created_by(FK users restrict), timestamps
+
+Note: approved_by/approved_at excluded from $fillable — use approve() method with forceFill()->save().
+Note: Pending configs (approved_by IS NULL) should not be used in settlement calculations.
 
 ### investment_fund_usages
 

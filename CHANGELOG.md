@@ -2,6 +2,42 @@
 
 ---
 
+## [v2.13 — Gap 2.2] — Settlement Config Approval Columns — 2026-07-19
+
+### New Files (1)
+
+- `Step17Gap22PermissionSeeder.php`: settlement_config.approve permission → Admin role
+
+### New Migration (1)
+
+- `add_approval_columns_to_partner_settlement_configs_table`:
+  approved_by (FK users nullable nullOnDelete), approved_at (timestamp nullable)
+  Existing records auto-approved via migration (Super Admin id=1)
+
+### Updated Files (5)
+
+- `PartnerSettlementConfig.php`: approve() method, is_pending/is_approved accessors,
+  approvedBy() relation, approved_by/approved_at excluded from $fillable (Rule 66)
+- `PartnerSettlementConfigPolicy.php`: approve() method added (separate from edit)
+- `PartnerSettlementConfigController.php`: approve() action added; update()/destroy()
+  block approved configs; store() success message updated to note pending approval
+- `routes/web.php`: settlement-configs.approve route added BEFORE update/destroy
+- `partner.d.ts`: approved_by, approved_at, is_pending, is_approved added to
+  PartnerSettlementConfig interface; SettlementConfigCan.approve added
+- `SettlementConfigPanel.tsx`: Pending Approval badge (yellow), Approved badge (green),
+  approve button (CheckCircle icon), edit/delete hidden for approved configs
+- `PartnerPeriodResolutionService.php`: deferred removed from payment_status lock list —
+  deferred = unpaid, period stays open; only paid/reinvested lock a period
+
+### Business Rules Established
+
+- Settlement config changes require Super Admin approval before taking effect
+- Approved configs are immutable — edit/delete blocked at controller level
+- Deferred distribution items do NOT lock a partner's period in subsequent distributions
+- Only paid/reinvested statuses count as "period covered" in overlap check
+
+---
+
 ## [v2.12 — Gap 4.4 + 4.5] — Duplicate Prevention + Per-Partner Effective Period Resolution — 2026-07-18
 
 ### New Files (2)

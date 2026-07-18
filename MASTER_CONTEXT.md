@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Gap 2.2 — Settlement Config Approval Columns
-- **Next Step:** Gap 2.1 — Partner Type ↔ Rule Validation
-- **Last Completed:** Gap 4.4 + 4.5 — Duplicate Prevention + Per-Partner Effective Period Resolution ✅
+- **Current Step:** Gap 2.1 — Partner Type ↔ Rule Validation
+- **Next Step:** Gap 2.5 — Verify Deactivated Partner Guard
+- **Last Completed:** Gap 2.2 — Settlement Config Approval Columns ✅
 
 ## Financial Domain Overview
 
@@ -80,12 +80,12 @@ The system is now organized into two independent financial domains:
 | 17 Phase 4G | Investment-to-Business Tracking                     | ✅     |
 | 17 Phase 4H | Existing Table Migrations                           | ✅     |
 | 4.4 + 4.5   | Duplicate Prevention + Per-Partner Effective Period | ✅     |
+| 2.2         | Settlement Config Approval Columns                  | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 
 | #   | Item                                           | Notes                                 |
 | --- | ---------------------------------------------- | ------------------------------------- |
-| 2.2 | Settlement Config Approval Columns             | Small migration, independent          |
 | 2.1 | Partner Type ↔ Rule Validation                 | No migration, validation only         |
 | 2.5 | Verify Deactivated Partner Guard               | Verify first, only build if missing   |
 | 4.1 | Capital Principal Lock + Partial Unlock        | Core Capital domain change            |

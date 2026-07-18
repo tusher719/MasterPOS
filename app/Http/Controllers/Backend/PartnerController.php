@@ -189,6 +189,7 @@ class PartnerController extends Controller
                     'view'   => Gate::allows('viewAny', PartnerSettlementConfig::class),
                     'create' => Gate::allows('create', PartnerSettlementConfig::class),
                     'edit'   => Gate::allows('edit', PartnerSettlementConfig::class),
+                    'approve'   => Gate::allows('approve', PartnerSettlementConfig::class),
                     'delete' => Gate::allows('delete', PartnerSettlementConfig::class),
                 ],
                 'assignmentCan' => [

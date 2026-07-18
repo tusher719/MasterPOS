@@ -327,6 +327,8 @@ export interface PartnerSettlementConfig {
     auto_cost_return: boolean;
     notes: string | null;
     is_active: boolean;
+    approved_by: number | null;
+    approved_at: string | null;
     created_by: number;
     created_at: string;
     updated_at: string;
@@ -334,22 +336,19 @@ export interface PartnerSettlementConfig {
     // Accessors
     settlement_type_label: string;
     payment_preference_label: string;
+    is_pending: boolean;
+    is_approved: boolean;
 
     // Relations (when eager loaded)
     created_by_user?: PartnerUser | null;
-}
-
-export interface SettlementConfigFormData {
-    settlement_type: SettlementType | "";
-    payment_preference: PaymentPreference | "";
-    auto_cost_return: boolean;
-    notes: string;
+    approved_by_user?: PartnerUser | null;
 }
 
 export interface SettlementConfigCan {
     view: boolean;
     create: boolean;
     edit: boolean;
+    approve: boolean;
     delete: boolean;
 }
 
