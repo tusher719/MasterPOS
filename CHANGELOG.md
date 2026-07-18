@@ -83,6 +83,67 @@ If Effective Start > Effective End → partner fully ineligible
    never the distribution's selected period_start. These differ when eligibility or prior payments
    push the effective start forward.
 
+3. **Ineligible partner items (share_amount = 0) store হচ্ছিল** —
+   Effective period empty হওয়া partners (already paid) distribution items হিসেবে
+   insert হচ্ছিল share_amount = 0 নিয়ে। এতে payment pending থাকত এবং
+   "Mark Distributed" block হত।
+   Fix: store() এবং update() উভয়তে filter যোগ করা হয়েছে —
+   `is_eligible !== false AND share_amount > 0` শর্ত পূরণ না করলে item insert হবে না।
+   Rule to remember: ineligible items শুধু preview-এ দেখানো হয় (admin awareness এর জন্য),
+   কখনো database এ persist হয় না।
+
+4. **`investment_type` NOT NULL constraint violation** —
+   FixedPercentStrategy এবং Engine ineligibleResult() এ `investment_type` field
+   return করা হচ্ছিল না।
+   Fix: FixedPercentStrategy এ `'investment_type' => 'fixed_percent'` যোগ,
+   ineligibleResult() এ `'investment_type' => 'partner_based'` যোগ,
+   Controller store()/update() এ `?? 'partner_based'` fallback যোগ।
+   Rule to remember: প্রতিটি strategy এর return array তে `investment_type` থাকতে হবে —
+   partner-based items এর জন্য rule_type value ব্যবহার করো।
+
+    ### New Files (3)
+
+- `AppDateInput.tsx` (`resources/js/Components/DatePicker/AppDateInput.tsx`):
+  Single date picker using Mantine Calendar. Friday highlighted red (BD weekend),
+  today shown with dashed indigo outline, clearable, supports minDate/maxDate.
+- `AppDateRangeInput.tsx` (`resources/js/Components/DatePicker/AppDateRangeInput.tsx`):
+  Date range picker with two-click selection (start → end), hover range preview,
+  and preset sidebar (This Week, Last Week, This/Last Month, Quarter, Year, Last N Days).
+  BD calendar: Saturday first day, Friday weekend.
+- `index.ts` (`resources/js/Components/DatePicker/index.ts`):
+  Barrel export for both components and `DEFAULT_PERIOD_PRESETS`.
+
+### Updated Files (1)
+
+- `Create.tsx` (ProfitDistributions): `AppDateInput` for distribution_date,
+  `AppDateRangeInput` for period range. `onChange` handler fixed to reset
+  preview on both preset selection and manual calendar clicks.
+
+### Known Issues / Deferred
+
+- `Edit.tsx` (ProfitDistributions): Still uses `<input type="date">` — to be
+  migrated to `AppDateInput`/`AppDateRangeInput` in a future session.
+  Tracked here so it is not forgotten.
+
+### Rules Established
+
+- Never use `<input type="date">` anywhere — always use `AppDateInput` or `AppDateRangeInput`
+- Never use Mantine DatePickerInput directly in pages — always via these wrapper components
+- `AppDateRangeInput.onChange` fires only when BOTH dates set — also handle `onStartChange`
+  for intermediate reset logic
+- Future date types → new component in `resources/js/Components/DatePicker/`, export from index
+
+5. **`RuntimeException` inside `DB::transaction()` causes 500 instead of user-friendly error** —
+   `store()` এ `empty($eligibleItems)` check টা transaction এর ভেতরে ছিল।
+   RuntimeException transaction এর ভেতর থেকে throw হলে Laravel 500 দেয়,
+   user-friendly redirect হয় না।
+   Fix: pre-flight check transaction এর বাইরে — `partner_based` হলে eligible items
+   আগেই check করো, empty হলে `back()->withErrors()` দিয়ে return করো।
+   `Create.tsx` এর `onError` handler এ `errs.items` আলাদাভাবে toast দেখায়।
+   Rule to remember: validation/guard যা user-facing error দেওয়া উচিত সেটা
+   কখনো `DB::transaction()` এর ভেতরে throw করো না — pre-flight check করো
+   transaction শুরুর আগে।
+
 ---
 
 ## [v2.11 — Step 17 Phase 4H] — Existing Table Migrations — 2026-07-17

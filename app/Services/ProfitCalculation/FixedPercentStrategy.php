@@ -34,6 +34,8 @@ class FixedPercentStrategy implements ProfitCalculationStrategyInterface
             'partner_name'         => $partner->name,
             'partner_code'         => $partner->code,
             'rule_type'            => 'fixed_percent',
+            // investment_type is NOT NULL in DB — partner-based items use rule_type as value
+            'investment_type'      => 'fixed_percent',
             'profit_source'        => $rule->profit_source,
             'share_percent'        => $sharePercent,
             'share_amount'         => $shareAmount,

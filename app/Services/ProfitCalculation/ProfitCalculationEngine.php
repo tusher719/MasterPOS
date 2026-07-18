@@ -314,6 +314,8 @@ class ProfitCalculationEngine
             'partner_name'         => $partner->name,
             'partner_code'         => $partner->code,
             'rule_type'            => null,
+            // investment_type is NOT NULL — ineligible partner-based items use 'partner_based'
+            'investment_type'      => 'partner_based',
             'profit_source'        => null,
             'share_percent'        => 0.0,
             'share_amount'         => 0.0,

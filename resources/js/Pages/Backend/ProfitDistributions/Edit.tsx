@@ -211,9 +211,9 @@ export default function Edit({ distribution, can }: Props) {
             } else {
                 const eligibleCount =
                     form.source_type === "partner_based"
-                        ? (data.items as unknown as PartnerPreviewItem[]).filter(
-                              (i) => i.is_eligible,
-                          ).length
+                        ? (
+                              data.items as unknown as PartnerPreviewItem[]
+                          ).filter((i) => i.is_eligible).length
                         : data.items.length;
 
                 toast.success(

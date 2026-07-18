@@ -207,6 +207,21 @@ Partner Show page uses the `lg:grid-cols-3` layout (main content + sidebar) cons
 
 **Why:** shadcn/ui generates component files that become part of the codebase and require maintenance. The project uses native HTML + Tailwind for all layouts, tables, buttons, and modals to maintain full control over styling without dependency on component library updates.
 
+### Date Input Components
+
+Two reusable Mantine-based date components exist at `resources/js/Components/DatePicker/`:
+
+- `AppDateInput` — single date picker with Friday highlight and today indicator
+- `AppDateRangeInput` — range picker with BD calendar settings, hover range preview,
+  and a preset sidebar (week/month/quarter/year shortcuts)
+
+Both use Mantine `Calendar` under the hood with BD-specific settings
+(`firstDayOfWeek=6`, `weekendDays=[5]`). They are the ONLY date inputs
+used in the project — no raw `<input type="date">` allowed anywhere.
+
+New date input types (month picker, time picker, etc.) should be added
+to this component folder and exported from the index, not built inline in pages.
+
 ---
 
 ## 9. Export Architecture

@@ -201,8 +201,22 @@ class ProfitDistributionController extends Controller
     {
         $validated = $request->validated();
 
+        // Pre-flight check BEFORE transaction — no DB writes if no eligible items
+        $sourceType = $validated['source_type'] ?? 'investment_based';
+        if ($sourceType === 'partner_based') {
+            $eligibleCheck = array_filter(
+                $validated['items'],
+                fn($item) => ($item['is_eligible'] ?? true) !== false
+                            && (float) ($item['share_amount'] ?? 0) > 0
+            );
+            if (empty($eligibleCheck)) {
+                return back()
+                    ->withErrors(['items' => 'No eligible partners with payable amounts found for this period. All partners may have already been paid.'])
+                    ->withInput();
+            }
+        }
+
         DB::transaction(function () use ($validated) {
-            // Generate distribution_no inside transaction with lock
             $distributionNo = ProfitDistribution::generateDistributionNo();
 
             $distribution = ProfitDistribution::create([
@@ -226,36 +240,33 @@ class ProfitDistributionController extends Controller
                 'updated_by'           => Auth::id(),
             ]);
 
-            // Insert items — snapshots written once, never updated from source
-            // source_type determines which fields are populated:
-            // investment_based → investment_id, investor_name, invested_amount etc.
-            // partner_based    → partner_id, partner_name, profit_rule_snapshot etc.
-            $sourceType = $validated['source_type'] ?? 'investment_based';
+            $eligibleItems = array_filter(
+                $validated['items'],
+                fn($item) => ($item['is_eligible'] ?? true) !== false
+                            && (float) ($item['share_amount'] ?? 0) > 0
+            );
 
             $items = array_map(fn($item) => [
                 'profit_distribution_id' => $distribution->id,
-                // Investment-based fields
                 'investment_id'          => $item['investment_id'] ?? null,
                 'investor_name'          => $item['investor_name'] ?? ($item['partner_name'] ?? null),
                 'investment_title'       => $item['investment_title'] ?? ($item['partner_code'] ?? null),
-                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? null),
+                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? 'partner_based'),
                 'invested_amount'        => $item['invested_amount'] ?? null,
-                // Partner-based fields (Phase 4H columns — nullable until migration)
                 'partner_id'             => $item['partner_id'] ?? null,
                 'profit_rule_snapshot'   => isset($item['profit_rule_snapshot'])
                     ? json_encode($item['profit_rule_snapshot'])
                     : null,
                 'settlement_type'        => $item['settlement_type'] ?? null,
-                // Common fields
                 'share_percent'          => $item['share_percent'],
                 'share_amount'           => $item['share_amount'],
                 'note'                   => $item['note'] ?? null,
                 'payment_status'         => 'pending',
                 'created_at'             => now(),
                 'updated_at'             => now(),
-            ], $validated['items']);
+            ], $eligibleItems);
 
-            ProfitDistributionItem::insert($items);
+            ProfitDistributionItem::insert(array_values($items));
 
             ActivityLogService::log(
                 'profit_distribution',
@@ -388,12 +399,25 @@ class ProfitDistributionController extends Controller
             // Replace all items — delete + recreate (same pattern as HoldOrder update)
             $profitDistribution->items()->delete();
 
+            // Only store eligible items with share_amount > 0.
+            // Ineligible partner-based items (already paid / no eligibility) are
+            // shown in the preview for admin transparency but never persisted.
+            $eligibleItems = array_filter(
+                $validated['items'],
+                fn($item) => ($item['is_eligible'] ?? true) !== false
+                            && (float) ($item['share_amount'] ?? 0) > 0
+            );
+
+            if (empty($eligibleItems)) {
+                throw new \RuntimeException('No eligible partners found. Cannot save distribution with zero items.');
+            }
+
             $items = array_map(fn($item) => [
-                'profit_distribution_id' => $profitDistribution->id,
+                'profit_distribution_id' => $profitDistribution->id,  // ← FIXED: correct variable
                 'investment_id'          => $item['investment_id'] ?? null,
                 'investor_name'          => $item['investor_name'] ?? ($item['partner_name'] ?? null),
                 'investment_title'       => $item['investment_title'] ?? ($item['partner_code'] ?? null),
-                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? null),
+                'investment_type'        => $item['investment_type'] ?? ($item['rule_type'] ?? 'partner_based'),
                 'invested_amount'        => $item['invested_amount'] ?? null,
                 'partner_id'             => $item['partner_id'] ?? null,
                 'profit_rule_snapshot'   => isset($item['profit_rule_snapshot'])
@@ -406,9 +430,9 @@ class ProfitDistributionController extends Controller
                 'payment_status'         => 'pending',
                 'created_at'             => now(),
                 'updated_at'             => now(),
-            ], $validated['items']);
+            ], $eligibleItems);
 
-            ProfitDistributionItem::insert($items);
+            ProfitDistributionItem::insert(array_values($items));
 
             ActivityLogService::log(
                 'profit_distribution',

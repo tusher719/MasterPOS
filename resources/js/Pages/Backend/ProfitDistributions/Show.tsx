@@ -619,24 +619,33 @@ export default function Show({ distribution, can }: Props) {
                                     <tfoot className="border-t border-gray-200 bg-gray-50">
                                         <tr>
                                             <td
-                                                colSpan={3}
+                                                colSpan={
+                                                    distribution.source_type ===
+                                                    "investment_based"
+                                                        ? 3
+                                                        : 3
+                                                }
                                                 className="px-4 py-3 text-sm font-semibold text-gray-700"
                                             >
                                                 Total
                                             </td>
-                                            <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
-                                                ৳{" "}
-                                                {fmt(
-                                                    distribution.items.reduce(
-                                                        (s, i) =>
-                                                            s +
-                                                            Number(
-                                                                i.invested_amount,
-                                                            ),
-                                                        0,
-                                                    ),
-                                                )}
-                                            </td>
+                                            {distribution.source_type ===
+                                                "investment_based" && (
+                                                <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
+                                                    ৳{" "}
+                                                    {fmt(
+                                                        distribution.items.reduce(
+                                                            (s, i) =>
+                                                                s +
+                                                                Number(
+                                                                    i.invested_amount ??
+                                                                        0,
+                                                                ),
+                                                            0,
+                                                        ),
+                                                    )}
+                                                </td>
+                                            )}
                                             <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
                                                 {distribution.items
                                                     .reduce(

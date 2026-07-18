@@ -392,3 +392,56 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
   prevents the current distribution from being included in its own overlap check.
 - Never write multiple class definitions into one PHP file — each class gets its own file
   matching the namespace path exactly.
+- Ineligible partner items (is_eligible = false OR share_amount = 0) must NEVER be
+  inserted into profit_distribution_items — filter in both store() and update() before insert.
+  Preview shows all partners (including ineligible) for admin transparency;
+  persistence includes only eligible items with actual share amounts.
+
+- store()/update() must throw RuntimeException if filtered items array is empty —
+  prevents creating a distribution with zero payable items.
+
+- Pre-flight eligibility check for partner_based distributions must happen BEFORE
+  `DB::transaction()` in store() and update(). If eligible items are empty,
+  return `back()->withErrors(['items' => '...'])` — never throw RuntimeException
+  inside a transaction for user-facing validation errors.
+- `onError` handler in Create.tsx/Edit.tsx must check `errs.items` separately
+  and show it as a prominent toast (duration: 6000) since it is not tied to a
+  specific form field.
+
+## 19. Date Component Rules (NEW)
+
+All date inputs across the project use two custom Mantine-based components
+located at `resources/js/Components/DatePicker/`:
+
+| Component           | Use Case                        | Import                                                                                |
+| ------------------- | ------------------------------- | ------------------------------------------------------------------------------------- |
+| `AppDateInput`      | Single date selection           | `import { AppDateInput } from "@/Components/DatePicker"`                              |
+| `AppDateRangeInput` | Date range with presets sidebar | `import { AppDateRangeInput, DEFAULT_PERIOD_PRESETS } from "@/Components/DatePicker"` |
+
+### AppDateInput props
+
+- `value: string` — YYYY-MM-DD format
+- `onChange: (val: string) => void`
+- `label`, `required`, `error`, `clearable`, `disabled`, `minDate`, `maxDate`
+- Friday (day 5) highlighted red — BD weekend
+- Today shown with dashed indigo outline
+- Clears to empty string `""` on clear
+
+### AppDateRangeInput props
+
+- `startValue`, `endValue: string` — YYYY-MM-DD format
+- `onStartChange`, `onEndChange: (val: string) => void` — individual field updates
+- `onChange?: (start: string, end: string) => void` — fires when both dates set
+- `presets?: Preset[]` — sidebar preset buttons; use `DEFAULT_PERIOD_PRESETS` for standard set
+- Two-click interaction: first click sets start, second click sets end
+- Preset applies both dates and closes popover in one click
+
+### Rules
+
+- NEVER use `<input type="date">` anywhere in the project — always use these components
+- NEVER use `@mantine/dates` DatePicker or DatePickerInput directly in pages — always wrap via these components
+- `AppDateRangeInput.onChange` fires only when BOTH dates are set — do NOT rely on it for single-date updates; use `onStartChange`/`onEndChange` for intermediate state
+- When `onChange` is used to reset preview/state, also pass reset logic in `onStartChange` — otherwise preset clicks reset but manual calendar clicks may not
+- Future date types (time picker, month picker, year picker) → create new component in `resources/js/Components/DatePicker/` following the same pattern, export from `index.ts`
+- BD calendar settings: `firstDayOfWeek={6}` (Saturday), `weekendDays={[5]}` (Friday)
+- All date values stored and transmitted as `YYYY-MM-DD` strings — never Date objects or timestamps

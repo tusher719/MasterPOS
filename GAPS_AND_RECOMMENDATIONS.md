@@ -486,3 +486,15 @@ be implemented all at once. Confirmed order for the "Must Fix" items:
    unlocked principal and separate cost/profit balances need to exist before
    they can be displayed)
 8. Remaining "Should Fix" and "Nice to Have" items, in priority order
+
+**Post-implementation notes (Gap 4.4 + 4.5):**
+
+- Ineligible items (already paid partners, empty effective period) shown in preview
+  for admin transparency but NEVER stored in profit_distribution_items.
+- Filter in store()/update(): `is_eligible !== false AND share_amount > 0`
+- Pre-flight check before transaction: if all partners are ineligible/already paid,
+  return user-friendly error via `back()->withErrors(['items' => '...'])`.
+- Edit page recalculate bug (source_type drift): use `distribution.source_type`
+  (prop) instead of `form.source_type` (state) in handleRecalculate() axios params.
+- Edit.tsx date input migration to AppDateInput/AppDateRangeInput: pending next session.
+- Show.tsx tfoot: `invested_amount` column conditionally rendered for investment_based only.

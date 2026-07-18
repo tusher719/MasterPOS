@@ -1,3 +1,8 @@
+import {
+    AppDateInput,
+    AppDateRangeInput,
+    DEFAULT_PERIOD_PRESETS,
+} from "@/Components/DatePicker";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import type {
     EnginePreviewData,
@@ -7,6 +12,7 @@ import type {
 } from "@/types/profit-calculation";
 import { Head, router } from "@inertiajs/react";
 import axios from "axios";
+import dayjs from "dayjs";
 import { ArrowLeft, Calculator, RefreshCw, Save } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,12 +26,6 @@ function fmt(value: number | string): string {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
-}
-
-function isPartnerItem(
-    item: PartnerPreviewItem | InvestmentPreviewItem,
-): item is PartnerPreviewItem {
-    return "partner_id" in item;
 }
 
 // ─── Form State ───────────────────────────────────────────────────────────────
@@ -198,9 +198,13 @@ export default function Create() {
             {
                 onError: (errs) => {
                     setErrors(errs);
-                    toast.error("Please fix the errors below.");
+                    // Show items-level error as prominent toast
+                    if (errs.items) {
+                        toast.error(errs.items, { duration: 6000 });
+                    } else {
+                        toast.error("Please fix the errors below.");
+                    }
                 },
-                onFinish: () => setSubmitting(false),
             },
         );
     }
@@ -263,28 +267,18 @@ export default function Create() {
                                 )}
                             </div>
 
-                            {/* Distribution date */}
+                            {/* Distribution Date */}
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Distribution Date{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
+                                <AppDateInput
+                                    label="Distribution Date"
+                                    required
+                                    clearable
                                     value={form.distribution_date}
-                                    onChange={(e) =>
-                                        update(
-                                            "distribution_date",
-                                            e.target.value,
-                                        )
+                                    onChange={(val) =>
+                                        update("distribution_date", val)
                                     }
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    error={errors.distribution_date}
                                 />
-                                {errors.distribution_date && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.distribution_date}
-                                    </p>
-                                )}
                             </div>
 
                             {/* Distribution percent */}
@@ -391,74 +385,89 @@ export default function Create() {
                         <h2 className="mb-4 text-base font-semibold text-gray-700">
                             Period & Calculation
                         </h2>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            {/* Period start */}
-                            <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Period Start{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={form.period_start}
-                                    onChange={(e) => {
-                                        update("period_start", e.target.value);
-                                        resetPreview();
-                                    }}
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                                {errors.period_start && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.period_start}
-                                    </p>
-                                )}
-                            </div>
 
-                            {/* Period end */}
-                            <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Period End{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={form.period_end}
-                                    onChange={(e) => {
-                                        update("period_end", e.target.value);
-                                        resetPreview();
+                        <div className="flex items-center gap-4">
+                            <div className="mb-5 flex-1">
+                                <AppDateRangeInput
+                                    label="Period Range"
+                                    required
+                                    startValue={form.period_start}
+                                    endValue={form.period_end}
+                                    onChange={(start, end) => {
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            period_start: start,
+                                            period_end: end,
+                                            // Reset preview when period changes
+                                            items: [],
+                                        }));
+                                        setErrors((prev) => ({
+                                            ...prev,
+                                            period_start: "",
+                                            period_end: "",
+                                        }));
+                                        setPreview(null);
                                     }}
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                                {errors.period_end && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.period_end}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Calculate button */}
-                            <div className="flex items-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCalculate}
-                                    disabled={
-                                        calculating ||
-                                        !form.period_start ||
-                                        !form.period_end
+                                    onStartChange={(val) => {
+                                        update("period_start", val);
+                                        // Reset preview on manual start change
+                                        setPreview(null);
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            items: [],
+                                        }));
+                                    }}
+                                    onEndChange={(val) => {
+                                        update("period_end", val);
+                                    }}
+                                    error={
+                                        errors.period_start || errors.period_end
                                     }
-                                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                                >
-                                    {calculating ? (
-                                        <RefreshCw
-                                            size={15}
-                                            className="animate-spin"
-                                        />
-                                    ) : (
-                                        <Calculator size={15} />
-                                    )}
-                                    {calculating ? "Calculating…" : "Calculate"}
-                                </button>
+                                    presets={DEFAULT_PERIOD_PRESETS}
+                                />
                             </div>
+                            <button
+                                type="button"
+                                onClick={handleCalculate}
+                                disabled={
+                                    calculating ||
+                                    !form.period_start ||
+                                    !form.period_end
+                                }
+                                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                                {calculating ? (
+                                    <RefreshCw
+                                        size={15}
+                                        className="animate-spin"
+                                    />
+                                ) : (
+                                    <Calculator size={15} />
+                                )}
+                                {calculating ? "Calculating…" : "Calculate"}
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            {/* Selected period display + Calculate button */}
+                            {form.period_start && form.period_end ? (
+                                <div className="rounded-md border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-700">
+                                    <span className="font-medium">
+                                        Selected:{" "}
+                                    </span>
+                                    {dayjs(form.period_start).format(
+                                        "D MMM YYYY",
+                                    )}{" "}
+                                    →{" "}
+                                    {dayjs(form.period_end).format(
+                                        "D MMM YYYY",
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="rounded-md border border-gray-100 bg-gray-50 px-4 py-2.5 text-sm text-gray-400">
+                                    No period selected — pick from the range
+                                    picker above
+                                </div>
+                            )}
                         </div>
 
                         {/* Financial summary */}
@@ -593,11 +602,11 @@ export default function Create() {
                                     />
                                 )}
 
-                                {/* Investment-based table (legacy) */}
+                                {/* Investment-based table */}
                                 {form.source_type === "investment_based" && (
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm">
-                                            <thead className="bg-gray-50 border-b border-gray-100">
+                                            <thead className="border-b border-gray-100 bg-gray-50">
                                                 <tr>
                                                     <th className="px-4 py-3 text-left font-medium text-gray-500">
                                                         #
