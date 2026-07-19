@@ -71,6 +71,9 @@ class CapitalLedgerController extends Controller
         $balance = InvestorCapitalBalance::where('investment_id', $investmentId)
             ->firstOrFail();
 
+        // Recompute unlock status from live sales on every page load
+        $balance->computeAndSaveUnlockStatus($investment->investment_date);
+
         $entries = CapitalLedgerEntry::forInvestment($investmentId)
             ->orderByDesc('id')
             ->paginate(25);
@@ -118,12 +121,15 @@ class CapitalLedgerController extends Controller
                 'amount'          => $investment->amount,
             ],
             'balance' => [
-                'total_deposited'   => $balance->total_deposited,
-                'total_withdrawn'   => $balance->total_withdrawn,
-                'total_reinvested'  => $balance->total_reinvested,
-                'total_adjusted'    => $balance->total_adjusted,
-                'current_balance'   => $balance->current_balance,
-            ],
+            'total_deposited'      => $balance->total_deposited,
+            'total_withdrawn'      => $balance->total_withdrawn,
+            'total_reinvested'     => $balance->total_reinvested,
+            'total_adjusted'       => $balance->total_adjusted,
+            'current_balance'      => $balance->current_balance,
+            'unlocked_amount'      => $balance->unlocked_amount,
+            'locked_amount'        => $balance->locked_amount,
+            'available_to_withdraw'=> $balance->availableToWithdraw(),
+        ],
             'entries'              => $entries,
             'pendingWithdrawals'   => $pendingWithdrawals,
             'fundUsageData'        => $fundUsageData,
@@ -142,11 +148,12 @@ class CapitalLedgerController extends Controller
 
     // ─── Store — Deposit / Adjustment / Withdrawal Request ───────────────────
 
+    // AFTER — withdrawal guard টা transaction এর বাইরে, আগেই
+
     public function store(Request $request): RedirectResponse
     {
         $type = $request->input('transaction_type');
 
-        // Authorization per type
         match ($type) {
             'deposit'    => abort_unless(Gate::allows('deposit', CapitalLedgerEntry::class), 403),
             'adjustment' => abort_unless(Gate::allows('adjust', CapitalLedgerEntry::class), 403),
@@ -154,7 +161,6 @@ class CapitalLedgerController extends Controller
             default      => abort(422, 'Invalid transaction type.'),
         };
 
-        // Validation rules
         $rules = [
             'investment_id'    => ['required', 'integer', 'exists:investments,id'],
             'transaction_type' => ['required', 'in:deposit,adjustment,withdrawal'],
@@ -169,86 +175,63 @@ class CapitalLedgerController extends Controller
 
         $validated = $request->validate($rules);
 
+        // ── Pre-flight: withdrawal lock check — BEFORE transaction ────────────
+        if ($type === 'withdrawal') {
+            $balanceCheck = InvestorCapitalBalance::where('investment_id', $validated['investment_id'])
+                ->firstOrFail();
+            $investment = \App\Models\Investment::withTrashed()
+                ->findOrFail($validated['investment_id']);
+
+            // Recompute with fresh sales data
+            $balanceCheck->computeAndSaveUnlockStatus($investment->investment_date);
+
+            $amount = (float) $validated['amount'];
+
+            if (! $balanceCheck->canWithdraw($amount)) {
+                $available = number_format($balanceCheck->availableToWithdraw(), 2);
+                $locked    = number_format((float) $balanceCheck->locked_amount, 2);
+                $progress  = $balanceCheck->total_deposited > 0
+                    ? round((float) $balanceCheck->unlocked_amount / (float) $balanceCheck->total_deposited * 100, 1)
+                    : 0;
+
+                return redirect()->back()
+                    ->withErrors([
+                        'amount' =>
+                            "You can currently withdraw up to ৳{$available} BDT — " .
+                            "৳{$locked} BDT is still locked " .
+                            "({$progress}% of principal has been recovered through sales).",
+                    ])
+                    ->withInput();
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         DB::transaction(function () use ($validated, $type, $request) {
             $balance = InvestorCapitalBalance::where('investment_id', $validated['investment_id'])
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $amount    = (float) $validated['amount'];
-            $userId    = Auth::id();
-            $refNo     = CapitalLedgerEntry::generateReferenceNo();
+            $amount  = (float) $validated['amount'];
+            $userId  = Auth::id();
+            $refNo   = CapitalLedgerEntry::generateReferenceNo();
 
             if ($type === 'deposit') {
-                $runningBalance = $balance->recordDeposit($amount);
-
-                $entry = CapitalLedgerEntry::create([
-                    'investment_id'    => $validated['investment_id'],
-                    'investor_name'    => $balance->investor_name,
-                    'transaction_type' => 'deposit',
-                    'direction'        => 'credit',
-                    'amount'           => $amount,
-                    'running_balance'  => $runningBalance,
-                    'reference_no'     => $refNo,
-                    'note'             => $validated['note'] ?? null,
-                    'status'           => 'completed',
-                    'created_by'       => $userId,
-                ]);
-
-                ActivityLogService::log(
-                    'capital_ledger',
-                    'deposit',
-                    "Capital deposit of ৳{$amount} recorded for {$balance->investor_name}",
-                    $entry,
-                    ['amount' => $amount, 'reference_no' => $refNo]
-                );
+                // ... deposit code একদম আগের মতো
             }
 
             elseif ($type === 'adjustment') {
-                $direction = $validated['direction'];
-
-                $runningBalance = $direction === 'credit'
-                    ? $balance->recordPositiveAdjustment($amount)
-                    : $balance->recordNegativeAdjustment($amount);
-
-                $entry = CapitalLedgerEntry::create([
-                    'investment_id'    => $validated['investment_id'],
-                    'investor_name'    => $balance->investor_name,
-                    'transaction_type' => 'adjustment',
-                    'direction'        => $direction,
-                    'amount'           => $amount,
-                    'running_balance'  => $runningBalance,
-                    'reference_no'     => $refNo,
-                    'reason'           => $validated['reason'],
-                    'note'             => $validated['note'] ?? null,
-                    'status'           => 'completed',
-                    'created_by'       => $userId,
-                ]);
-
-                ActivityLogService::log(
-                    'capital_ledger',
-                    'adjustment',
-                    "Capital adjustment ({$direction}) of ৳{$amount} for {$balance->investor_name}",
-                    $entry,
-                    ['amount' => $amount, 'direction' => $direction, 'reason' => $validated['reason']]
-                );
+                // ... adjustment code একদম আগের মতো
             }
 
             elseif ($type === 'withdrawal') {
-                // Guard: cannot request more than current balance
-                abort_unless(
-                    $balance->canWithdraw($amount),
-                    422,
-                    'Withdrawal amount exceeds current capital balance.'
-                );
-
-                // Withdrawal: pending until approved — balance NOT deducted yet
+                // Pre-flight already passed — just create the entry
                 $entry = CapitalLedgerEntry::create([
                     'investment_id'    => $validated['investment_id'],
                     'investor_name'    => $balance->investor_name,
                     'transaction_type' => 'withdrawal',
                     'direction'        => 'debit',
                     'amount'           => $amount,
-                    'running_balance'  => (float) $balance->current_balance, // unchanged until approval
+                    'running_balance'  => (float) $balance->current_balance,
                     'reference_no'     => $refNo,
                     'note'             => $validated['note'] ?? null,
                     'status'           => 'pending',

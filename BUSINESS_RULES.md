@@ -448,3 +448,38 @@ For product-based partner profit:
 - Share amount = (share_percent / 100) × distributable_amount (for fixed_percent strategy)
 - Product partner: share amount = sum of (product profit × profit_share_percent) for assigned products in period
 - Always resolved from the rule active at period_start — never current rule
+
+## 21. Capital Principal Lock Rules
+
+### Lock Formula
+
+- A Capital Partner's invested principal is partially or fully locked until
+  business sales recover the equivalent amount.
+- Formula:
+  unlocked_amount = MIN(total_deposited, total_sales_since_investment_date)
+  locked_amount = total_deposited − unlocked_amount
+  available_to_withdraw = unlocked_amount − total_withdrawn
+
+### Partial Unlock
+
+- Unlock is proportional — if 60% of principal has been recovered through sales,
+  60% of the principal is available to withdraw.
+- Example: 100,000 BDT invested, 60,000 BDT in sales since investment date →
+  60,000 BDT unlocked, 40,000 BDT locked.
+
+### Sales Calculation
+
+- total_sales_since_investment_date = SUM(sales.grand_total)
+  WHERE sale_date >= investment.investment_date AND deleted_at IS NULL
+- Aggregate sales only — no tracing of which specific product the money bought.
+- Per-investment tracking: each investment uses its own investment_date as the floor.
+
+### Enforcement
+
+- Unlock status recomputed from live sales on:
+    1. Capital Ledger Show page load
+    2. Withdrawal request creation (pre-flight, before DB::transaction)
+    3. Withdrawal approval (double guard, inside DB::transaction)
+- Withdrawal blocked if amount > available_to_withdraw at both frontend and backend.
+- Error shown to admin: "You can currently withdraw up to ৳X BDT — ৳Y BDT is
+  still locked (Z% of principal has been recovered through sales)."

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Partner;
 use App\Models\PartnerProfitRule;
 use Illuminate\Support\Collection;
 
@@ -75,5 +76,37 @@ class PartnerRuleResolutionService
             ->orderBy('effective_from', 'asc')
             ->orderBy('created_at', 'asc')
             ->get();
+    }
+
+    /**
+     * Validate that a profit_source is compatible with the partner's type flags.
+     *
+     * Mapping:
+     *   capital_share  → partner_type_capital must be true
+     *   working_share  → partner_type_working must be true
+     *   product_share  → partner_type_product must be true
+     *   custom         → always allowed
+     *
+     * Returns an error message string if invalid, null if valid.
+     */
+    public function validateProfitSourceForPartner(Partner $partner, string $profitSource): ?string
+    {
+        return match ($profitSource) {
+            'capital_share' => $partner->partner_type_capital
+                ? null
+                : 'This partner is not a Capital type. Capital Share rules require the partner to have the Capital type enabled.',
+
+            'working_share' => $partner->partner_type_working
+                ? null
+                : 'This partner is not a Working type. Working Share rules require the partner to have the Working type enabled.',
+
+            'product_share' => $partner->partner_type_product
+                ? null
+                : 'This partner is not a Product type. Product Share rules require the partner to have the Product type enabled.',
+
+            'custom' => null,
+
+            default => 'Invalid profit source.',
+        };
     }
 }

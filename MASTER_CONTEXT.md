@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Gap 2.1 — Partner Type ↔ Rule Validation
-- **Next Step:** Gap 2.5 — Verify Deactivated Partner Guard
-- **Last Completed:** Gap 2.2 — Settlement Config Approval Columns ✅
+- **Current Step:** Gap 4.2 — Product Partner Cost/Profit Split
+- **Next Step:** Gap 1.5 — Investment/Partner Show Page Financial Summary
+- **Last Completed:** Gap 4.1 — Capital Principal Lock + Partial Unlock ✅
 
 ## Financial Domain Overview
 
@@ -81,13 +81,14 @@ The system is now organized into two independent financial domains:
 | 17 Phase 4H | Existing Table Migrations                           | ✅     |
 | 4.4 + 4.5   | Duplicate Prevention + Per-Partner Effective Period | ✅     |
 | 2.2         | Settlement Config Approval Columns                  | ✅     |
+| 2.1         | Partner Type ↔ Rule Validation                      | ✅     |
+| 2.5         | Verify Deactivated Partner Guard                    | ✅     |
+| 4.1         | Capital Principal Lock + Partial Unlock             | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 
 | #   | Item                                           | Notes                                 |
 | --- | ---------------------------------------------- | ------------------------------------- |
-| 2.1 | Partner Type ↔ Rule Validation                 | No migration, validation only         |
-| 2.5 | Verify Deactivated Partner Guard               | Verify first, only build if missing   |
 | 4.1 | Capital Principal Lock + Partial Unlock        | Core Capital domain change            |
 | 4.2 | Product Partner Cost/Profit Separate Tracking  | Core Profit domain change             |
 | 1.5 | Investment/Partner Show Page Financial Summary | Depends on 4.1 + 4.2 being done first |

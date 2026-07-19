@@ -18,6 +18,8 @@ class InvestorCapitalBalance extends Model
         'total_reinvested',
         'total_adjusted',
         'current_balance',
+        'unlocked_amount',
+        'locked_amount',
     ];
 
     protected $casts = [
@@ -26,6 +28,8 @@ class InvestorCapitalBalance extends Model
         'total_reinvested'  => 'decimal:2',
         'total_adjusted'    => 'decimal:2',
         'current_balance'   => 'decimal:2',
+        'unlocked_amount'   => 'decimal:2',
+        'locked_amount'     => 'decimal:2',
     ];
 
     // ─── Relationships ────────────────────────────────────────────────────────
@@ -138,10 +142,49 @@ class InvestorCapitalBalance extends Model
     // ─── Guards ───────────────────────────────────────────────────────────────
 
     /**
-     * Check if withdrawal amount is within available balance.
+     * Check if withdrawal amount is within BOTH current balance AND unlocked amount.
+     * Called at withdrawal request time and again at approval time (double guard).
      */
     public function canWithdraw(float $amount): bool
     {
-        return (float) $this->current_balance >= $amount;
+        return (float) $this->current_balance >= $amount
+            && $this->availableToWithdraw() >= $amount;
+    }
+
+    /**
+     * How much the investor can actually withdraw right now.
+     * = unlocked_amount − total_withdrawn
+     * Cannot go below zero.
+     */
+    public function availableToWithdraw(): float
+    {
+        return max(0, (float) $this->unlocked_amount - (float) $this->total_withdrawn);
+    }
+
+    /**
+     * Compute and store unlocked_amount + locked_amount from live sales data.
+     * Call this before any withdrawal validation.
+     * Always call inside DB::transaction() since we write to this row.
+     *
+     * Formula:
+     *   unlocked_amount = MIN(total_deposited, total_sales_since_investment_date)
+     *   locked_amount   = total_deposited − unlocked_amount
+     */
+    public function computeAndSaveUnlockStatus(string $investmentDate): void
+    {
+        $totalSales = \App\Models\Sale::whereNull('deleted_at')
+            ->where('sale_date', '>=', $investmentDate)
+            ->sum('grand_total');
+
+        $deposited = (float) $this->total_deposited;
+        $unlocked  = min($deposited, (float) $totalSales);
+        $locked    = $deposited - $unlocked;
+
+        $this->forceFill([
+            'unlocked_amount' => $unlocked,
+            'locked_amount'   => $locked,
+        ])->save();
+
+        $this->refresh();
     }
 }

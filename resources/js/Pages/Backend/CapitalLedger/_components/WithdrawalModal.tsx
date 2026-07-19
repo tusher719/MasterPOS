@@ -9,6 +9,7 @@ interface Props {
     investmentId: number;
     investorName: string;
     currentBalance: number;
+    availableToWithdraw: number; // ← নতুন prop
     onClose: () => void;
 }
 
@@ -19,21 +20,32 @@ export default function WithdrawalModal({
     investmentId,
     investorName,
     currentBalance,
+    availableToWithdraw,
     onClose,
 }: Props) {
     const [amount, setAmount] = useState("");
     const [note, setNote] = useState("");
     const [processing, setProcessing] = useState(false);
 
-    const exceedsBalance = Number(amount) > currentBalance;
+    const numAmount = Number(amount);
+    const exceedsBalance = numAmount > currentBalance;
+    const exceedsUnlocked = numAmount > availableToWithdraw;
+    const hasError = exceedsBalance || exceedsUnlocked;
+    const fullyLocked = availableToWithdraw <= 0;
 
     const handleSubmit = () => {
-        if (!amount || Number(amount) <= 0) {
+        if (!amount || numAmount <= 0) {
             toast.error("Please enter a valid amount.");
             return;
         }
         if (exceedsBalance) {
             toast.error("Withdrawal amount exceeds current capital balance.");
+            return;
+        }
+        if (exceedsUnlocked) {
+            toast.error(
+                `You can currently withdraw up to ${fmt(availableToWithdraw)} — the rest is still locked.`,
+            );
             return;
         }
 
@@ -87,15 +99,49 @@ export default function WithdrawalModal({
 
                 {/* Body */}
                 <div className="px-5 py-4 space-y-4">
-                    {/* Available balance hint */}
-                    <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 flex items-center justify-between">
-                        <span className="text-sm text-gray-500">
-                            Available Balance
-                        </span>
-                        <span className="text-sm font-semibold text-gray-800">
-                            {fmt(currentBalance)}
-                        </span>
+                    {/* Balance hints */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+                            <p className="text-xs text-gray-500 mb-0.5">
+                                Current Balance
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800">
+                                {fmt(currentBalance)}
+                            </p>
+                        </div>
+                        <div
+                            className={`rounded-lg border px-4 py-3 ${
+                                fullyLocked
+                                    ? "bg-red-50 border-red-200"
+                                    : "bg-green-50 border-green-200"
+                            }`}
+                        >
+                            <p className="text-xs text-gray-500 mb-0.5">
+                                Available to Withdraw
+                            </p>
+                            <p
+                                className={`text-sm font-semibold ${
+                                    fullyLocked
+                                        ? "text-red-600"
+                                        : "text-green-700"
+                                }`}
+                            >
+                                {fmt(availableToWithdraw)}
+                            </p>
+                        </div>
                     </div>
+
+                    {/* Fully locked warning */}
+                    {fullyLocked && (
+                        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                            <p className="text-xs text-amber-700">
+                                Principal is fully locked. No withdrawal is
+                                possible until business sales recover more of
+                                the invested capital.
+                            </p>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -109,12 +155,20 @@ export default function WithdrawalModal({
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             placeholder="0.00"
+                            disabled={fullyLocked}
                             className={`w-full rounded-md text-sm focus:ring-indigo-500 ${
-                                exceedsBalance
+                                hasError
                                     ? "border-red-300 focus:border-red-500"
                                     : "border-gray-300 focus:border-indigo-500"
-                            }`}
+                            } disabled:bg-gray-50 disabled:text-gray-400`}
                         />
+                        {exceedsUnlocked && !exceedsBalance && (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                <AlertTriangle className="h-3 w-3" />
+                                Exceeds unlocked amount of{" "}
+                                {fmt(availableToWithdraw)}
+                            </p>
+                        )}
                         {exceedsBalance && (
                             <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
                                 <AlertTriangle className="h-3 w-3" />
@@ -154,7 +208,7 @@ export default function WithdrawalModal({
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={processing || exceedsBalance}
+                        disabled={processing || hasError || fullyLocked}
                         className="rounded-lg bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600 disabled:opacity-60"
                     >
                         {processing ? "Submitting..." : "Submit Request"}

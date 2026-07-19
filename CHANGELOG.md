@@ -2,6 +2,121 @@
 
 ---
 
+## [v2.15 — Gap 4.1] — Capital Principal Lock + Partial Unlock — 2026-07-19
+
+### New Migration (1)
+
+- `add_lock_columns_to_investor_capital_balances_table`:
+  unlocked_amount decimal(10,2) default 0,
+  locked_amount decimal(10,2) default 0
+  Both added after current_balance column.
+
+### Updated Files (5)
+
+- `InvestorCapitalBalance.php`:
+    - unlocked_amount + locked_amount added to $fillable and $casts
+    - computeAndSaveUnlockStatus(string $investmentDate): queries Sale::sum('grand_total')
+      where sale_date >= investment_date, computes MIN(total_deposited, total_sales),
+      saves unlocked_amount + locked_amount via forceFill()->save()
+    - availableToWithdraw(): returns max(0, unlocked_amount − total_withdrawn)
+    - canWithdraw(float $amount): now checks BOTH current_balance AND availableToWithdraw()
+      (previously only checked current_balance)
+
+- `CapitalWithdrawalController.php`:
+    - approve(): recomputes unlock status before approval check; error message includes
+      available amount, locked amount, and % of principal recovered through sales
+    - store() withdrawal section: guard moved to pre-flight BEFORE DB::transaction()
+      (Rule 18 pattern — redirect()->withErrors() cannot be called inside transaction)
+
+- `CapitalLedgerController.php`:
+    - show(): calls computeAndSaveUnlockStatus() after balance load — fresh on every page load
+    - balance array now includes: unlocked_amount, locked_amount, available_to_withdraw
+
+- `CapitalLedger/Show.tsx`:
+    - Lock icon + Unlock icon imported from lucide-react
+    - Principal Lock Status card added (between pending withdrawals alert and balance summary)
+    - Progress bar: green fill = unlocked %, gray = locked %
+    - 3 stat boxes: Unlocked (green), Locked (amber), Available to Withdraw (indigo)
+    - Fully locked notice shown when availableToWith <= 0
+    - investment_date sliced to [0,10] — fixes raw timestamp display bug
+    - WithdrawalModal now receives availableToWithdraw prop
+
+- `WithdrawalModal.tsx`:
+    - availableToWithdraw prop added (number)
+    - exceedsUnlocked check added alongside exceedsBalance
+    - fullyLocked computed — disables input and submit button when true
+    - 2-column hint row: Current Balance + Available to Withdraw
+    - Fully locked warning banner shown when availableToWithdraw <= 0
+    - Submit button disabled when hasError OR fullyLocked
+
+### Bug Fixes
+
+- Raw timestamp in header: investment_date.slice(0,10) applied in Show.tsx
+- Withdrawal guard inside DB::transaction() causing redirect() failure:
+  moved to pre-flight block before transaction in CapitalLedgerController::store()
+
+### Business Rules Established
+
+- Principal lock formula: unlocked_amount = MIN(total_deposited, total_sales_since_investment_date)
+- locked_amount = total_deposited − unlocked_amount
+- available_to_withdraw = unlocked_amount − total_withdrawn (cannot go below zero)
+- Unlock status recomputed from live sales on every Capital Ledger Show page load
+- Unlock status also recomputed at withdrawal request time (store pre-flight) and
+  approval time (approve double guard) — no stale data possible
+- Withdrawal blocked at both frontend (modal) and backend (controller) when amount
+  exceeds available_to_withdraw
+- Error message format: "You can currently withdraw up to ৳X BDT — ৳Y BDT is still
+  locked (Z% of principal has been recovered through sales)."
+
+---
+
+## [v2.14 — Gap 2.1 + 2.5] — Partner Type ↔ Rule Validation + Deactivated Guard Verified — 2026-07-19
+
+### Updated Files (4)
+
+- `PartnerRuleResolutionService.php`: validateProfitSourceForPartner() method added —
+  returns error message if profit_source is incompatible with partner's type flags;
+  null if valid. Mapping: capital_share→partner_type_capital, working_share→partner_type_working,
+  product_share→partner_type_product, custom→always allowed.
+- `PartnerProfitRuleController.php`: constructor injection of PartnerRuleResolutionService added;
+  store() and update() both call validateProfitSourceForPartner() after $request->validate() —
+  returns back()->withErrors(['profit_source' => $error])->withInput() if invalid.
+- `CreateProfitRuleModal.tsx`: AvailableSource interface, InputEvent/FormErrors/FormPayload
+  type aliases added; availableSources useMemo computes enabled/disabled per partner type flags;
+  activeTypeLabels useMemo shows hint text; profit_source select renders disabled options
+  with "(not applicable)" label for incompatible sources.
+- `EditProfitRuleModal.tsx`: same filtering logic as CreateProfitRuleModal — AvailableSource
+  interface, FormErrors type alias, availableSources + activeTypeLabels useMemo,
+  disabled profit_source options with hint text.
+
+### Gap 2.5 — Verified (No Build Required)
+
+- ProfitCalculationEngine::previewPartnerBased() already has:
+  Partner::where('is_active', true)->whereNull('deleted_at')->get()
+  Both deactivated and soft-deleted partners are excluded from all distributions.
+  No code change needed.
+
+### TypeScript Fixes Applied (from Gap 2.1 session)
+
+- Inline generic types (Partial<Record<keyof X, string>>) extracted to named type aliases
+  to avoid JSX parser confusion in .tsx files
+- useMemo return types explicitly annotated: useMemo<AvailableSource[]>, useMemo<string[]>
+- handleChange typed via named InputEvent / FormFieldChangeEvent alias
+- router.post/put payload cast via form as unknown as FormPayload
+- onError callback typed directly: (errs: FormErrors) => void
+
+### Business Rules Established
+
+- profit_source must match partner type: capital_share requires partner_type_capital=true,
+  working_share requires partner_type_working=true, product_share requires partner_type_product=true
+- custom profit_source is always allowed regardless of partner type
+- Validation applied on both create and edit (pending rules only) flows
+- Frontend disables incompatible options as UX hint — backend enforces as hard validation
+- Deactivated partners (is_active=false) and soft-deleted partners are already excluded
+  from profit distributions at engine level — confirmed in previewPartnerBased()
+
+---
+
 ## [v2.13 — Gap 2.2] — Settlement Config Approval Columns — 2026-07-19
 
 ### New Files (1)

@@ -457,22 +457,24 @@ them together, not separately)
 
 ## 5. Priority Summary
 
-| #         | Item                                                   | Priority     | Status  | New Migration? |
-| --------- | ------------------------------------------------------ | ------------ | ------- | -------------- |
-| 4.4 + 4.5 | Duplicate Prevention + Per-Partner Effective Period    | Must Fix     | ✅ Done | No             |
-| 2.2       | Settlement Config Approval Columns                     | Must Fix     | ✅ Done | Yes            |
-| 2.1       | Partner Type ↔ Rule Validation                         | Must Fix     | Pending | No             |
-| 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | Pending | No             |
-| 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | Pending | Yes            |
-| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | Pending | Yes            |
-| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | Pending | No             |
-| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | Pending | Yes            |
-| 1.2       | Investor Statement — Partner support                   | Should Fix   | Pending | No             |
-| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending | No (doc only)  |
-| 1.3       | Distribution List UI Badge                             | Nice to Have | Pending | No             |
-| 1.4       | Partner Financial Overview page                        | Nice to Have | Pending | No             |
-| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | Pending | Yes            |
-| 3         | Investor → Partner Naming Migration                    | Nice to Have | Pending | Gradual        |
+## 5. Priority Summary
+
+| #         | Item                                                   | Priority     | Status                          | New Migration? |
+| --------- | ------------------------------------------------------ | ------------ | ------------------------------- | -------------- |
+| 4.4 + 4.5 | Duplicate Prevention + Per-Partner Effective Period    | Must Fix     | ✅ Done                         | No             |
+| 2.2       | Settlement Config Approval Columns                     | Must Fix     | ✅ Done                         | Yes            |
+| 2.1       | Partner Type ↔ Rule Validation                         | Must Fix     | ✅ Done                         | No             |
+| 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | ✅ Done (guard already existed) | No             |
+| 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | ✅ Done                         | Yes            |
+| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | Pending                         | Yes            |
+| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | Pending                         | No             |
+| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | Pending                         | Yes            |
+| 1.2       | Investor Statement — Partner support                   | Should Fix   | Pending                         | No             |
+| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending                         | No (doc only)  |
+| 1.3       | Distribution List UI Badge                             | Nice to Have | Pending                         | No             |
+| 1.4       | Partner Financial Overview page                        | Nice to Have | Pending                         | No             |
+| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | Pending                         | Yes            |
+| 3         | Investor → Partner Naming Migration                    | Nice to Have | Pending                         | Gradual        |
 
 ---
 

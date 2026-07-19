@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Partner;
 use App\Models\PartnerProfitRule;
 use App\Services\ActivityLogService;
+use App\Services\PartnerRuleResolutionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\Gate;
 
 class PartnerProfitRuleController extends Controller
 {
+    public function __construct(
+        private readonly PartnerRuleResolutionService $resolutionService,
+    ) {}
+
     // -------------------------------------------------------------------------
     // Store — Create a new profit rule for a partner
     // -------------------------------------------------------------------------
@@ -29,6 +34,18 @@ class PartnerProfitRuleController extends Controller
             'effective_from' => ['required', 'date'],
             'reason'         => ['nullable', 'string', 'max:500'],
         ]);
+
+        // Gap 2.1 — Partner type ↔ profit source validation
+        $typeError = $this->resolutionService->validateProfitSourceForPartner(
+            $partner,
+            $validated['profit_source']
+        );
+
+        if ($typeError) {
+            return back()
+                ->withErrors(['profit_source' => $typeError])
+                ->withInput();
+        }
 
         DB::transaction(function () use ($validated, $partner) {
             $user = Auth::user();
@@ -83,6 +100,18 @@ class PartnerProfitRuleController extends Controller
             'effective_from' => ['required', 'date'],
             'reason'         => ['nullable', 'string', 'max:500'],
         ]);
+
+        // Gap 2.1 — Partner type ↔ profit source validation
+        $typeError = $this->resolutionService->validateProfitSourceForPartner(
+            $partner,
+            $validated['profit_source']
+        );
+
+        if ($typeError) {
+            return back()
+                ->withErrors(['profit_source' => $typeError])
+                ->withInput();
+        }
 
         DB::transaction(function () use ($validated, $partner, $profitRule) {
             $user = Auth::user();

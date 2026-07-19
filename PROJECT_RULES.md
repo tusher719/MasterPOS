@@ -330,6 +330,17 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - Phase 1 → Phase 2 bridge: reinvest action must update BOTH InvestorProfitBalance AND InvestorCapitalBalance in same DB transaction
 - CapitalLedgerEntry status field MUST be in $fillable (unlike ProfitDistribution status fields)
 
+### Principal Lock Rules (Gap 4.1 addition)
+
+- computeAndSaveUnlockStatus() always called before any withdrawal validation —
+  never rely on stored unlocked_amount without recomputing first
+- canWithdraw() checks BOTH current_balance AND availableToWithdraw() —
+  never check only one of these
+- Withdrawal guard must be placed BEFORE DB::transaction() in store() —
+  redirect()->withErrors() cannot be called from inside a transaction
+- available_to_withdraw is computed (not stored) — always derive from
+  unlocked_amount − total_withdrawn at runtime
+
 ---
 
 ## 16. TypeScript Declaration File Rules

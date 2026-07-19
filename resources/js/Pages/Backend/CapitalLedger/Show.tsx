@@ -11,11 +11,13 @@ import {
     ArrowLeft,
     Building2,
     Clock,
+    Lock,
     MinusCircle,
     PlusCircle,
     SlidersHorizontal,
     TrendingDown,
     TrendingUp,
+    Unlock,
     Wallet,
 } from "lucide-react";
 import { useState } from "react";
@@ -41,6 +43,9 @@ interface Balance {
     total_reinvested: string;
     total_adjusted: string;
     current_balance: string;
+    unlocked_amount: string;
+    locked_amount: string;
+    available_to_withdraw: string;
 }
 
 interface PendingWithdrawal {
@@ -100,12 +105,20 @@ export default function CapitalLedgerShow({
     const [approvalEntry, setApprovalEntry] =
         useState<PendingWithdrawal | null>(null);
 
+    // Computed values for lock progress bar
+    const deposited = Number(balance.total_deposited);
+    const unlocked = Number(balance.unlocked_amount);
+    const locked = Number(balance.locked_amount);
+    const availableToWith = Number(balance.available_to_withdraw);
+    const unlockedPercent =
+        deposited > 0 ? Math.min(100, (unlocked / deposited) * 100) : 0;
+
     return (
         <AuthenticatedLayout>
             <Head title={`Capital Ledger — ${investment.investor_name}`} />
 
             <div className="space-y-6">
-                {/* Header */}
+                {/* ── Header ───────────────────────────────────────────────── */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
@@ -124,7 +137,10 @@ export default function CapitalLedgerShow({
                             </h1>
                             <p className="mt-0.5 text-sm text-gray-500">
                                 Capital Ledger · Since{" "}
-                                {investment.investment_date}
+                                {String(investment.investment_date).slice(
+                                    0,
+                                    10,
+                                )}
                                 <span
                                     className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                         investment.status === "active"
@@ -170,7 +186,7 @@ export default function CapitalLedgerShow({
                     </div>
                 </div>
 
-                {/* Pending Withdrawals Alert */}
+                {/* ── Pending Withdrawals Alert ─────────────────────────────── */}
                 {pendingWithdrawals.length > 0 && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                         <div className="flex items-center gap-2 mb-3">
@@ -225,7 +241,9 @@ export default function CapitalLedgerShow({
                                                     router.post(
                                                         route(
                                                             "backend.capital-withdrawals.cancel",
-                                                            { entry: w.id },
+                                                            {
+                                                                entry: w.id,
+                                                            },
                                                         ),
                                                         {},
                                                         {
@@ -252,7 +270,107 @@ export default function CapitalLedgerShow({
                     </div>
                 )}
 
-                {/* Balance Summary Cards */}
+                {/* ── Principal Lock Status Card ────────────────────────────── */}
+                <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                    <div className="border-b border-gray-100 px-5 py-3 flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">
+                            Principal Lock Status
+                        </span>
+                        <span className="ml-auto text-xs text-gray-400">
+                            Based on total sales since{" "}
+                            {String(investment.investment_date).slice(0, 10)}
+                        </span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                        {/* Progress Bar */}
+                        <div>
+                            <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                                <span>
+                                    Unlocked:{" "}
+                                    <span className="font-medium text-green-700">
+                                        {fmt(balance.unlocked_amount)}
+                                    </span>
+                                </span>
+                                <span className="font-medium text-indigo-600">
+                                    {unlockedPercent.toFixed(1)}% of principal
+                                    recovered
+                                </span>
+                                <span>
+                                    Locked:{" "}
+                                    <span className="font-medium text-amber-700">
+                                        {fmt(balance.locked_amount)}
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-green-500 transition-all duration-500"
+                                    style={{ width: `${unlockedPercent}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 3 stat boxes */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-lg bg-green-50 border border-green-100 p-3">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Unlock className="h-3.5 w-3.5 text-green-600" />
+                                    <p className="text-xs text-green-700 font-medium">
+                                        Unlocked
+                                    </p>
+                                </div>
+                                <p className="text-base font-bold text-green-700">
+                                    {fmt(balance.unlocked_amount)}
+                                </p>
+                                <p className="text-xs text-green-600 mt-0.5">
+                                    Can be requested
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg bg-amber-50 border border-amber-100 p-3">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Lock className="h-3.5 w-3.5 text-amber-600" />
+                                    <p className="text-xs text-amber-700 font-medium">
+                                        Locked
+                                    </p>
+                                </div>
+                                <p className="text-base font-bold text-amber-700">
+                                    {fmt(balance.locked_amount)}
+                                </p>
+                                <p className="text-xs text-amber-600 mt-0.5">
+                                    Awaiting sales recovery
+                                </p>
+                            </div>
+
+                            <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Wallet className="h-3.5 w-3.5 text-indigo-600" />
+                                    <p className="text-xs text-indigo-700 font-medium">
+                                        Available to Withdraw
+                                    </p>
+                                </div>
+                                <p className="text-base font-bold text-indigo-700">
+                                    {fmt(balance.available_to_withdraw)}
+                                </p>
+                                <p className="text-xs text-indigo-600 mt-0.5">
+                                    Unlocked − already withdrawn
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Fully locked notice */}
+                        {availableToWith <= 0 && deposited > 0 && (
+                            <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2.5 text-xs text-amber-700">
+                                Principal is fully locked — no withdrawal
+                                available until business sales recover more of
+                                the invested capital.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Balance Summary Cards ─────────────────────────────────── */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 lg:col-span-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -319,9 +437,10 @@ export default function CapitalLedgerShow({
                     </div>
                 </div>
 
-                {/* Ledger Table */}
+                {/* ── Ledger Table ──────────────────────────────────────────── */}
                 <LedgerTable entries={entries} />
-                {/* Fund Usage Panels — approved withdrawals only */}
+
+                {/* ── Fund Usage Panels ─────────────────────────────────────── */}
                 {fundUsageData.length > 0 && (
                     <div className="space-y-4">
                         <h2 className="text-sm font-semibold text-gray-700">
@@ -338,7 +457,9 @@ export default function CapitalLedgerShow({
                                     ·{" "}
                                     {Number(entry.amount).toLocaleString(
                                         "en-US",
-                                        { minimumFractionDigits: 2 },
+                                        {
+                                            minimumFractionDigits: 2,
+                                        },
                                     )}{" "}
                                     BDT
                                 </p>
@@ -361,7 +482,7 @@ export default function CapitalLedgerShow({
                 )}
             </div>
 
-            {/* Modals */}
+            {/* ── Modals ───────────────────────────────────────────────────── */}
             {showDeposit && (
                 <DepositModal
                     investmentId={investment.id}
@@ -374,6 +495,7 @@ export default function CapitalLedgerShow({
                     investmentId={investment.id}
                     investorName={investment.investor_name}
                     currentBalance={Number(balance.current_balance)}
+                    availableToWithdraw={availableToWith}
                     onClose={() => setShowWithdrawal(false)}
                 />
             )}

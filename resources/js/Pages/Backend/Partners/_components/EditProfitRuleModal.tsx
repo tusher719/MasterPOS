@@ -8,14 +8,26 @@ import {
 } from "@/types/partner.d";
 import { router } from "@inertiajs/react";
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-interface Props {
+interface EditProfitRuleModalProps {
     partner: Partner;
     rule: PartnerProfitRule;
     onClose: () => void;
 }
+
+interface AvailableSource {
+    source: ProfitSource;
+    isEnabled: boolean;
+}
+
+type FormFieldChangeEvent = React.ChangeEvent<
+    HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+>;
+
+// Separate type alias — avoids JSX parser confusion with inline generics
+type FormErrors = Partial<Record<keyof ProfitRuleFormData, string>>;
 
 const RULE_TYPES: RuleType[] = [
     "fixed_percent",
@@ -23,14 +35,22 @@ const RULE_TYPES: RuleType[] = [
     "capital_based",
     "mixed",
 ];
-const PROFIT_SOURCES: ProfitSource[] = [
+
+const ALL_PROFIT_SOURCES: ProfitSource[] = [
     "capital_share",
     "working_share",
     "product_share",
     "custom",
 ];
 
-export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
+// Which partner_type_* flag is required for each profit_source
+const SOURCE_TYPE_REQUIREMENT: Partial<Record<ProfitSource, keyof Partner>> = {
+    capital_share: "partner_type_capital",
+    working_share: "partner_type_working",
+    product_share: "partner_type_product",
+};
+
+export default function EditProfitRuleModal({ partner, rule, onClose }: EditProfitRuleModalProps) {
     const [form, setForm] = useState<ProfitRuleFormData>({
         rule_type: "",
         profit_source: "",
@@ -38,9 +58,7 @@ export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
         effective_from: "",
         reason: "",
     });
-    const [errors, setErrors] = useState<
-        Partial<Record<keyof ProfitRuleFormData, string>>
-    >({});
+    const [errors, setErrors] = useState<FormErrors>({});
     const [processing, setProcessing] = useState(false);
 
     // Populate form from rule prop
@@ -55,11 +73,29 @@ export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
         });
     }, [rule]);
 
-    const handleChange = (
-        e: React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >,
-    ) => {
+    // Compute which profit_source options are available for this partner's types.
+    // "custom" is always enabled.
+    // Others require the corresponding partner_type_* flag to be true.
+    const availableSources = useMemo<AvailableSource[]>(() => {
+        return ALL_PROFIT_SOURCES.map((source) => {
+            const requiredFlag = SOURCE_TYPE_REQUIREMENT[source];
+            const isEnabled = requiredFlag
+                ? Boolean(partner[requiredFlag])
+                : true; // custom — always enabled
+            return { source, isEnabled };
+        });
+    }, [partner]);
+
+    // Active partner types — shown as hint below the profit_source select
+    const activeTypeLabels = useMemo<string[]>(() => {
+        const labels: string[] = [];
+        if (partner.partner_type_capital) labels.push("Capital");
+        if (partner.partner_type_working) labels.push("Working");
+        if (partner.partner_type_product) labels.push("Product");
+        return labels;
+    }, [partner]);
+
+    const handleChange = (e: FormFieldChangeEvent) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
         if (errors[name as keyof ProfitRuleFormData]) {
@@ -67,25 +103,21 @@ export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
         }
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = (): void => {
         setProcessing(true);
         router.put(
             route("backend.partners.profit-rules.update", {
                 partner: partner.id,
                 profitRule: rule.id,
             }),
-            form,
+            form as unknown as Record<string, string>,
             {
                 onSuccess: () => {
                     toast.success("Profit rule updated.");
                     onClose();
                 },
                 onError: (errs) => {
-                    setErrors(
-                        errs as Partial<
-                            Record<keyof ProfitRuleFormData, string>
-                        >,
-                    );
+                    setErrors(errs as FormErrors);
                     toast.error("Please fix the errors below.");
                 },
                 onFinish: () => setProcessing(false),
@@ -150,12 +182,28 @@ export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
                             onChange={handleChange}
                             className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
-                            {PROFIT_SOURCES.map((source) => (
-                                <option key={source} value={source}>
+                            {availableSources.map(({ source, isEnabled }) => (
+                                <option
+                                    key={source}
+                                    value={source}
+                                    disabled={!isEnabled}
+                                    className={
+                                        !isEnabled ? "text-gray-300" : undefined
+                                    }
+                                >
                                     {PROFIT_SOURCE_LABELS[source]}
+                                    {!isEnabled ? " (not applicable)" : ""}
                                 </option>
                             ))}
                         </select>
+
+                        {/* Partner type hint */}
+                        <p className="mt-1 text-xs text-gray-400">
+                            {activeTypeLabels.length > 0
+                                ? `This partner is: ${activeTypeLabels.join(", ")} type.`
+                                : "No partner type set — only Custom source is available."}
+                        </p>
+
                         {errors.profit_source && (
                             <p className="mt-1 text-xs text-red-500">
                                 {errors.profit_source}
@@ -231,7 +279,7 @@ export default function EditProfitRuleModal({ partner, rule, onClose }: Props) {
                     </div>
 
                     {/* Warning note */}
-                    <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2">
+                    <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
                         <p className="text-xs text-amber-700">
                             Only <strong>pending rules</strong> can be edited.
                             After approval, create a new rule to update profit

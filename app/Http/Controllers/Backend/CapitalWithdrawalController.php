@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\CapitalLedgerEntry;
+use App\Models\Investment;
 use App\Models\InvestorCapitalBalance;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
@@ -28,20 +29,35 @@ class CapitalWithdrawalController extends Controller
             'Only pending withdrawal requests can be approved.'
         );
 
+        // AFTER
         DB::transaction(function () use ($entry) {
             $balance = InvestorCapitalBalance::where('investment_id', $entry->investment_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Guard: re-check balance at approval time (may have changed)
-            abort_unless(
-                $balance->canWithdraw((float) $entry->amount),
-                422,
-                'Insufficient capital balance to approve this withdrawal.'
-            );
+            // Recompute unlock status from live sales before approval check
+            $investment = Investment::withTrashed()->findOrFail($entry->investment_id);
+            $balance->computeAndSaveUnlockStatus($investment->investment_date);
+
+            $amount = (float) $entry->amount;
+
+            // Double guard: check both current_balance AND unlocked principal
+            if (! $balance->canWithdraw($amount)) {
+                $available = number_format($balance->availableToWithdraw(), 2);
+                $locked    = number_format((float) $balance->locked_amount, 2);
+                $progress  = $balance->total_deposited > 0
+                    ? round((float) $balance->unlocked_amount / (float) $balance->total_deposited * 100, 1)
+                    : 0;
+
+                abort(422,
+                    "You can currently withdraw up to ৳{$available} BDT — " .
+                    "৳{$locked} BDT is still locked " .
+                    "({$progress}% of principal has been recovered through sales)."
+                );
+            }
 
             // Deduct balance — only happens here on approval
-            $runningBalance = $balance->recordWithdrawal((float) $entry->amount);
+            $runningBalance = $balance->recordWithdrawal($amount);
 
             // Update entry: approved + store final running_balance
             $entry->markAsApproved(Auth::id());
