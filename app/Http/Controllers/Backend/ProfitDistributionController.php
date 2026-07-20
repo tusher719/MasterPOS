@@ -12,6 +12,7 @@ use App\Models\ProfitDistributionItem;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\ActivityLogService;
+use App\Services\PartnerProfitBalanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,10 @@ use Inertia\Response;
 
 class ProfitDistributionController extends Controller
 {
+    public function __construct(
+        private PartnerProfitBalanceService $partnerBalanceService
+    ) {}
+
     // -----------------------------------------------------------------------
     // Index
     // -----------------------------------------------------------------------
@@ -35,7 +40,6 @@ class ProfitDistributionController extends Controller
         $query = ProfitDistribution::with(['creator'])
             ->withCount('items');
 
-        // Search
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('distribution_no', 'like', "%{$search}%")
@@ -43,12 +47,10 @@ class ProfitDistributionController extends Controller
             });
         }
 
-        // Filter by status
         if ($status = $request->input('status')) {
             $query->where('status', $status);
         }
 
-        // Filter by year
         if ($year = $request->input('year')) {
             $query->whereYear('distribution_date', $year);
         }
@@ -58,22 +60,21 @@ class ProfitDistributionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // Stats cards
         $stats = [
-            'total'            => ProfitDistribution::count(),
-            'draft'            => ProfitDistribution::where('status', 'draft')->count(),
-            'approved'         => ProfitDistribution::where('status', 'approved')->count(),
-            'distributed'      => ProfitDistribution::where('status', 'distributed')->count(),
-            'total_distributed'=> ProfitDistribution::where('status', 'distributed')
+            'total'             => ProfitDistribution::count(),
+            'draft'             => ProfitDistribution::where('status', 'draft')->count(),
+            'approved'          => ProfitDistribution::where('status', 'approved')->count(),
+            'distributed'       => ProfitDistribution::where('status', 'distributed')->count(),
+            'total_distributed' => ProfitDistribution::where('status', 'distributed')
                                     ->sum('distributable_amount'),
         ];
 
         $can = [
-            'create'  => optional(Auth::user())->can('profit_distribution.create'),
-            'edit'    => optional(Auth::user())->can('profit_distribution.edit'),
-            'delete'  => optional(Auth::user())->can('profit_distribution.delete'),
-            'restore' => optional(Auth::user())->can('profit_distribution.restore'),
-            'approve' => optional(Auth::user())->can('profit_distribution.approve'),
+            'create'      => optional(Auth::user())->can('profit_distribution.create'),
+            'edit'        => optional(Auth::user())->can('profit_distribution.edit'),
+            'delete'      => optional(Auth::user())->can('profit_distribution.delete'),
+            'restore'     => optional(Auth::user())->can('profit_distribution.restore'),
+            'approve'     => optional(Auth::user())->can('profit_distribution.approve'),
             'reverse'     => optional(Auth::user())->can('profit_distribution.reverse'),
             'payment'     => optional(Auth::user())->can('profit_distribution.payment'),
             'eligibility' => optional(Auth::user())->can('profit_distribution.eligibility'),
@@ -96,9 +97,7 @@ class ProfitDistributionController extends Controller
         abort_unless(optional(Auth::user())->can('profit_distribution.create'), 403);
 
         return Inertia::render('Backend/ProfitDistributions/Create', [
-            'can' => [
-                'create' => true,
-            ],
+            'can' => ['create' => true],
         ]);
     }
 
@@ -106,11 +105,6 @@ class ProfitDistributionController extends Controller
     // Calculate Preview (AJAX)
     // -----------------------------------------------------------------------
 
-    /**
-     * Calculate revenue, COGS, expenses, and investor shares for a given
-     * date range. Called via GET from Create/Edit pages before submitting.
-     * Returns JSON — not an Inertia response.
-     */
     public function calculatePreview(Request $request): JsonResponse
     {
         abort_unless(optional(Auth::user())->can('profit_distribution.create')
@@ -126,12 +120,8 @@ class ProfitDistributionController extends Controller
         $end   = $request->input('period_end');
         $pct   = (float) $request->input('distribution_percent', 100);
 
-        // --- Revenue: sum of grand_total from non-deleted sales in period ---
-        $totalRevenue = Sale::whereBetween('sale_date', [$start, $end])
-            ->sum('grand_total');
+        $totalRevenue = Sale::whereBetween('sale_date', [$start, $end])->sum('grand_total');
 
-        // --- COGS: sum(qty × average_cost at sale time) ---
-        // Uses average_cost from products table as best approximation
         $totalCogs = SaleItem::whereHas('sale', function ($q) use ($start, $end) {
                 $q->whereBetween('sale_date', [$start, $end]);
             })
@@ -139,33 +129,19 @@ class ProfitDistributionController extends Controller
             ->selectRaw('SUM(sale_items.quantity * products.average_cost) as cogs')
             ->value('cogs') ?? 0;
 
-        // --- Expenses: sum of all expenses in period ---
-        // Note: the expenses table has no approval workflow / status column —
-        // every recorded expense is final once created, so we simply sum by
-        // date range (soft-deleted expenses are excluded automatically).
-        $totalExpenses = Expense::whereBetween('expense_date', [$start, $end])
-            ->sum('amount');
+        $totalExpenses = Expense::whereBetween('expense_date', [$start, $end])->sum('amount');
 
-        // --- Profit calculation ---
-        $grossProfit = $totalRevenue - $totalCogs;
-        $netProfit   = $grossProfit - $totalExpenses;
-
-        // --- Distributable amount ---
+        $grossProfit         = $totalRevenue - $totalCogs;
+        $netProfit           = $grossProfit - $totalExpenses;
         $distributableAmount = round($netProfit * ($pct / 100), 2);
 
-        // --- Active investments snapshot ---
-        $investments   = Investment::with('investmentType')
-            ->where('status', 'active')
-            ->get();
-
+        $investments     = Investment::with('investmentType')->where('status', 'active')->get();
         $totalInvestment = $investments->sum('amount');
 
-        // --- Per-investor share calculation ---
         $items = $investments->map(function ($inv) use ($totalInvestment, $distributableAmount) {
             $sharePercent = $totalInvestment > 0
                 ? round(($inv->amount / $totalInvestment) * 100, 4)
                 : 0;
-
             $shareAmount = round(($sharePercent / 100) * $distributableAmount, 2);
 
             return [
@@ -201,7 +177,6 @@ class ProfitDistributionController extends Controller
     {
         $validated = $request->validated();
 
-        // Pre-flight check BEFORE transaction — no DB writes if no eligible items
         $sourceType = $validated['source_type'] ?? 'investment_based';
         if ($sourceType === 'partner_based') {
             $eligibleCheck = array_filter(
@@ -260,6 +235,8 @@ class ProfitDistributionController extends Controller
                 'settlement_type'        => $item['settlement_type'] ?? null,
                 'share_percent'          => $item['share_percent'],
                 'share_amount'           => $item['share_amount'],
+                // Gap 4.2 — persist cost return portion separately
+                'cost_return_amount'     => $item['cost_return_amount'] ?? 0,
                 'note'                   => $item['note'] ?? null,
                 'payment_status'         => 'pending',
                 'created_at'             => now(),
@@ -306,33 +283,31 @@ class ProfitDistributionController extends Controller
             'total_paid_amount',
         ]);
 
-        // Append computed payment fields to each item
         $profitDistribution->items->each(function ($item) {
             $item->append([]);
-            $item->setAttribute('remaining_amount',  (float) $item->remainingAmount());
-            $item->setAttribute('effective_amount',  (float) $item->effectiveAmount());
-            $item->setAttribute('total_paid',        (float) $item->totalPaid());
-            $item->setAttribute('isFullySettled',    $item->isFullySettled());
+            $item->setAttribute('remaining_amount', (float) $item->remainingAmount());
+            $item->setAttribute('effective_amount', (float) $item->effectiveAmount());
+            $item->setAttribute('total_paid',       (float) $item->totalPaid());
+            $item->setAttribute('isFullySettled',   $item->isFullySettled());
         });
 
         $can = [
-            'edit'        => optional(Auth::user())->can('profit_distribution.edit')
-                                && ! $profitDistribution->is_locked,
-            'delete'      => optional(Auth::user())->can('profit_distribution.delete')
-                                && ! $profitDistribution->is_locked,
-            'approve'     => optional(Auth::user())->can('profit_distribution.approve')
-                                && $profitDistribution->status === 'draft',
-            'distribute'  => optional(Auth::user())->can('profit_distribution.approve')
-                                && $profitDistribution->status === 'approved',
+            'edit'           => optional(Auth::user())->can('profit_distribution.edit')
+                                    && ! $profitDistribution->is_locked,
+            'delete'         => optional(Auth::user())->can('profit_distribution.delete')
+                                    && ! $profitDistribution->is_locked,
+            'approve'        => optional(Auth::user())->can('profit_distribution.approve')
+                                    && $profitDistribution->status === 'draft',
+            'distribute'     => optional(Auth::user())->can('profit_distribution.approve')
+                                    && $profitDistribution->status === 'approved',
             'update_payment' => optional(Auth::user())->can('profit_distribution.approve')
-                                && in_array($profitDistribution->status, ['approved', 'distributed']),
-            // Step 17 additions
-            'reverse'     => optional(Auth::user())->can('profit_distribution.reverse')
-                                && $profitDistribution->canBeReversed(),
-            'payment'     => optional(Auth::user())->can('profit_distribution.payment')
-                                && in_array($profitDistribution->status, ['approved', 'distributed']),
-            'eligibility' => optional(Auth::user())->can('profit_distribution.eligibility')
-                                && ! $profitDistribution->is_locked,
+                                    && in_array($profitDistribution->status, ['approved', 'distributed']),
+            'reverse'        => optional(Auth::user())->can('profit_distribution.reverse')
+                                    && $profitDistribution->canBeReversed(),
+            'payment'        => optional(Auth::user())->can('profit_distribution.payment')
+                                    && in_array($profitDistribution->status, ['approved', 'distributed']),
+            'eligibility'    => optional(Auth::user())->can('profit_distribution.eligibility')
+                                    && ! $profitDistribution->is_locked,
         ];
 
         return Inertia::render('Backend/ProfitDistributions/Show', [
@@ -391,17 +366,13 @@ class ProfitDistributionController extends Controller
                 'net_profit'           => $validated['net_profit'],
                 'distribution_percent' => $validated['distribution_percent'],
                 'distributable_amount' => $validated['distributable_amount'],
-                'source_type'          => $validated['source_type'] ?? $profitDistribution->source_type,  // ← Added
+                'source_type'          => $validated['source_type'] ?? $profitDistribution->source_type,
                 'note'                 => $validated['note'] ?? null,
                 'updated_by'           => Auth::id(),
             ]);
 
-            // Replace all items — delete + recreate (same pattern as HoldOrder update)
             $profitDistribution->items()->delete();
 
-            // Only store eligible items with share_amount > 0.
-            // Ineligible partner-based items (already paid / no eligibility) are
-            // shown in the preview for admin transparency but never persisted.
             $eligibleItems = array_filter(
                 $validated['items'],
                 fn($item) => ($item['is_eligible'] ?? true) !== false
@@ -413,7 +384,7 @@ class ProfitDistributionController extends Controller
             }
 
             $items = array_map(fn($item) => [
-                'profit_distribution_id' => $profitDistribution->id,  // ← FIXED: correct variable
+                'profit_distribution_id' => $profitDistribution->id,
                 'investment_id'          => $item['investment_id'] ?? null,
                 'investor_name'          => $item['investor_name'] ?? ($item['partner_name'] ?? null),
                 'investment_title'       => $item['investment_title'] ?? ($item['partner_code'] ?? null),
@@ -426,6 +397,8 @@ class ProfitDistributionController extends Controller
                 'settlement_type'        => $item['settlement_type'] ?? null,
                 'share_percent'          => $item['share_percent'],
                 'share_amount'           => $item['share_amount'],
+                // Gap 4.2 — persist cost return portion separately
+                'cost_return_amount'     => $item['cost_return_amount'] ?? 0,
                 'note'                   => $item['note'] ?? null,
                 'payment_status'         => 'pending',
                 'created_at'             => now(),
@@ -467,6 +440,14 @@ class ProfitDistributionController extends Controller
                 $distribution->generateEligibilities();
                 $distribution->approve(Auth::id());
 
+                // Gap 4.2 — credit PartnerProfitBalance for partner-based items
+                if ($distribution->source_type === 'partner_based') {
+                    $distribution->load('items');
+                    foreach ($distribution->items as $item) {
+                        $this->partnerBalanceService->creditEarned($item);
+                    }
+                }
+
                 ActivityLogService::log(
                     'profit_distribution',
                     'approve',
@@ -478,7 +459,7 @@ class ProfitDistributionController extends Controller
         } catch (\Throwable $e) {
             Log::error('Approve failed: ' . $e->getMessage(), [
                 'distribution_id' => $id,
-                'trace' => $e->getTraceAsString(),
+                'trace'           => $e->getTraceAsString(),
             ]);
 
             return back()->withErrors(['approve' => 'Approval failed: ' . $e->getMessage()]);
@@ -544,7 +525,6 @@ class ProfitDistributionController extends Controller
         $newStatus = $request->input('payment_status');
 
         if ($newStatus === 'paid' && ! $item->isFullySettled()) {
-            // Use new markAsPaid() signature — amount = full remaining amount
             $item->markAsPaid(
                 amount:        $item->remainingAmount(),
                 paymentMethod: $request->input('payment_method') ?? 'Cash',
@@ -564,7 +544,6 @@ class ProfitDistributionController extends Controller
                 ]
             );
         } elseif ($newStatus === 'cancelled' && $item->isPending()) {
-            // Cancel all existing payments on this item
             foreach ($item->payments as $payment) {
                 if (! $payment->isCancelled()) {
                     $item->cancelPayment($payment);
@@ -621,9 +600,7 @@ class ProfitDistributionController extends Controller
     {
         abort_unless(optional(Auth::user())->can('profit_distribution.restore'), 403);
 
-        // Rule #14 — restore uses onlyTrashed()->findOrFail(), not route model binding
         $distribution = ProfitDistribution::onlyTrashed()->findOrFail($id);
-
         $distribution->restore();
 
         ActivityLogService::log(
@@ -638,7 +615,7 @@ class ProfitDistributionController extends Controller
     }
 
     // -----------------------------------------------------------------------
-    // Override Eligibility (Step 17)
+    // Override Eligibility
     // -----------------------------------------------------------------------
 
     public function overrideEligibility(

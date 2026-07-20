@@ -193,6 +193,20 @@ Future scope (no schema change required): categories, brands, warehouses, depart
 For simplicity, the current system assigns one product partner per product.
 The schema (`assignable_type`, `assignable_id`) already supports multiple partners per product when required.
 
+### Cost Return and Profit Share — Separate Tracking
+
+- Cost Return and Profit Share are tracked in SEPARATE columns in partner_profit_balances.
+- share_amount in profit_distribution_items = total payable (cost_return + profit_share combined).
+- cost_return_amount in profit_distribution_items stores the cost portion separately.
+- profit_share_amount = share_amount − cost_return_amount (derived, not stored).
+- Payment splitting uses cost/profit ratio proportional to original cost_return_amount vs share_amount.
+- If cost_return_enabled = false on assignment, cost_return_amount = 0 and full amount is profit share.
+- PartnerProfitBalanceService is the single authority for all balance credit/debit/reversal operations.
+- creditEarned() called on distribution approve inside DB::transaction().
+- recordPayment() called from ProfitDistributionItem::markAsPaid/Deferred/Reinvested().
+- reversePayment() called from ProfitDistributionItem::cancelPayment().
+- reverseEarned() called on distribution reverse for each partner-based item.
+
 ---
 
 ## 6. Settlement Rules

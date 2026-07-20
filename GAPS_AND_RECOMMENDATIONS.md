@@ -67,10 +67,9 @@ skipped entirely (a guard was added specifically for this). As a result,
 Working/Product Partners have no live "Pending Balance" anywhere in the dashboard.
 
 **Priority:** Should Fix
-**Fix:** Create a new `partner_profit_balances` table, keyed on `partner_id`
-(UNIQUE), with the same columns as `investor_profit_balances`
-(total_earned, total_paid, pending_balance, etc.). Works for every partner type,
-with or without an Investment.
+**Status:** ✅ Done — built as part of Gap 4.2. Table exists with separate
+cost_return and profit_share columns. PartnerProfitBalance model and
+PartnerProfitBalanceService handle all credit/debit/reversal operations.
 
 ---
 
@@ -331,6 +330,21 @@ these together (12,600 BDT) or separately.
   separately, letting the partner choose any combination when requesting a
   withdrawal
 
+**Post-implementation note (Gap 4.2):**
+
+- partner_profit_balances table created (partner_id UNIQUE)
+- profit_distribution_items.cost_return_amount column added (nullable dec10,2)
+- PartnerProfitBalance model: creditCostReturn/creditProfitShare/recordPayment/reverseEarned
+- PartnerProfitBalanceService: single authority for all partner balance operations
+  — creditEarned() on approve, recordPayment() on markAsPaid/Deferred/Reinvested,
+  reversePayment() on cancelPayment, reverseEarned() on distribution reverse
+- ProductBasedStrategy: share_amount = total (cost+profit), profit_share_amount separate key
+- ProfitDistributionController: cost_return_amount persisted in store/update,
+  creditEarned called in approve for partner_based distributions
+- PartnerBasedPreviewTable: Profit Share / Cost Return / Total Payable as separate columns
+- Edit.tsx: date inputs migrated to AppDateInput/AppDateRangeInput
+- Gap 1.1 resolved as part of this gap — no separate implementation needed
+
 ---
 
 ### 4.3 — Business Owner's own profit (residual) — no configuration needed
@@ -466,9 +480,9 @@ them together, not separately)
 | 2.1       | Partner Type ↔ Rule Validation                         | Must Fix     | ✅ Done                         | No             |
 | 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | ✅ Done (guard already existed) | No             |
 | 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | ✅ Done                         | Yes            |
-| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | Pending                         | Yes            |
+| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | ✅ Done                         | Yes            |
 | 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | Pending                         | No             |
-| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | Pending                         | Yes            |
+| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
 | 1.2       | Investor Statement — Partner support                   | Should Fix   | Pending                         | No             |
 | 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending                         | No (doc only)  |
 | 1.3       | Distribution List UI Badge                             | Nice to Have | Pending                         | No             |

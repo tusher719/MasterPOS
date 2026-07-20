@@ -277,6 +277,8 @@ export interface PartnerShowProps extends PageProps {
     settlementConfigs: PartnerSettlementConfig[];
     productAssignments: PartnerProductAssignment[];
     products: ProductOption[];
+    // Gap 4.2 — cost/profit balance split (null if no distributions approved yet)
+    profitBalance: PartnerProfitBalance | null;
     can: PartnerCan;
     profitRuleCan: ProfitRuleCan;
     eligibilityCan: EligibilityCan;
@@ -355,6 +357,7 @@ export interface SettlementConfigCan {
 // -------------------------------------------------------------------------
 // Product Assignments
 // -------------------------------------------------------------------------
+
 export interface PartnerProductAssignment {
     id: number;
     partner_id: number;
@@ -401,4 +404,23 @@ export interface AssignmentCan {
     create: boolean;
     edit: boolean;
     approve: boolean;
+}
+
+// -------------------------------------------------------------------------
+// Partner Profit Balance (Gap 4.2)
+// -------------------------------------------------------------------------
+
+export interface PartnerProfitBalance {
+    id: number;
+    partner_id: number;
+    // Cost return tracking (product partners only — 0 for capital/working)
+    total_cost_returned: string; // decimal as string — always wrap in Number()
+    total_cost_paid: string;
+    pending_cost_balance: string;
+    // Profit share tracking (all partner types)
+    total_profit_earned: string; // decimal as string — always wrap in Number()
+    total_profit_paid: string;
+    pending_profit_balance: string;
+    created_at: string;
+    updated_at: string;
 }

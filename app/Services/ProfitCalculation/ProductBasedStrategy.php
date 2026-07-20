@@ -25,34 +25,38 @@ class ProductBasedStrategy implements ProfitCalculationStrategyInterface
 
         $productTotals = $this->aggregateProductSales($partner->id, $periodStart, $periodEnd);
 
-        $shareAmount      = 0.0;
-        $costReturnAmount = 0.0;
-        $productBreakdown = [];
+        $profitShareAmount = 0.0;
+        $costReturnAmount  = 0.0;
+        $productBreakdown  = [];
 
         foreach ($productTotals as $row) {
-            $productProfit      = (float) $row->total_revenue - (float) $row->total_cost;
-            $partnerProfit      = round($productProfit * ($sharePercent / 100), 2);
-            $partnerCostReturn  = (float) $row->cost_return_enabled
+            $productProfit     = (float) $row->total_revenue - (float) $row->total_cost;
+            $partnerProfit     = round($productProfit * ($sharePercent / 100), 2);
+            $partnerCostReturn = (bool) $row->cost_return_enabled
                 ? round((float) $row->total_cost, 2)
                 : 0.0;
 
-            $shareAmount      += $partnerProfit;
-            $costReturnAmount += $partnerCostReturn;
+            $profitShareAmount += $partnerProfit;
+            $costReturnAmount  += $partnerCostReturn;
 
             $productBreakdown[] = [
-                'product_id'         => $row->product_id,
-                'product_name'       => $row->product_name,
-                'qty_sold'           => (int) $row->qty_sold,
-                'total_revenue'      => round((float) $row->total_revenue, 2),
-                'total_cost'         => round((float) $row->total_cost, 2),
-                'product_profit'     => round($productProfit, 2),
-                'partner_profit'     => $partnerProfit,
-                'cost_return'        => $partnerCostReturn,
+                'product_id'     => $row->product_id,
+                'product_name'   => $row->product_name,
+                'qty_sold'       => (int) $row->qty_sold,
+                'total_revenue'  => round((float) $row->total_revenue, 2),
+                'total_cost'     => round((float) $row->total_cost, 2),
+                'product_profit' => round($productProfit, 2),
+                'partner_profit' => $partnerProfit,
+                'cost_return'    => $partnerCostReturn,
             ];
         }
 
-        $shareAmount      = round($shareAmount, 2);
-        $costReturnAmount = round($costReturnAmount, 2);
+        $profitShareAmount = round($profitShareAmount, 2);
+        $costReturnAmount  = round($costReturnAmount, 2);
+
+        // share_amount = total payable (cost return + profit share)
+        // cost_return_amount stored separately for split tracking in balance table
+        $totalShareAmount = round($profitShareAmount + $costReturnAmount, 2);
 
         $settlement = $this->settlementService->calculate(
             $partner,
@@ -69,8 +73,12 @@ class ProductBasedStrategy implements ProfitCalculationStrategyInterface
             'rule_type'            => 'product_based',
             'profit_source'        => $rule->profit_source,
             'share_percent'        => $sharePercent,
-            'share_amount'         => $shareAmount,
+            // Total payable — cost return + profit share combined (backward compat)
+            'share_amount'         => $totalShareAmount,
+            // Separate tracking — persisted to profit_distribution_items.cost_return_amount
             'cost_return_amount'   => $costReturnAmount,
+            // Derived: share_amount − cost_return_amount = profit share portion
+            'profit_share_amount'  => $profitShareAmount,
             'settlement_type'      => $settlement['settlement_type'],
             'payment_preference'   => $settlement['payment_preference'],
             'product_breakdown'    => $productBreakdown,

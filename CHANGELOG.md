@@ -2,6 +2,66 @@
 
 ---
 
+## [v2.16 — Gap 4.2] — Product Partner Cost/Profit Split — 2026-07-20
+
+### New Migrations (2)
+
+- `create_partner_profit_balances_table`:
+  partner_id (FK unique), total_cost_returned, total_cost_paid,
+  pending_cost_balance, total_profit_earned, total_profit_paid,
+  pending_profit_balance — all decimal(10,2) default 0
+- `add_cost_return_amount_to_profit_distribution_items_table`:
+  cost_return_amount decimal(10,2) nullable default 0, after share_amount column
+
+### New Files (2)
+
+- `PartnerProfitBalance.php`: findOrCreateForPartner(), creditCostReturn(),
+  creditProfitShare(), recordPayment(), reversePayment(), reverseEarned(),
+  totalPending() — all balance operations
+- `PartnerProfitBalanceService.php`: creditEarned(), recordPayment(),
+  reversePayment(), reverseEarned(), splitAmount() (private — proportional
+  cost/profit split based on cost_return_amount ratio)
+
+### Updated Files (7)
+
+- `ProductBasedStrategy.php`: share_amount = cost_return + profit_share (total),
+  profit_share_amount added as separate key in return array
+- `Partner.php`: profitBalance() HasOne relation added
+- `partner.d.ts`: PartnerProfitBalance interface added; PartnerShowProps
+  updated with profitBalance prop
+- `profit-calculation.d.ts`: profit_share_amount added to PartnerPreviewItem
+- `ProfitDistributionController.php`: constructor inject PartnerProfitBalanceService;
+  store/update persist cost_return_amount; approve() calls creditEarned()
+  for partner_based distributions inside DB::transaction()
+- `ProfitDistributionItem.php`: cost_return_amount added to fillable/casts;
+  partner() BelongsTo added; markAsPaid/Deferred/Reinvested call
+  PartnerProfitBalanceService::recordPayment(); cancelPayment() calls
+  reversePayment() for partner-based items
+- `PartnerBasedPreviewTable.tsx`: "Share Amount" column split into
+  "Profit Share" (indigo) + "Cost Return" (green) + "Total Payable" (bold gray);
+  tfoot totals updated for all three columns
+- `PartnerController.php`: profitBalance eager loaded in show(); profitBalance
+  prop passed to Inertia render
+- `Edit.tsx` (ProfitDistributions): date inputs migrated from
+  <input type="date"> to AppDateInput (distribution_date) and
+  AppDateRangeInput (period range); dayjs import added
+
+### Also Resolves
+
+- Gap 1.1 (Partner Profit Balance for working/product partners) — resolved
+  as part of this implementation. No separate build needed.
+
+### Business Rules Established
+
+- share_amount = total payable (cost_return_amount + profit_share_amount)
+- cost_return_amount stored separately for split balance tracking
+- profit_share_amount derived: share_amount − cost_return_amount (never stored)
+- splitAmount() uses proportional ratio — partial payments split correctly
+- PartnerProfitBalanceService is the single authority — never call balance
+  methods directly from controllers
+
+---
+
 ## [v2.15 — Gap 4.1] — Capital Principal Lock + Partial Unlock — 2026-07-19
 
 ### New Migration (1)

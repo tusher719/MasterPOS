@@ -1,12 +1,19 @@
+import {
+    AppDateInput,
+    AppDateRangeInput,
+    DEFAULT_PERIOD_PRESETS,
+} from "@/Components/DatePicker";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import type { PartnerPreviewItem } from "@/types/profit-calculation";
 import { Head, router } from "@inertiajs/react";
 import axios from "axios";
+import dayjs from "dayjs";
 import { ArrowLeft, Calculator, Lock, RefreshCw, Save } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { route } from "ziggy-js";
 import PartnerBasedPreviewTable from "./_components/PartnerBasedPreviewTable";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ItemData {
@@ -26,7 +33,6 @@ interface ItemData {
     note: string | null;
     profit_rule_snapshot: Record<string, any> | null;
     settlement_type: string | null;
-    // Gap 4.5 — effective period snapshot per item
     effective_period?: Record<string, any> | null;
 }
 
@@ -165,6 +171,11 @@ export default function Edit({ distribution, can }: Props) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
     }
 
+    function resetPreviewItems() {
+        setForm((prev) => ({ ...prev, items: [] }));
+        setRecalculated(false);
+    }
+
     // ─── Recalculate ──────────────────────────────────────────────────────────
 
     async function handleRecalculate() {
@@ -183,8 +194,10 @@ export default function Edit({ distribution, can }: Props) {
                         period_end: form.period_end,
                         distribution_percent:
                             form.distribution_percent || "100",
-                        source_type: form.source_type,
-                        // Exclude this distribution from the overlap check (Gap 4.4)
+                        // Use distribution.source_type (prop) — not form.source_type
+                        // source_type is read-only on edit page
+                        source_type: distribution.source_type,
+                        // Exclude this distribution from overlap check (Gap 4.4)
                         exclude_distribution_id: distribution.id,
                     },
                 },
@@ -210,7 +223,7 @@ export default function Edit({ distribution, can }: Props) {
                 toast.warning("No active records found for this period.");
             } else {
                 const eligibleCount =
-                    form.source_type === "partner_based"
+                    distribution.source_type === "partner_based"
                         ? (
                               data.items as unknown as PartnerPreviewItem[]
                           ).filter((i) => i.is_eligible).length
@@ -273,7 +286,11 @@ export default function Edit({ distribution, can }: Props) {
             {
                 onError: (errs) => {
                     setErrors(errs);
-                    toast.error("Please fix the errors below.");
+                    if (errs.items) {
+                        toast.error(errs.items, { duration: 6000 });
+                    } else {
+                        toast.error("Please fix the errors below.");
+                    }
                 },
                 onFinish: () => setSubmitting(false),
             },
@@ -312,13 +329,12 @@ export default function Edit({ distribution, can }: Props) {
                     </div>
                 </div>
 
-                {/* Draft badge */}
+                {/* Draft + source type badges */}
                 <div className="flex items-center gap-3">
                     <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                         Draft — changes will update the financial snapshots
                     </div>
-                    {/* Source type badge — read-only on edit */}
                     <div
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
                             isPartnerBased
@@ -359,28 +375,18 @@ export default function Edit({ distribution, can }: Props) {
                                 )}
                             </div>
 
-                            {/* Distribution date */}
+                            {/* Distribution Date — AppDateInput */}
                             <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Distribution Date{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
+                                <AppDateInput
+                                    label="Distribution Date"
+                                    required
+                                    clearable
                                     value={form.distribution_date}
-                                    onChange={(e) =>
-                                        update(
-                                            "distribution_date",
-                                            e.target.value,
-                                        )
+                                    onChange={(val) =>
+                                        update("distribution_date", val)
                                     }
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    error={errors.distribution_date}
                                 />
-                                {errors.distribution_date && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.distribution_date}
-                                    </p>
-                                )}
                             </div>
 
                             {/* Distribution percent */}
@@ -442,68 +448,70 @@ export default function Edit({ distribution, can }: Props) {
                             selected period.
                         </p>
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Period Start{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={form.period_start}
-                                    onChange={(e) =>
-                                        update("period_start", e.target.value)
+                        {/* Period Range — AppDateRangeInput */}
+                        <div className="flex items-end gap-4">
+                            <div className="flex-1">
+                                <AppDateRangeInput
+                                    label="Period Range"
+                                    required
+                                    startValue={form.period_start}
+                                    endValue={form.period_end}
+                                    onChange={(start, end) => {
+                                        setForm((prev) => ({
+                                            ...prev,
+                                            period_start: start,
+                                            period_end: end,
+                                            items: [],
+                                        }));
+                                        setErrors((prev) => ({
+                                            ...prev,
+                                            period_start: "",
+                                            period_end: "",
+                                        }));
+                                        setRecalculated(false);
+                                    }}
+                                    onStartChange={(val) => {
+                                        update("period_start", val);
+                                        resetPreviewItems();
+                                    }}
+                                    onEndChange={(val) => {
+                                        update("period_end", val);
+                                    }}
+                                    error={
+                                        errors.period_start || errors.period_end
                                     }
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    presets={DEFAULT_PERIOD_PRESETS}
                                 />
-                                {errors.period_start && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.period_start}
-                                    </p>
-                                )}
                             </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">
-                                    Period End{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={form.period_end}
-                                    onChange={(e) =>
-                                        update("period_end", e.target.value)
-                                    }
-                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                                {errors.period_end && (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {errors.period_end}
-                                    </p>
+                            <button
+                                type="button"
+                                onClick={handleRecalculate}
+                                disabled={calculating}
+                                className="inline-flex items-center gap-2 rounded-lg border border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
+                            >
+                                {calculating ? (
+                                    <RefreshCw
+                                        size={15}
+                                        className="animate-spin"
+                                    />
+                                ) : (
+                                    <Calculator size={15} />
                                 )}
-                            </div>
-
-                            <div className="flex items-end">
-                                <button
-                                    type="button"
-                                    onClick={handleRecalculate}
-                                    disabled={calculating}
-                                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-600 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
-                                >
-                                    {calculating ? (
-                                        <RefreshCw
-                                            size={15}
-                                            className="animate-spin"
-                                        />
-                                    ) : (
-                                        <Calculator size={15} />
-                                    )}
-                                    {calculating
-                                        ? "Recalculating…"
-                                        : "Recalculate"}
-                                </button>
-                            </div>
+                                {calculating ? "Recalculating…" : "Recalculate"}
+                            </button>
                         </div>
+
+                        {/* Selected period display */}
+                        {form.period_start && form.period_end && (
+                            <div className="mt-3 rounded-md border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-700">
+                                <span className="font-medium">Selected: </span>
+                                {dayjs(form.period_start).format(
+                                    "D MMM YYYY",
+                                )}{" "}
+                                → {dayjs(form.period_end).format("D MMM YYYY")}
+                            </div>
+                        )}
 
                         {/* Financial summary */}
                         <div className="mt-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
@@ -613,7 +621,7 @@ export default function Edit({ distribution, can }: Props) {
                             </div>
 
                             <div className="p-5">
-                                {/* Partner-based — full PartnerBasedPreviewTable with Effective Period column */}
+                                {/* Partner-based */}
                                 {isPartnerBased && (
                                     <PartnerBasedPreviewTable
                                         items={

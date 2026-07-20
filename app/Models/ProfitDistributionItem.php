@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PartnerProfitBalanceService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,8 @@ class ProfitDistributionItem extends Model
         'invested_amount',
         'share_percent',
         'share_amount',
+        // Gap 4.2 — cost return portion stored separately for split balance tracking
+        'cost_return_amount',
         'distribution_percent',
         'deferred_amount',
         'reinvested_amount',
@@ -39,6 +42,7 @@ class ProfitDistributionItem extends Model
         'invested_amount'      => 'decimal:2',
         'share_percent'        => 'decimal:4',
         'share_amount'         => 'decimal:2',
+        'cost_return_amount'   => 'decimal:2',
         'distribution_percent' => 'decimal:2',
         'deferred_amount'      => 'decimal:2',
         'reinvested_amount'    => 'decimal:2',
@@ -52,9 +56,19 @@ class ProfitDistributionItem extends Model
         return $this->belongsTo(ProfitDistribution::class, 'profit_distribution_id');
     }
 
+    public function profitDistribution(): BelongsTo
+    {
+        return $this->belongsTo(ProfitDistribution::class, 'profit_distribution_id');
+    }
+
     public function investment(): BelongsTo
     {
         return $this->belongsTo(Investment::class)->withTrashed();
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     public function carriedFromDistribution(): BelongsTo
@@ -68,9 +82,11 @@ class ProfitDistributionItem extends Model
         return $this->belongsTo(User::class, 'paid_by')->withTrashed();
     }
 
-    /**
-     * All payment transactions recorded against this item.
-     */
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by')->withTrashed();
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(ProfitDistributionItemPayment::class, 'profit_distribution_item_id')
@@ -79,10 +95,6 @@ class ProfitDistributionItem extends Model
 
     // ─── Computed Amounts ─────────────────────────────────────
 
-    /**
-     * Effective distributable amount after applying per-investor
-     * distribution_percent override.
-     */
     public function effectiveAmount(): float
     {
         return round(
@@ -91,9 +103,6 @@ class ProfitDistributionItem extends Model
         );
     }
 
-    /**
-     * Total amount already paid across all active payment transactions.
-     */
     public function totalPaid(): float
     {
         return (float) $this->payments()
@@ -104,9 +113,6 @@ class ProfitDistributionItem extends Model
             ->sum('amount');
     }
 
-    /**
-     * Remaining payable = effective - paid - deferred - reinvested.
-     */
     public function remainingAmount(): float
     {
         return max(0, round(
@@ -120,10 +126,6 @@ class ProfitDistributionItem extends Model
 
     // ─── Payment Status Sync ──────────────────────────────────
 
-    /**
-     * Recalculate and sync payment_status based on payment transactions.
-     * Call after every payment action.
-     */
     public function syncPaymentStatus(): void
     {
         $effective  = $this->effectiveAmount();
@@ -133,11 +135,11 @@ class ProfitDistributionItem extends Model
         $covered    = $paid + $deferred + $reinvested;
 
         $status = match (true) {
-            $reinvested >= $effective       => ProfitDistributionItemPayment::STATUS_REINVESTED,
-            $deferred   >= $effective       => ProfitDistributionItemPayment::STATUS_DEFERRED,
-            $covered    >= $effective       => ProfitDistributionItemPayment::STATUS_PAID,
-            $paid > 0 && $covered < $effective => ProfitDistributionItemPayment::STATUS_PARTIAL,
-            default                         => ProfitDistributionItemPayment::STATUS_PENDING,
+            $reinvested >= $effective              => ProfitDistributionItemPayment::STATUS_REINVESTED,
+            $deferred   >= $effective              => ProfitDistributionItemPayment::STATUS_DEFERRED,
+            $covered    >= $effective              => ProfitDistributionItemPayment::STATUS_PAID,
+            $paid > 0 && $covered < $effective     => ProfitDistributionItemPayment::STATUS_PARTIAL,
+            default                                => ProfitDistributionItemPayment::STATUS_PENDING,
         };
 
         $this->forceFill(['payment_status' => $status])->save();
@@ -145,9 +147,6 @@ class ProfitDistributionItem extends Model
 
     // ─── Payment Action Methods ───────────────────────────────
 
-    /**
-     * Record a full or partial payment against this item.
-     */
     public function markAsPaid(
         float $amount, string $paymentMethod, ?string $reference, ?string $note
     ): ProfitDistributionItemPayment {
@@ -172,9 +171,15 @@ class ProfitDistributionItem extends Model
             'paid_at'               => now(),
         ]);
 
+        // Investment-based: update InvestorProfitBalance
         if ($this->investment_id && $this->investment) {
             $balance = InvestorProfitBalance::findOrCreateForInvestment($this->investment);
             $balance->recordPayment($amount);
+        }
+
+        // Partner-based: update PartnerProfitBalance (cost/profit split)
+        if ($this->partner_id) {
+            app(PartnerProfitBalanceService::class)->recordPayment($this, $amount);
         }
 
         $this->syncPaymentStatus();
@@ -182,9 +187,6 @@ class ProfitDistributionItem extends Model
         return $payment;
     }
 
-    /**
-     * Defer remaining amount to next distribution period.
-     */
     public function markAsDeferred(?string $note = null): ProfitDistributionItemPayment
     {
         $amount = $this->remainingAmount();
@@ -208,14 +210,16 @@ class ProfitDistributionItem extends Model
             $balance->recordDeferred($amount);
         }
 
+        // Partner-based: deferred counts as "paid" portion for balance tracking
+        if ($this->partner_id) {
+            app(PartnerProfitBalanceService::class)->recordPayment($this, $amount);
+        }
+
         $this->syncPaymentStatus();
 
         return $payment;
     }
 
-    /**
-     * Reinvest remaining amount into capital.
-     */
     public function markAsReinvested(?string $note = null): ProfitDistributionItemPayment
     {
         $amount = $this->remainingAmount();
@@ -239,14 +243,16 @@ class ProfitDistributionItem extends Model
             $balance->recordReinvested($amount);
         }
 
+        // Partner-based: reinvested counts as "paid" portion for balance tracking
+        if ($this->partner_id) {
+            app(PartnerProfitBalanceService::class)->recordPayment($this, $amount);
+        }
+
         $this->syncPaymentStatus();
 
         return $payment;
     }
 
-    /**
-     * Cancel a specific payment transaction and restore pending balance.
-     */
     public function cancelPayment(ProfitDistributionItemPayment $payment): void
     {
         if ($payment->isCancelled()) {
@@ -265,9 +271,9 @@ class ProfitDistributionItem extends Model
 
             match ($status) {
                 ProfitDistributionItemPayment::STATUS_PAID,
-                ProfitDistributionItemPayment::STATUS_PARTIAL => $balance->reversePayment($amount),
+                ProfitDistributionItemPayment::STATUS_PARTIAL    => $balance->reversePayment($amount),
 
-                ProfitDistributionItemPayment::STATUS_DEFERRED => (function () use ($amount, $balance) {
+                ProfitDistributionItemPayment::STATUS_DEFERRED   => (function () use ($amount, $balance) {
                     $this->decrement('deferred_amount', $amount);
                     $balance->reverseDeferred($amount);
                 })(),
@@ -276,12 +282,12 @@ class ProfitDistributionItem extends Model
                     $this->decrement('reinvested_amount', $amount);
                     $balance->reverseReinvested($amount);
                 })(),
-                ProfitDistributionItemPayment::STATUS_REOPENED => $balance->reversePayment($amount),
 
-                default => null,
+                ProfitDistributionItemPayment::STATUS_REOPENED   => $balance->reversePayment($amount),
+                default                                          => null,
             };
         } else {
-            // Partner-based items — no profit balance, but still decrement amounts
+            // Partner-based — decrement deferred/reinvested amounts + reverse balance
             match ($status) {
                 ProfitDistributionItemPayment::STATUS_DEFERRED =>
                     $this->decrement('deferred_amount', $amount),
@@ -289,14 +295,16 @@ class ProfitDistributionItem extends Model
                     $this->decrement('reinvested_amount', $amount),
                 default => null,
             };
+
+            // Gap 4.2 — reverse PartnerProfitBalance payment
+            if ($this->partner_id) {
+                app(PartnerProfitBalanceService::class)->reversePayment($this, $amount);
+            }
         }
 
         $this->syncPaymentStatus();
     }
 
-    /**
-     * Reopen a cancelled payment.
-     */
     public function reopenPayment(ProfitDistributionItemPayment $payment): void
     {
         if (! $payment->canBeReopened()) {
@@ -341,7 +349,7 @@ class ProfitDistributionItem extends Model
         return $this->carried_from_distribution_id !== null;
     }
 
-    // ─── Accessors (backward compat for existing UI) ──────────
+    // ─── Accessors ────────────────────────────────────────────
 
     public function getPaymentStatusLabelAttribute(): string
     {
@@ -351,25 +359,13 @@ class ProfitDistributionItem extends Model
     public function getPaymentStatusBadgeAttribute(): array
     {
         return match ($this->payment_status) {
-            'paid'        => ['bg' => 'bg-green-100',  'text' => 'text-green-700'],
-            'partial'     => ['bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
-            'deferred'    => ['bg' => 'bg-purple-100', 'text' => 'text-purple-700'],
-            'reinvested'  => ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-700'],
-            'cancelled'   => ['bg' => 'bg-red-100',    'text' => 'text-red-700'],
-            'reopened'    => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700'],
-            default       => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
+            'paid'       => ['bg' => 'bg-green-100',  'text' => 'text-green-700'],
+            'partial'    => ['bg' => 'bg-blue-100',   'text' => 'text-blue-700'],
+            'deferred'   => ['bg' => 'bg-purple-100', 'text' => 'text-purple-700'],
+            'reinvested' => ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-700'],
+            'cancelled'  => ['bg' => 'bg-red-100',    'text' => 'text-red-700'],
+            'reopened'   => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700'],
+            default      => ['bg' => 'bg-amber-100',  'text' => 'text-amber-700'],
         };
     }
-
-    public function profitDistribution(): BelongsTo
-    {
-        return $this->belongsTo(ProfitDistribution::class, 'profit_distribution_id');
-    }
-
-    public function paidBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'paid_by')->withTrashed();
-    }
-
-
 }

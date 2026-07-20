@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Gap 4.2 — Product Partner Cost/Profit Split
-- **Next Step:** Gap 1.5 — Investment/Partner Show Page Financial Summary
-- **Last Completed:** Gap 4.1 — Capital Principal Lock + Partial Unlock ✅
+- **Current Step:** Gap 1.5 — Investment/Partner Show Page Financial Summary
+- **Next Step:** (Should Fix items)
+- **Last Completed:** Gap 4.2 — Product Partner Cost/Profit Split ✅
 
 ## Financial Domain Overview
 
@@ -84,13 +84,12 @@ The system is now organized into two independent financial domains:
 | 2.1         | Partner Type ↔ Rule Validation                      | ✅     |
 | 2.5         | Verify Deactivated Partner Guard                    | ✅     |
 | 4.1         | Capital Principal Lock + Partial Unlock             | ✅     |
+| 4.2         | Product Partner Cost/Profit Split                   | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 
 | #   | Item                                           | Notes                                 |
 | --- | ---------------------------------------------- | ------------------------------------- |
-| 4.1 | Capital Principal Lock + Partial Unlock        | Core Capital domain change            |
-| 4.2 | Product Partner Cost/Profit Separate Tracking  | Core Profit domain change             |
 | 1.5 | Investment/Partner Show Page Financial Summary | Depends on 4.1 + 4.2 being done first |
 
 ## Deferred

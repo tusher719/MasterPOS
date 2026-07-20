@@ -63,14 +63,12 @@ function EffectivePeriodCell({ ep }: { ep: EffectivePeriodInfo | null }) {
 
     return (
         <div className="space-y-0.5">
-            {/* Date range — amber when adjusted, normal when full selected period */}
             <p
                 className={`text-xs font-medium ${isAdjusted ? "text-amber-700" : "text-gray-700"}`}
             >
                 {fmtDate(ep.start)} – {fmtDate(ep.end)}
             </p>
 
-            {/* Already Paid badge (Gap 4.4) */}
             {ep.last_paid_info && (
                 <span className="inline-flex items-center rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-600 border border-red-100">
                     Already Paid up to {fmtDate(ep.last_paid_info.paid_up_to)}{" "}
@@ -78,7 +76,6 @@ function EffectivePeriodCell({ ep }: { ep: EffectivePeriodInfo | null }) {
                 </span>
             )}
 
-            {/* Eligibility-only adjustment note */}
             {ep.adjustment_reason && !ep.last_paid_info && (
                 <p className="text-xs text-amber-600">{ep.adjustment_reason}</p>
             )}
@@ -169,7 +166,8 @@ export default function PartnerBasedPreviewTable({
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500 w-6"></th>
+                                    {/* expand toggle */}
+                                    <th className="px-4 py-3 w-6" />
                                     <th className="px-4 py-3 text-left font-medium text-gray-500">
                                         #
                                     </th>
@@ -185,14 +183,17 @@ export default function PartnerBasedPreviewTable({
                                     <th className="px-4 py-3 text-right font-medium text-gray-500">
                                         Share %
                                     </th>
-                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                        Share Amount
+                                    {/* Gap 4.2 — Profit Share column (profit portion only) */}
+                                    <th className="px-4 py-3 text-right font-medium text-indigo-600">
+                                        Profit Share
                                     </th>
-                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                    {/* Gap 4.2 — Cost Return column */}
+                                    <th className="px-4 py-3 text-right font-medium text-green-600">
                                         Cost Return
                                     </th>
-                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                        Total
+                                    {/* Total = profit + cost */}
+                                    <th className="px-4 py-3 text-right font-medium text-gray-600">
+                                        Total Payable
                                     </th>
                                     <th className="px-4 py-3 text-left font-medium text-gray-500">
                                         Settlement
@@ -210,15 +211,29 @@ export default function PartnerBasedPreviewTable({
                                         item.product_breakdown &&
                                         item.product_breakdown.length > 0;
                                     const isExpanded = expanded[i] ?? false;
-                                    const total =
-                                        Number(item.share_amount) +
-                                        Number(item.cost_return_amount);
+
+                                    // Gap 4.2 — use profit_share_amount if available,
+                                    // fall back to share_amount − cost_return_amount
+                                    const profitShare =
+                                        item.profit_share_amount !== undefined
+                                            ? Number(item.profit_share_amount)
+                                            : Number(item.share_amount) -
+                                              Number(
+                                                  item.cost_return_amount ?? 0,
+                                              );
+
+                                    const costReturn = Number(
+                                        item.cost_return_amount ?? 0,
+                                    );
+                                    const totalPayable =
+                                        profitShare + costReturn;
 
                                     return (
                                         <Fragment
                                             key={`partner-row-${item.partner_id}-${i}`}
                                         >
                                             <tr className="hover:bg-gray-50">
+                                                {/* expand toggle */}
                                                 <td className="px-4 py-3">
                                                     {hasBreakdown && (
                                                         <button
@@ -240,9 +255,11 @@ export default function PartnerBasedPreviewTable({
                                                         </button>
                                                     )}
                                                 </td>
+
                                                 <td className="px-4 py-3 text-gray-500">
                                                     {i + 1}
                                                 </td>
+
                                                 <td className="px-4 py-3">
                                                     <p className="font-medium text-gray-800">
                                                         {item.partner_name}
@@ -251,6 +268,7 @@ export default function PartnerBasedPreviewTable({
                                                         {item.partner_code}
                                                     </p>
                                                 </td>
+
                                                 <td className="px-4 py-3">
                                                     <RuleTypeBadge
                                                         ruleType={
@@ -258,7 +276,7 @@ export default function PartnerBasedPreviewTable({
                                                         }
                                                     />
                                                 </td>
-                                                {/* Effective Period (Gap 4.4 + 4.5) */}
+
                                                 <td className="px-4 py-3">
                                                     <EffectivePeriodCell
                                                         ep={
@@ -267,29 +285,35 @@ export default function PartnerBasedPreviewTable({
                                                         }
                                                     />
                                                 </td>
+
                                                 <td className="px-4 py-3 text-right text-gray-700">
                                                     {Number(
                                                         item.share_percent,
                                                     ).toFixed(4)}
                                                     %
                                                 </td>
+
+                                                {/* Profit Share — indigo */}
                                                 <td className="px-4 py-3 text-right font-semibold text-indigo-700">
-                                                    ৳ {fmt(item.share_amount)}
+                                                    ৳ {fmt(profitShare)}
                                                 </td>
+
+                                                {/* Cost Return — green, dash if zero */}
                                                 <td className="px-4 py-3 text-right text-green-700">
-                                                    {Number(
-                                                        item.cost_return_amount,
-                                                    ) > 0 ? (
-                                                        `৳ ${fmt(item.cost_return_amount)}`
+                                                    {costReturn > 0 ? (
+                                                        `৳ ${fmt(costReturn)}`
                                                     ) : (
                                                         <span className="text-gray-300">
                                                             —
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                                                    ৳ {fmt(total)}
+
+                                                {/* Total Payable — bold gray */}
+                                                <td className="px-4 py-3 text-right font-bold text-gray-800">
+                                                    ৳ {fmt(totalPayable)}
                                                 </td>
+
                                                 <td className="px-4 py-3">
                                                     <span className="text-xs text-gray-500 capitalize">
                                                         {item.settlement_type?.replace(
@@ -298,6 +322,7 @@ export default function PartnerBasedPreviewTable({
                                                         ) ?? "—"}
                                                     </span>
                                                 </td>
+
                                                 <td className="px-4 py-3">
                                                     <input
                                                         type="text"
@@ -335,6 +360,7 @@ export default function PartnerBasedPreviewTable({
                                     );
                                 })}
                             </tbody>
+
                             <tfoot className="border-t border-gray-200 bg-gray-50">
                                 <tr>
                                     <td
@@ -343,43 +369,76 @@ export default function PartnerBasedPreviewTable({
                                     >
                                         Total
                                     </td>
+
+                                    {/* Total Profit Share */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-indigo-700">
                                         ৳{" "}
                                         {fmt(
-                                            eligibleItems.reduce(
-                                                (s, i) =>
-                                                    s + Number(i.share_amount),
-                                                0,
-                                            ),
+                                            eligibleItems.reduce((s, item) => {
+                                                const ps =
+                                                    item.profit_share_amount !==
+                                                    undefined
+                                                        ? Number(
+                                                              item.profit_share_amount,
+                                                          )
+                                                        : Number(
+                                                              item.share_amount,
+                                                          ) -
+                                                          Number(
+                                                              item.cost_return_amount ??
+                                                                  0,
+                                                          );
+                                                return s + ps;
+                                            }, 0),
                                         )}
                                     </td>
+
+                                    {/* Total Cost Return */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-green-700">
                                         ৳{" "}
                                         {fmt(
                                             eligibleItems.reduce(
-                                                (s, i) =>
+                                                (s, item) =>
                                                     s +
                                                     Number(
-                                                        i.cost_return_amount,
+                                                        item.cost_return_amount ??
+                                                            0,
                                                     ),
                                                 0,
                                             ),
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-800">
+
+                                    {/* Grand Total Payable */}
+                                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-800">
                                         ৳{" "}
                                         {fmt(
-                                            eligibleItems.reduce(
-                                                (s, i) =>
+                                            eligibleItems.reduce((s, item) => {
+                                                const ps =
+                                                    item.profit_share_amount !==
+                                                    undefined
+                                                        ? Number(
+                                                              item.profit_share_amount,
+                                                          )
+                                                        : Number(
+                                                              item.share_amount,
+                                                          ) -
+                                                          Number(
+                                                              item.cost_return_amount ??
+                                                                  0,
+                                                          );
+                                                return (
                                                     s +
-                                                    Number(i.share_amount) +
+                                                    ps +
                                                     Number(
-                                                        i.cost_return_amount,
-                                                    ),
-                                                0,
-                                            ),
+                                                        item.cost_return_amount ??
+                                                            0,
+                                                    )
+                                                );
+                                            }, 0),
                                         )}
                                     </td>
+
                                     <td colSpan={2} />
                                 </tr>
                             </tfoot>
@@ -414,7 +473,6 @@ export default function PartnerBasedPreviewTable({
                                     <p className="text-xs text-amber-600">
                                         {item.eligibility_reason}
                                     </p>
-                                    {/* Show effective period dates even for ineligible — helps admin understand why */}
                                     {item.effective_period?.start &&
                                         item.effective_period?.end && (
                                             <p className="text-xs text-gray-400 mt-0.5">

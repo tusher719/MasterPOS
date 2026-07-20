@@ -260,8 +260,11 @@ status, is_locked, approved_by, approved_at, distributed_by, distributed_at
 
 id, profit_distribution_id(FK cascade), investment_id(FK restrict nullable), ← nullable in Phase 4H
 investor_name(varchar), investment_title(varchar), investment_type(varchar) — snapshots,
-invested_amount(dec10,2), share_percent(dec8,4), share_amount(dec10,2),
-distribution_percent(dec5,2 default 100), deferred_amount(dec10,2 default 0),
+invested_amount(dec10,2), share_percent(dec8,4),
+share_amount(dec10,2),
+cost_return_amount(dec10,2 nullable default 0), ← **Added in Gap 4.2**
+distribution_percent(dec5,2 default 100),
+deferred_amount(dec10,2 default 0),
 reinvested_amount(dec10,2 default 0),
 carried_from_distribution_id(FK nullable nullOnDelete),
 partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
@@ -344,7 +347,10 @@ investor_name(varchar denormalized),
 partner_id(FK partners nullable nullOnDelete), ← **Added in Phase 4H**
 total_deposited(dec10,2 default 0), total_withdrawn(dec10,2 default 0),
 total_reinvested(dec10,2 default 0), total_adjusted(dec10,2 default 0),
-current_balance(dec10,2 default 0), timestamps
+current_balance(dec10,2 default 0),
+unlocked_amount(dec10,2 default 0), ← **Added in Gap 4.1**
+locked_amount(dec10,2 default 0), ← **Added in Gap 4.1**
+timestamps
 
 ---
 
@@ -388,6 +394,21 @@ created_by(FK users restrict), timestamps
 
 Note: approved_by/approved_at excluded from $fillable — use forceFill()->save() in approval action.
 Note: effective_to is set when a rule is superseded — old rules are NEVER deleted.
+
+### partner_profit_balances
+
+id, partner_id (FK partners restrict UNIQUE),
+total_cost_returned (dec10,2 default 0),
+total_cost_paid (dec10,2 default 0),
+pending_cost_balance (dec10,2 default 0),
+total_profit_earned (dec10,2 default 0),
+total_profit_paid (dec10,2 default 0),
+pending_profit_balance (dec10,2 default 0),
+timestamps
+
+Note: Cost return tracking for product partners only — 0 for capital/working partners.
+Note: Created on first distribution approval via PartnerProfitBalance::findOrCreateForPartner().
+Note: Separate from investor_profit_balances (which requires investment_id UNIQUE).
 
 ### partner_profit_rule_history
 

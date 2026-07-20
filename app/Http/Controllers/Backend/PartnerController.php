@@ -7,6 +7,7 @@ use App\Models\Investment;
 use App\Models\Partner;
 use App\Models\PartnerInvestment;
 use App\Models\PartnerProductAssignment;
+use App\Models\PartnerProfitBalance;
 use App\Models\PartnerProfitEligibility;
 use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
@@ -48,22 +49,22 @@ class PartnerController extends Controller
             })
             ->when($request->filled('type'), function ($q) use ($request) {
                 $type = $request->input('type');
-                if ($type === 'capital')  $q->where('partner_type_capital', true);
-                if ($type === 'working')  $q->where('partner_type_working', true);
-                if ($type === 'product')  $q->where('partner_type_product', true);
+                if ($type === 'capital') $q->where('partner_type_capital', true);
+                if ($type === 'working') $q->where('partner_type_working', true);
+                if ($type === 'product') $q->where('partner_type_product', true);
             })
             ->when($request->filled('status'), function ($q) use ($request) {
                 $status = $request->input('status');
                 if ($status === 'active')   $q->where('is_active', true);
                 if ($status === 'inactive') $q->where('is_active', false);
             })
-            ->when($request->filled('trashed') && $request->input('trashed') === '1', function ($q) {
-                $q->onlyTrashed();
-            });
+            ->when(
+                $request->filled('trashed') && $request->input('trashed') === '1',
+                fn($q) => $q->onlyTrashed()
+            );
 
         $partners = $query->orderBy('name')->paginate(15)->withQueryString();
 
-        // Stats (always from non-trashed)
         $stats = [
             'total'   => Partner::count(),
             'active'  => Partner::where('is_active', true)->count(),
@@ -72,7 +73,6 @@ class PartnerController extends Controller
             'product' => Partner::where('partner_type_product', true)->count(),
         ];
 
-        // Investment options for link modal (unlinked investments only shown on Show page)
         $investmentOptions = Investment::where('status', 'active')
             ->orderBy('title')
             ->get(['id', 'title', 'investor_name', 'amount']);
@@ -95,111 +95,120 @@ class PartnerController extends Controller
     // -------------------------------------------------------------------------
     // Show
     // -------------------------------------------------------------------------
+
     public function show(Partner $partner): Response
-        {
-            abort_unless(Gate::allows('view', $partner), 403);
+    {
+        abort_unless(Gate::allows('view', $partner), 403);
 
-            $partner->load([
-                'investments' => function ($q) {
-                    $q->withTrashed()
-                        ->withPivot('id', 'is_primary', 'note')
-                        ->select('investments.id', 'investments.title', 'investments.investor_name', 'investments.amount', 'investments.status', 'investments.investment_date');
-                },
-                'user:id,name,email',
-                'createdBy:id,name',
-                'updatedBy:id,name',
-            ]);
+        $partner->load([
+            'investments' => function ($q) {
+                $q->withTrashed()
+                    ->withPivot('id', 'is_primary', 'note')
+                    ->select(
+                        'investments.id',
+                        'investments.title',
+                        'investments.investor_name',
+                        'investments.amount',
+                        'investments.status',
+                        'investments.investment_date'
+                    );
+            },
+            'user:id,name,email',
+            'createdBy:id,name',
+            'updatedBy:id,name',
+            // Gap 4.2 — load profit balance (null if no distributions approved yet)
+            'profitBalance',
+        ]);
 
-            // Investment options not already linked to this partner
-            $linkedIds = $partner->investments->pluck('id')->toArray();
+        $linkedIds = $partner->investments->pluck('id')->toArray();
 
-            $investmentOptions = Investment::where('status', 'active')
-                ->when(!empty($linkedIds), fn($q) => $q->whereNotIn('id', $linkedIds))
-                ->orderBy('title')
-                ->get(['id', 'title', 'investor_name', 'amount']);
+        $investmentOptions = Investment::where('status', 'active')
+            ->when(!empty($linkedIds), fn($q) => $q->whereNotIn('id', $linkedIds))
+            ->orderBy('title')
+            ->get(['id', 'title', 'investor_name', 'amount']);
 
-            // Profit rules — all versions, with history and user relations
-            $profitRules = $partner->profitRules()
-                ->with([
-                    'history' => fn($q) => $q->with(['changedBy:id,name,deleted_at']),
-                    'approvedBy:id,name,deleted_at',
-                    'createdBy:id,name,deleted_at',
-                ])
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->each(fn($rule) => $rule->append(['is_pending', 'is_approved', 'is_currently_active']));
+        $profitRules = $partner->profitRules()
+            ->with([
+                'history' => fn($q) => $q->with(['changedBy:id,name,deleted_at']),
+                'approvedBy:id,name,deleted_at',
+                'createdBy:id,name,deleted_at',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->each(fn($rule) => $rule->append(['is_pending', 'is_approved', 'is_currently_active']));
 
-            // Eligibility records — full history, newest first
-            $eligibilities = $partner->eligibilities()
-                ->with([
-                    'creator:id,name,deleted_at',
-                    'pausedBy:id,name,deleted_at',
-                    'resumedBy:id,name,deleted_at',
-                ])
-                ->orderBy('profit_start_date', 'desc')
-                ->get();
+        $eligibilities = $partner->eligibilities()
+            ->with([
+                'creator:id,name,deleted_at',
+                'pausedBy:id,name,deleted_at',
+                'resumedBy:id,name,deleted_at',
+            ])
+            ->orderBy('profit_start_date', 'desc')
+            ->get();
 
-            $settlementConfigs = $partner->settlementConfigs()
-                ->with(['createdBy:id,name,deleted_at'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+        $settlementConfigs = $partner->settlementConfigs()
+            ->with(['createdBy:id,name,deleted_at'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-            $productAssignments = $partner->productAssignments()
-                ->with([
-                    'product:id,name,sku',
-                    'createdBy:id,name,deleted_at',
-                    'approvedBy:id,name,deleted_at',
-                ])
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->each(fn($a) => $a->append(['is_pending', 'is_approved', 'is_currently_active']));
+        $productAssignments = $partner->productAssignments()
+            ->with([
+                'product:id,name,sku',
+                'createdBy:id,name,deleted_at',
+                'approvedBy:id,name,deleted_at',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->each(fn($a) => $a->append(['is_pending', 'is_approved', 'is_currently_active']));
 
-            $products = Product::select('id', 'name', 'sku')
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get();
+        $products = Product::select('id', 'name', 'sku')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
 
-            return Inertia::render('Backend/Partners/Show', [
-                'partner'           => $partner,
-                'investmentOptions' => $investmentOptions,
-                'profitRules'       => $profitRules,
-                'eligibilities'     => $eligibilities,
-                'settlementConfigs' => $settlementConfigs,
-                'productAssignments'  => $productAssignments,
-                'products'            => $products,
-                'can'               => [
-                    'edit'        => Gate::allows('update', $partner),
-                    'delete'      => Gate::allows('delete', $partner),
-                    'restore'     => Gate::allows('restore', Partner::class),
-                    'forceDelete' => Auth::user()->hasRole('Super Admin'),
-                ],
-                'profitRuleCan' => [
-                    'view'    => Gate::allows('viewAny', PartnerProfitRule::class),
-                    'create'  => Gate::allows('create', PartnerProfitRule::class),
-                    'edit'    => Gate::allows('edit', PartnerProfitRule::class),
-                    'approve' => Gate::allows('approve', PartnerProfitRule::class),
-                ],
-                'eligibilityCan' => [
-                    'view'   => Gate::allows('viewAny', PartnerProfitEligibility::class),
-                    'create' => Gate::allows('create', PartnerProfitEligibility::class),
-                    'pause'  => Gate::allows('pause', PartnerProfitEligibility::class),
-                    'resume' => Gate::allows('resume', PartnerProfitEligibility::class),
-                ],
-                'settlementConfigCan' => [                          // ← ADD
-                    'view'   => Gate::allows('viewAny', PartnerSettlementConfig::class),
-                    'create' => Gate::allows('create', PartnerSettlementConfig::class),
-                    'edit'   => Gate::allows('edit', PartnerSettlementConfig::class),
-                    'approve'   => Gate::allows('approve', PartnerSettlementConfig::class),
-                    'delete' => Gate::allows('delete', PartnerSettlementConfig::class),
-                ],
-                'assignmentCan' => [
-                    'view'    => Gate::allows('viewAny', PartnerProductAssignment::class),
-                    'create'  => Gate::allows('create', PartnerProductAssignment::class),
-                    'edit'    => Gate::allows('edit', PartnerProductAssignment::class),
-                    'approve' => Gate::allows('approve', PartnerProductAssignment::class),
-                ],
-            ]);
-        }
+        return Inertia::render('Backend/Partners/Show', [
+            'partner'            => $partner,
+            'investmentOptions'  => $investmentOptions,
+            'profitRules'        => $profitRules,
+            'eligibilities'      => $eligibilities,
+            'settlementConfigs'  => $settlementConfigs,
+            'productAssignments' => $productAssignments,
+            'products'           => $products,
+            // Gap 4.2 — cost/profit balance split for this partner
+            'profitBalance'      => $partner->profitBalance,
+            'can'                => [
+                'edit'        => Gate::allows('update', $partner),
+                'delete'      => Gate::allows('delete', $partner),
+                'restore'     => Gate::allows('restore', Partner::class),
+                'forceDelete' => Auth::user()->hasRole('Super Admin'),
+            ],
+            'profitRuleCan' => [
+                'view'    => Gate::allows('viewAny', PartnerProfitRule::class),
+                'create'  => Gate::allows('create', PartnerProfitRule::class),
+                'edit'    => Gate::allows('edit', PartnerProfitRule::class),
+                'approve' => Gate::allows('approve', PartnerProfitRule::class),
+            ],
+            'eligibilityCan' => [
+                'view'   => Gate::allows('viewAny', PartnerProfitEligibility::class),
+                'create' => Gate::allows('create', PartnerProfitEligibility::class),
+                'pause'  => Gate::allows('pause', PartnerProfitEligibility::class),
+                'resume' => Gate::allows('resume', PartnerProfitEligibility::class),
+            ],
+            'settlementConfigCan' => [
+                'view'    => Gate::allows('viewAny', PartnerSettlementConfig::class),
+                'create'  => Gate::allows('create', PartnerSettlementConfig::class),
+                'edit'    => Gate::allows('edit', PartnerSettlementConfig::class),
+                'approve' => Gate::allows('approve', PartnerSettlementConfig::class),
+                'delete'  => Gate::allows('delete', PartnerSettlementConfig::class),
+            ],
+            'assignmentCan' => [
+                'view'    => Gate::allows('viewAny', PartnerProductAssignment::class),
+                'create'  => Gate::allows('create', PartnerProductAssignment::class),
+                'edit'    => Gate::allows('edit', PartnerProductAssignment::class),
+                'approve' => Gate::allows('approve', PartnerProductAssignment::class),
+            ],
+        ]);
+    }
 
     // -------------------------------------------------------------------------
     // Store
@@ -328,8 +337,6 @@ class PartnerController extends Controller
         $partner = Partner::onlyTrashed()->findOrFail($id);
 
         DB::transaction(function () use ($partner) {
-            // Delete related records before force delete
-            // Phase 4B+ tables (profit rules, eligibilities, assignments) added here later
             $partner->partnerInvestments()->delete();
             $partner->forceDelete();
         });
@@ -362,8 +369,8 @@ class PartnerController extends Controller
         $ids    = $request->input('ids');
 
         match ($action) {
-            'delete' => $this->bulkDelete($ids),
-            'restore' => $this->bulkRestore($ids),
+            'delete'       => $this->bulkDelete($ids),
+            'restore'      => $this->bulkRestore($ids),
             'force_delete' => $this->bulkForceDelete($ids),
         };
 
@@ -373,7 +380,8 @@ class PartnerController extends Controller
             'force_delete' => 'permanently deleted',
         };
 
-        return redirect()->back()->with('success', count($ids) . " partner(s) {$label} successfully.");
+        return redirect()->back()
+            ->with('success', count($ids) . " partner(s) {$label} successfully.");
     }
 
     private function bulkDelete(array $ids): void
@@ -420,7 +428,6 @@ class PartnerController extends Controller
 
         DB::transaction(function () use ($partners) {
             foreach ($partners as $partner) {
-                // Phase 4B+ tables added here later
                 $partner->partnerInvestments()->delete();
                 $partner->forceDelete();
 
@@ -449,16 +456,15 @@ class PartnerController extends Controller
             'note'          => 'nullable|string|max:500',
         ]);
 
-        // Prevent duplicate link
         $alreadyLinked = PartnerInvestment::where('partner_id', $partner->id)
             ->where('investment_id', $validated['investment_id'])
             ->exists();
 
         if ($alreadyLinked) {
-            return redirect()->back()->with('error', 'This investment is already linked to this partner.');
+            return redirect()->back()
+                ->with('error', 'This investment is already linked to this partner.');
         }
 
-        // If this is set as primary, unset others
         if (!empty($validated['is_primary'])) {
             PartnerInvestment::where('partner_id', $partner->id)
                 ->update(['is_primary' => false]);
@@ -486,8 +492,10 @@ class PartnerController extends Controller
     // Unlink Investment
     // -------------------------------------------------------------------------
 
-    public function unlinkInvestment(Partner $partner, PartnerInvestment $partnerInvestment): RedirectResponse
-    {
+    public function unlinkInvestment(
+        Partner $partner,
+        PartnerInvestment $partnerInvestment
+    ): RedirectResponse {
         abort_unless(Gate::allows('update', $partner), 403);
 
         $partnerInvestment->delete();

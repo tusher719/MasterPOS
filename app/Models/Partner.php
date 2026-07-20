@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
 use App\Models\PartnerProductAssignment;
@@ -97,6 +98,30 @@ class Partner extends Model
         return $this->hasMany(PartnerProfitEligibility::class);
     }
 
+    public function profitRules(): HasMany
+    {
+        return $this->hasMany(PartnerProfitRule::class);
+    }
+
+    public function settlementConfigs(): HasMany
+    {
+        return $this->hasMany(PartnerSettlementConfig::class);
+    }
+
+    public function productAssignments(): HasMany
+    {
+        return $this->hasMany(PartnerProductAssignment::class);
+    }
+
+    /**
+     * Partner's profit balance ledger (cost return + profit share tracked separately).
+     * Created on first distribution approval via PartnerProfitBalance::findOrCreateForPartner().
+     */
+    public function profitBalance(): HasOne
+    {
+        return $this->hasOne(PartnerProfitBalance::class);
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
@@ -118,21 +143,4 @@ class Partner extends Model
             || $this->partner_type_working
             || $this->partner_type_product;
     }
-
-    public function profitRules(): HasMany
-    {
-        return $this->hasMany(PartnerProfitRule::class);
-    }
-
-    // Settlement Configs
-    public function settlementConfigs(): HasMany
-    {
-        return $this->hasMany(PartnerSettlementConfig::class);
-    }
-
-    public function productAssignments(): HasMany
-    {
-        return $this->hasMany(PartnerProductAssignment::class);
-    }
-
 }
