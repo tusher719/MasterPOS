@@ -7,6 +7,11 @@ use App\Http\Requests\Backend\StoreInvestmentRequest;
 use App\Http\Requests\Backend\UpdateInvestmentRequest;
 use App\Models\Investment;
 use App\Models\InvestmentType;
+use App\Models\InvestorCapitalBalance;
+use App\Models\InvestorProfitBalance;
+use App\Models\CapitalLedgerEntry;
+use App\Models\PartnerProfitBalance;
+use App\Models\ProfitDistributionItem;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,14 +66,11 @@ class InvestmentController extends Controller
 
         $investments = $query->paginate(15)->withQueryString();
 
-        // Append the attachment_url accessor so the edit modal can preview
-        // the existing file — without this, JSON serialization drops it.
         $investments->getCollection()->each(function ($investment) {
             $investment->append(['attachment_url']);
         });
 
-        $stats = $this->getStats();
-
+        $stats           = $this->getStats();
         $investmentTypes = InvestmentType::orderBy('name')->get(['id', 'name']);
 
         $can = [
@@ -90,7 +92,6 @@ class InvestmentController extends Controller
         ]);
     }
 
-
     // -------------------------------------------------------------------------
     // Store
     // -------------------------------------------------------------------------
@@ -99,7 +100,7 @@ class InvestmentController extends Controller
     {
         abort_unless(Gate::allows('investment.create'), 403);
 
-        $data = $request->validated();
+        $data               = $request->validated();
         $data['created_by'] = Auth::id();
 
         if ($request->hasFile('attachment')) {
@@ -129,8 +130,51 @@ class InvestmentController extends Controller
         abort_unless(Gate::allows('investment.view'), 403);
 
         $investment = Investment::withTrashed()
-            ->with(['investmentType', 'creator', 'updater'])
+            ->with([
+                'investmentType',
+                'creator',
+                'updater',
+                // Load linked partner with its profit balance (Gap 1.5 — optional card)
+                'partner.profitBalance',
+            ])
             ->findOrFail($id);
+
+        // ── Capital Balance ────────────────────────────────────────────────────
+        $capitalBalance = InvestorCapitalBalance::where('investment_id', $id)->first();
+
+        if ($capitalBalance) {
+            // Recompute lock status from live sales on every page load (Gap 4.1 pattern)
+            $capitalBalance->computeAndSaveUnlockStatus(
+                $investment->investment_date
+            );
+            $capitalBalance->refresh();
+        }
+
+        // ── Profit Balance (investment-based distributions only) ───────────────
+        $profitBalance = InvestorProfitBalance::where('investment_id', $id)->first();
+
+        // ── Recent Capital Ledger Entries (last 5) ────────────────────────────
+        $recentCapitalEntries = CapitalLedgerEntry::where('investment_id', $id)
+            ->whereIn('status', ['completed', 'approved'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get(['id', 'transaction_type', 'direction', 'amount',
+                   'running_balance', 'reference_no', 'status', 'created_at']);
+
+        // ── Recent Profit Distribution Payments (last 5, investment-based) ────
+        $recentProfitItems = ProfitDistributionItem::where('investment_id', $id)
+            ->whereNotIn('payment_status', ['pending', 'cancelled'])
+            ->with(['profitDistribution:id,distribution_no,period_start,period_end,status'])
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get(['id', 'profit_distribution_id', 'share_percent',
+                   'share_amount', 'payment_status', 'updated_at']);
+
+        // ── Partner Profit Balance (if investment is linked to a partner) ──────
+        $partnerProfitBalance = null;
+        if ($investment->partner_id && $investment->partner) {
+            $partnerProfitBalance = $investment->partner->profitBalance;
+        }
 
         $can = [
             'edit'    => Gate::allows('investment.edit'),
@@ -144,9 +188,14 @@ class InvestmentController extends Controller
                 'is_attachment_image'  => $investment->isAttachmentImage(),
                 'attachment_extension' => $investment->attachment_extension,
             ]),
-            // Needed so the edit modal (opened from Show) has the type dropdown options.
-            'investmentTypes' => InvestmentType::orderBy('name')->get(['id', 'name']),
-            'can' => $can,
+            'investmentTypes'      => InvestmentType::orderBy('name')->get(['id', 'name']),
+            // Gap 1.5 — Financial Summary data
+            'capitalBalance'       => $capitalBalance,
+            'profitBalance'        => $profitBalance,
+            'recentCapitalEntries' => $recentCapitalEntries,
+            'recentProfitItems'    => $recentProfitItems,
+            'partnerProfitBalance' => $partnerProfitBalance,
+            'can'                  => $can,
         ]);
     }
 
@@ -158,12 +207,11 @@ class InvestmentController extends Controller
     {
         abort_unless(Gate::allows('investment.edit'), 403);
 
-        $investment = Investment::findOrFail($id);
-        $data = $request->validated();
+        $investment         = Investment::findOrFail($id);
+        $data               = $request->validated();
         $data['updated_by'] = Auth::id();
 
         if ($request->hasFile('attachment')) {
-            // Delete old attachment if exists
             if ($investment->attachment) {
                 Storage::disk('public')->delete($investment->attachment);
             }
@@ -241,37 +289,25 @@ class InvestmentController extends Controller
         $base = Investment::query();
 
         return [
-            'today'             => (clone $base)
-                                    ->whereDate('investment_date', today())
-                                    ->sum('amount'),
-            'this_week'         => (clone $base)
-                                    ->whereBetween('investment_date', [
-                                        now()->startOfWeek(),
-                                        now()->endOfWeek(),
-                                    ])
-                                    ->sum('amount'),
-            'this_month'        => (clone $base)
-                                    ->whereMonth('investment_date', now()->month)
-                                    ->whereYear('investment_date', now()->year)
-                                    ->sum('amount'),
-            'total_active'      => (clone $base)
-                                    ->where('status', 'active')
-                                    ->sum('amount'),
-            'total_withdrawn'   => (clone $base)
-                                    ->where('status', 'withdrawn')
-                                    ->sum('amount'),
+            'today' => (clone $base)
+                ->whereDate('investment_date', today())
+                ->sum('amount'),
+            'this_week' => (clone $base)
+                ->whereBetween('investment_date', [
+                    now()->startOfWeek(),
+                    now()->endOfWeek(),
+                ])
+                ->sum('amount'),
+            'this_month' => (clone $base)
+                ->whereMonth('investment_date', now()->month)
+                ->whereYear('investment_date', now()->year)
+                ->sum('amount'),
+            'total_active' => (clone $base)
+                ->where('status', 'active')
+                ->sum('amount'),
+            'total_withdrawn' => (clone $base)
+                ->where('status', 'withdrawn')
+                ->sum('amount'),
         ];
     }
-
-    // -------------------------------------------------------------------------
-    // TODO Step 16: Export support
-    // public function export(Request $request, string $format): Response
-    // {
-    //     abort_unless(Auth::user()->hasPermissionTo('investment.view'), 403);
-    //     // $format: 'csv' | 'excel' | 'pdf'
-    //     // Reuse same filter logic as index() query builder
-    //     // CSV/Excel: use maatwebsite/excel
-    //     // PDF:       use barryvdh/laravel-dompdf
-    // }
-    // -------------------------------------------------------------------------
 }

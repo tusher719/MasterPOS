@@ -12,6 +12,7 @@ use App\Models\PartnerProfitEligibility;
 use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
 use App\Models\Product;
+use App\Models\ProfitDistributionItem;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -116,7 +117,6 @@ class PartnerController extends Controller
             'user:id,name,email',
             'createdBy:id,name',
             'updatedBy:id,name',
-            // Gap 4.2 — load profit balance (null if no distributions approved yet)
             'profitBalance',
         ]);
 
@@ -166,6 +166,22 @@ class PartnerController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Gap 1.5 — recent profit distribution payments for this partner (last 5)
+        $recentProfitItems = ProfitDistributionItem::where('partner_id', $partner->id)
+            ->whereNotIn('payment_status', ['pending', 'cancelled'])
+            ->with(['profitDistribution:id,distribution_no,period_start,period_end,status'])
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get([
+                'id',
+                'profit_distribution_id',
+                'share_percent',
+                'share_amount',
+                'cost_return_amount',
+                'payment_status',
+                'updated_at',
+            ]);
+
         return Inertia::render('Backend/Partners/Show', [
             'partner'            => $partner,
             'investmentOptions'  => $investmentOptions,
@@ -176,6 +192,8 @@ class PartnerController extends Controller
             'products'           => $products,
             // Gap 4.2 — cost/profit balance split for this partner
             'profitBalance'      => $partner->profitBalance,
+            // Gap 1.5 — recent profit payment history
+            'recentProfitItems'  => $recentProfitItems,
             'can'                => [
                 'edit'        => Gate::allows('update', $partner),
                 'delete'      => Gate::allows('delete', $partner),

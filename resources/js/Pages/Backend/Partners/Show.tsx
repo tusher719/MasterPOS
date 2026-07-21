@@ -1,14 +1,15 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { PartnerShowProps } from "@/types/partner";
+import { PartnerProfitBalance, PartnerShowProps } from "@/types/partner";
 import {
     PARTNER_STATUS_COLORS,
     PARTNER_TYPE_COLORS,
     PARTNER_TYPE_LABELS,
     getPartnerTypes,
 } from "@/types/partner-colors";
-import { Head, router } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import {
     ArrowLeft,
+    ArrowRight,
     Calendar,
     FileText,
     Mail,
@@ -18,6 +19,7 @@ import {
     RotateCcw,
     ShieldAlert,
     Trash2,
+    TrendingUp,
     User,
 } from "lucide-react";
 import { useState } from "react";
@@ -31,6 +33,295 @@ import ProductAssignmentsPanel from "./_components/ProductAssignmentsPanel";
 import ProfitRulesPanel from "./_components/ProfitRulesPanel";
 import SettlementConfigPanel from "./_components/SettlementConfigPanel";
 
+// ─── Extra types for Gap 1.5 ──────────────────────────────────────────────────
+
+interface RecentProfitItem {
+    id: number;
+    profit_distribution_id: number;
+    share_percent: string;
+    share_amount: string;
+    cost_return_amount: string | null;
+    payment_status: string;
+    updated_at: string;
+    profit_distribution: {
+        id: number;
+        distribution_no: string;
+        period_start: string;
+        period_end: string;
+        status: string;
+    } | null;
+}
+
+// ─── Extended Props ───────────────────────────────────────────────────────────
+
+interface ExtendedShowProps extends PartnerShowProps {
+    recentProfitItems: RecentProfitItem[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return "—";
+    return Number(value).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+}
+
+function fmtShortDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+}
+
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+    paid: "bg-green-100 text-green-700",
+    partial: "bg-blue-100 text-blue-700",
+    deferred: "bg-purple-100 text-purple-700",
+    reinvested: "bg-indigo-100 text-indigo-700",
+    cancelled: "bg-red-100 text-red-700",
+    reopened: "bg-yellow-100 text-yellow-700",
+    pending: "bg-amber-100 text-amber-700",
+};
+
+// ─── Profit Balance Card ──────────────────────────────────────────────────────
+
+function StatBox({
+    label,
+    value,
+    color = "text-gray-800",
+}: {
+    label: string;
+    value: string | number | null;
+    color?: string;
+}) {
+    return (
+        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">{label}</p>
+            <p className={`mt-1 text-sm font-semibold ${color}`}>
+                ৳ {fmt(value)}
+            </p>
+        </div>
+    );
+}
+
+function ProfitBalanceCard({ balance }: { balance: PartnerProfitBalance }) {
+    const totalPending =
+        Number(balance.pending_cost_balance) +
+        Number(balance.pending_profit_balance);
+
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-indigo-600" />
+                    <h2 className="text-sm font-semibold text-gray-700">
+                        Profit Balance
+                    </h2>
+                </div>
+                {totalPending > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                        ৳ {fmt(totalPending)} pending
+                    </span>
+                )}
+            </div>
+            <div className="p-5 space-y-4">
+                {/* Cost Return */}
+                <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Cost Return
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                        <StatBox
+                            label="Total Accrued"
+                            value={balance.total_cost_returned}
+                            color="text-green-700"
+                        />
+                        <StatBox
+                            label="Total Paid"
+                            value={balance.total_cost_paid}
+                            color="text-indigo-700"
+                        />
+                        <StatBox
+                            label="Pending"
+                            value={balance.pending_cost_balance}
+                            color="text-amber-700"
+                        />
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-100" />
+
+                {/* Profit Share */}
+                <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Profit Share
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                        <StatBox
+                            label="Total Earned"
+                            value={balance.total_profit_earned}
+                            color="text-green-700"
+                        />
+                        <StatBox
+                            label="Total Paid"
+                            value={balance.total_profit_paid}
+                            color="text-indigo-700"
+                        />
+                        <StatBox
+                            label="Pending"
+                            value={balance.pending_profit_balance}
+                            color="text-amber-700"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Recent Profit Payments Card ──────────────────────────────────────────────
+
+function RecentProfitPaymentsCard({
+    items,
+    partnerId,
+}: {
+    items: RecentProfitItem[];
+    partnerId: number;
+}) {
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-indigo-600" />
+                    <h2 className="text-sm font-semibold text-gray-700">
+                        Recent Profit Payments
+                    </h2>
+                </div>
+                <Link
+                    href={route("backend.profit-distributions.index")}
+                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+                >
+                    View All <ArrowRight className="h-3 w-3" />
+                </Link>
+            </div>
+            <div className="p-5">
+                {items.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="border-b border-gray-100 bg-gray-50">
+                                <tr>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                        Distribution
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                        Period
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-indigo-600">
+                                        Profit Share
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-green-600">
+                                        Cost Return
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                                        Status
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {items.map((item) => {
+                                    const costReturn = Number(
+                                        item.cost_return_amount ?? 0,
+                                    );
+                                    const profitShare =
+                                        Number(item.share_amount) - costReturn;
+
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            className="hover:bg-gray-50"
+                                        >
+                                            <td className="px-3 py-2">
+                                                {item.profit_distribution ? (
+                                                    <Link
+                                                        href={route(
+                                                            "backend.profit-distributions.show",
+                                                            item
+                                                                .profit_distribution
+                                                                .id,
+                                                        )}
+                                                        className="text-xs font-medium font-mono text-indigo-600 hover:underline"
+                                                    >
+                                                        {
+                                                            item
+                                                                .profit_distribution
+                                                                .distribution_no
+                                                        }
+                                                    </Link>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-xs text-gray-500">
+                                                {item.profit_distribution ? (
+                                                    <>
+                                                        {fmtShortDate(
+                                                            item
+                                                                .profit_distribution
+                                                                .period_start,
+                                                        )}
+                                                        {" → "}
+                                                        {fmtShortDate(
+                                                            item
+                                                                .profit_distribution
+                                                                .period_end,
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    "—"
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-right text-xs font-semibold text-indigo-700">
+                                                ৳ {fmt(profitShare)}
+                                            </td>
+                                            <td className="px-3 py-2 text-right text-xs text-green-700">
+                                                {costReturn > 0 ? (
+                                                    `৳ ${fmt(costReturn)}`
+                                                ) : (
+                                                    <span className="text-gray-300">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                <span
+                                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PAYMENT_STATUS_COLORS[item.payment_status] ?? "bg-gray-100 text-gray-600"}`}
+                                                >
+                                                    {item.payment_status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-400">
+                        No profit payments recorded for this partner yet.
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function Show({
     partner,
     investmentOptions,
@@ -39,12 +330,14 @@ export default function Show({
     settlementConfigs,
     productAssignments,
     products,
+    profitBalance,
+    recentProfitItems,
     can,
     profitRuleCan,
     eligibilityCan,
     settlementConfigCan,
     assignmentCan,
-}: PartnerShowProps) {
+}: ExtendedShowProps) {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
 
@@ -158,7 +451,6 @@ export default function Show({
                                     </span>
                                 )}
                             </div>
-                            {/* Type badges */}
                             <div className="mt-1.5 flex flex-wrap gap-1">
                                 {activeTypes.map((type) => (
                                     <span
@@ -177,7 +469,6 @@ export default function Show({
                         </div>
                     </div>
 
-                    {/* Action buttons */}
                     <div className="flex items-center gap-2">
                         {!partner.deleted_at && can.edit && (
                             <button
@@ -237,7 +528,6 @@ export default function Show({
                             </div>
                             <div className="p-5 space-y-4">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    {/* Phone */}
                                     <div className="flex items-start gap-3">
                                         <Phone className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
                                         <div>
@@ -254,7 +544,6 @@ export default function Show({
                                         </div>
                                     </div>
 
-                                    {/* Email */}
                                     <div className="flex items-start gap-3">
                                         <Mail className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
                                         <div>
@@ -278,7 +567,6 @@ export default function Show({
                                         </div>
                                     </div>
 
-                                    {/* Address */}
                                     <div className="flex items-start gap-3 sm:col-span-2">
                                         <MapPin className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
                                         <div>
@@ -295,7 +583,6 @@ export default function Show({
                                         </div>
                                     </div>
 
-                                    {/* Linked User */}
                                     {partner.user && (
                                         <div className="flex items-start gap-3 sm:col-span-2">
                                             <User className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
@@ -318,7 +605,6 @@ export default function Show({
                                     )}
                                 </div>
 
-                                {/* Note */}
                                 {partner.note && (
                                     <div className="flex items-start gap-3 border-t border-gray-100 pt-4">
                                         <FileText className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
@@ -334,31 +620,60 @@ export default function Show({
                                 )}
                             </div>
                         </div>
-                        {/* Linked Investments Card */}
+
+                        {/* Gap 1.5 — Profit Balance Card */}
+                        {profitBalance ? (
+                            <ProfitBalanceCard balance={profitBalance} />
+                        ) : (
+                            <div className="rounded-lg border border-gray-200 bg-white p-5">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <TrendingUp className="h-4 w-4 text-gray-400" />
+                                    <h2 className="text-sm font-semibold text-gray-700">
+                                        Profit Balance
+                                    </h2>
+                                </div>
+                                <p className="text-sm text-gray-400">
+                                    No profit distributions approved for this
+                                    partner yet.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Gap 1.5 — Recent Profit Payments */}
+                        <RecentProfitPaymentsCard
+                            items={recentProfitItems}
+                            partnerId={partner.id}
+                        />
+
+                        {/* Linked Investments */}
                         <LinkedInvestmentsCard
                             partner={partner}
                             canEdit={can.edit && !partner.deleted_at}
                             onLinkClick={() => setShowLinkModal(true)}
                         />
+
                         {/* Profit Rules Panel */}
                         <ProfitRulesPanel
                             partner={partner}
                             profitRules={profitRules}
                             can={profitRuleCan}
                         />
-                        {/* Profit Eligibility Panel */}
+
+                        {/* Eligibility Panel */}
                         <EligibilityPanel
                             partner={partner}
                             eligibilities={eligibilities}
                             can={eligibilityCan}
                         />
+
                         {/* Settlement Config Panel */}
                         <SettlementConfigPanel
                             partner={partner}
                             settlementConfigs={settlementConfigs}
                             can={settlementConfigCan}
                         />
-                        {/* Product Assignments Panel */} {/* ← add এটা */}
+
+                        {/* Product Assignments Panel */}
                         <ProductAssignmentsPanel
                             partnerId={partner.id}
                             assignments={productAssignments}

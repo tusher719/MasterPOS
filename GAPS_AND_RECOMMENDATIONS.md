@@ -481,7 +481,7 @@ them together, not separately)
 | 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | ✅ Done (guard already existed) | No             |
 | 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | ✅ Done                         | Yes            |
 | 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | ✅ Done                         | Yes            |
-| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | Pending                         | No             |
+| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | ✅ Done                         | No             |
 | 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
 | 1.2       | Investor Statement — Partner support                   | Should Fix   | Pending                         | No             |
 | 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending                         | No (doc only)  |
@@ -524,3 +524,17 @@ be implemented all at once. Confirmed order for the "Must Fix" items:
   (prop) instead of `form.source_type` (state) in handleRecalculate() axios params.
 - Edit.tsx date input migration to AppDateInput/AppDateRangeInput: pending next session.
 - Show.tsx tfoot: `invested_amount` column conditionally rendered for investment_based only.
+
+**Post-implementation note (Gap 1.5):**
+
+- InvestmentController::show() updated — loads capitalBalance (with lock recompute),
+  profitBalance, recentCapitalEntries (last 5), recentProfitItems (last 5),
+  partnerProfitBalance (if investment.partner_id exists)
+- Investment Show page now shows: Capital Summary with lock progress bar,
+  Profit Summary, Partner Profit Balance card (optional), Recent Capital
+  Transactions table, Recent Profit Payments table
+- PartnerController::show() updated — loads recentProfitItems (last 5, partner_id keyed)
+- Partner Show page now shows: Profit Balance card (cost return + profit share split),
+  Recent Profit Payments table
+- Investment date picker migrated from Mantine DatePickerInput to AppDateInput
+- No new migrations required — all data from existing tables

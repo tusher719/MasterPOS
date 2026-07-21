@@ -2,6 +2,63 @@
 
 ---
 
+## [v2.17 — Gap 1.5] — Investment/Partner Show Page Financial Summary — 2026-07-21
+
+### New Files (0)
+
+No new files — all data pulled from existing tables and services.
+
+### Updated Files (4)
+
+- `InvestmentController.php` (show method):
+    - Loads InvestorCapitalBalance + computeAndSaveUnlockStatus() on every page load
+    - Loads InvestorProfitBalance (investment-based profit history)
+    - Loads CapitalLedgerEntry last 5 (completed/approved only)
+    - Loads ProfitDistributionItem last 5 (non-pending, non-cancelled)
+    - Loads partner.profitBalance if investment.partner_id exists
+    - All 5 new props passed to Inertia render
+
+- `Investments/Show.tsx` (full update):
+    - Investment date picker migrated from Mantine DatePickerInput → AppDateInput
+    - Capital Summary card: total_deposited/withdrawn/reinvested/current_balance
+    - Principal Lock Status: progress bar + Unlocked/Locked/Available stat boxes
+    - Profit Summary card: total_earned/paid/deferred/reinvested/pending_balance
+    - Partner Profit Balance card (shown only when investment.partner_id exists):
+      cost return section + profit share section, each with accrued/paid/pending
+    - Recent Capital Transactions table (last 5) with "View Ledger" link
+    - Recent Profit Payments table (last 5) with distribution links
+    - Linked Partner row in Investment Information (links to Partner Show page)
+    - Quick Actions sidebar: Capital Ledger + Full Statement buttons added
+
+- `PartnerController.php` (show method):
+    - ProfitDistributionItem import added
+    - recentProfitItems query added (last 5, partner_id keyed,
+      non-pending/non-cancelled, with profitDistribution eager load)
+    - recentProfitItems prop passed to Inertia render
+
+- `Partners/Show.tsx` (updated):
+    - RecentProfitItem interface added
+    - ExtendedShowProps extends PartnerShowProps with recentProfitItems
+    - StatBox helper component added
+    - ProfitBalanceCard component: cost return + profit share sections,
+      pending total badge in header
+    - RecentProfitPaymentsCard component: profit share + cost return columns,
+      distribution links, payment status badges
+    - Both new cards placed in main col (lg:col-span-2), above LinkedInvestmentsCard
+
+### Business Rules Established
+
+- Investment Show page is the single complete financial picture for an investor —
+  admin never needs to leave this page to answer capital or profit questions
+- Partner Show page profit balance shows cost return and profit share separately —
+  consistent with Gap 4.2 tracking model
+- Capital lock status recomputed from live sales on every Investment Show page load
+  (same pattern as Capital Ledger Show page — no stale data)
+- Recent entries capped at 5 — "View All" links point to Capital Ledger /
+  Investor Statement pages for full history
+
+---
+
 ## [v2.16 — Gap 4.2] — Product Partner Cost/Profit Split — 2026-07-20
 
 ### New Migrations (2)
