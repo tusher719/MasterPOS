@@ -141,11 +141,15 @@ export default function InvestorStatementShow({ statement, can }: Props) {
                     </div>
                 </div>
 
-                {/* Capital + Profit Summary Cards — side by side */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <CapitalSummaryCard summary={capital_summary} />
+                {/* Capital + Profit Summary Cards */}
+                {capital_summary.total_deposited > 0 ? (
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <CapitalSummaryCard summary={capital_summary} />
+                        <ProfitSummaryCard summary={profit_summary} />
+                    </div>
+                ) : (
                     <ProfitSummaryCard summary={profit_summary} />
-                </div>
+                )}
 
                 {/* Distribution History */}
                 <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -161,19 +165,21 @@ export default function InvestorStatementShow({ statement, can }: Props) {
                     <DistributionHistoryTable rows={distribution_history} />
                 </div>
 
-                {/* Capital Transaction History */}
-                <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                    <div className="border-b border-gray-100 px-5 py-3 flex items-center justify-between">
-                        <h2 className="text-sm font-medium text-gray-700">
-                            Capital Transaction History
-                        </h2>
-                        <span className="text-xs text-gray-400">
-                            {capital_transactions.length} record
-                            {capital_transactions.length !== 1 ? "s" : ""}
-                        </span>
+                {/* Capital Transaction History — hidden when no capital data */}
+                {capital_transactions.length > 0 && (
+                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                        <div className="border-b border-gray-100 px-5 py-3 flex items-center justify-between">
+                            <h2 className="text-sm font-medium text-gray-700">
+                                Capital Transaction History
+                            </h2>
+                            <span className="text-xs text-gray-400">
+                                {capital_transactions.length} record
+                                {capital_transactions.length !== 1 ? "s" : ""}
+                            </span>
+                        </div>
+                        <CapitalTransactionTable rows={capital_transactions} />
                     </div>
-                    <CapitalTransactionTable rows={capital_transactions} />
-                </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

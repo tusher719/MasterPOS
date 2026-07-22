@@ -26,7 +26,24 @@ const StatusBadge = ({ status }: { status: "active" | "withdrawn" }) => (
     </span>
 );
 
+const PartnerTypeBadge = () => (
+    <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+        Partner
+    </span>
+);
+
 export default function InvestorStatementsIndex({ investors, can }: Props) {
+    const statementUrl = (investor: InvestorStatementSummary): string => {
+        if (investor.type === "partner") {
+            return route("backend.investor-statements.partner.show", {
+                partner: investor.id,
+            });
+        }
+        return route("backend.investor-statements.show", {
+            investment: investor.id,
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Investor Statements" />
@@ -39,12 +56,12 @@ export default function InvestorStatementsIndex({ investors, can }: Props) {
                             Investor Statements
                         </h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Complete financial overview per investor — capital
-                            &amp; profit summary
+                            Complete financial overview per investor &amp;
+                            partner — capital &amp; profit summary
                         </p>
                     </div>
                     <span className="text-sm text-gray-400">
-                        {investors.length} investor
+                        {investors.length} record
                         {investors.length !== 1 ? "s" : ""}
                     </span>
                 </div>
@@ -54,166 +71,202 @@ export default function InvestorStatementsIndex({ investors, can }: Props) {
                     <div className="rounded-lg border border-gray-200 bg-white py-20 text-center">
                         <FileText className="mx-auto mb-3 h-10 w-10 text-gray-300" />
                         <p className="text-sm font-medium text-gray-500">
-                            No investors found
+                            No records found
                         </p>
                         <p className="mt-1 text-xs text-gray-400">
-                            Add investments to generate statements.
+                            Add investments or partners to generate statements.
                         </p>
                     </div>
                 ) : (
-                    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                         <table className="min-w-full divide-y divide-gray-100">
                             <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Investor
+                                <tr className="border-b border-gray-100 bg-gray-50">
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        Name
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Type
                                     </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Initial Amount
                                     </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Capital Balance
                                     </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Total Earned
                                     </th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Pending Profit
                                     </th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Status
                                     </th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Action
                                     </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
-                                {investors.map((investor) => (
-                                    <tr
-                                        key={investor.id}
-                                        className="hover:bg-gray-50 transition-colors"
-                                    >
-                                        {/* Investor Name + Title */}
-                                        <td className="px-4 py-3">
-                                            <p className="text-sm font-medium text-gray-800">
-                                                {investor.investor_name}
-                                            </p>
-                                            <p className="text-xs text-gray-400 mt-0.5">
-                                                {investor.title}
-                                            </p>
-                                        </td>
+                                {investors.map((investor) => {
+                                    const isPartner =
+                                        investor.type === "partner";
 
-                                        {/* Investment Type */}
-                                        <td className="px-4 py-3 text-sm text-gray-600">
-                                            {investor.investment_type ?? (
-                                                <span className="text-gray-300">
-                                                    —
-                                                </span>
-                                            )}
-                                        </td>
+                                    return (
+                                        <tr
+                                            key={`${investor.type}-${investor.id}`}
+                                            className="transition-colors hover:bg-gray-50"
+                                        >
+                                            {/* Name + subtitle */}
+                                            <td className="px-4 py-3">
+                                                <p className="text-sm font-medium text-gray-800">
+                                                    {investor.investor_name}
+                                                </p>
+                                                <p className="mt-0.5 text-xs text-gray-400">
+                                                    {investor.title}
+                                                </p>
+                                            </td>
 
-                                        {/* Initial Amount */}
-                                        <td className="px-4 py-3 text-right text-sm text-gray-700">
-                                            {formatAmount(investor.amount)}
-                                        </td>
-
-                                        {/* Capital Balance */}
-                                        <td className="px-4 py-3 text-right">
-                                            <span className="text-sm font-semibold text-indigo-600">
-                                                {formatAmount(
-                                                    investor.capital
-                                                        .current_balance,
+                                            {/* Type */}
+                                            <td className="px-4 py-3">
+                                                {isPartner ? (
+                                                    <PartnerTypeBadge />
+                                                ) : (
+                                                    <span className="text-sm text-gray-600">
+                                                        {investor.investment_type ?? (
+                                                            <span className="text-gray-300">
+                                                                —
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 )}
-                                            </span>
-                                        </td>
+                                            </td>
 
-                                        {/* Total Earned */}
-                                        <td className="px-4 py-3 text-right text-sm text-gray-700">
-                                            {formatAmount(
-                                                investor.profit.total_earned,
-                                            )}
-                                        </td>
+                                            {/* Initial Amount */}
+                                            <td className="px-4 py-3 text-right text-sm text-gray-700">
+                                                {isPartner ? (
+                                                    <span className="text-gray-300">
+                                                        —
+                                                    </span>
+                                                ) : (
+                                                    formatAmount(
+                                                        investor.amount,
+                                                    )
+                                                )}
+                                            </td>
 
-                                        {/* Pending Profit */}
-                                        <td className="px-4 py-3 text-right">
-                                            <span
-                                                className={`text-sm font-medium ${
-                                                    investor.profit
-                                                        .pending_balance > 0
-                                                        ? "text-amber-600"
-                                                        : "text-gray-400"
-                                                }`}
-                                            >
+                                            {/* Capital Balance */}
+                                            <td className="px-4 py-3 text-right">
+                                                {isPartner ? (
+                                                    <span className="text-gray-300">
+                                                        —
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm font-semibold text-indigo-600">
+                                                        {formatAmount(
+                                                            investor.capital
+                                                                .current_balance,
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* Total Earned */}
+                                            <td className="px-4 py-3 text-right text-sm text-gray-700">
                                                 {formatAmount(
                                                     investor.profit
-                                                        .pending_balance,
+                                                        .total_earned,
                                                 )}
-                                            </span>
-                                        </td>
+                                            </td>
 
-                                        {/* Status */}
-                                        <td className="px-4 py-3 text-center">
-                                            <StatusBadge
-                                                status={investor.status}
-                                            />
-                                        </td>
-
-                                        {/* Action */}
-                                        <td className="px-4 py-3 text-center">
-                                            {can.view && (
-                                                <Link
-                                                    href={route(
-                                                        "backend.investor-statements.show",
-                                                        {
-                                                            investment:
-                                                                investor.id,
-                                                        },
-                                                    )}
-                                                    className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+                                            {/* Pending Profit */}
+                                            <td className="px-4 py-3 text-right">
+                                                <span
+                                                    className={`text-sm font-medium ${
+                                                        investor.profit
+                                                            .pending_balance > 0
+                                                            ? "text-amber-600"
+                                                            : "text-gray-400"
+                                                    }`}
                                                 >
-                                                    <FileText className="h-3.5 w-3.5" />
-                                                    View Statement
-                                                </Link>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    {formatAmount(
+                                                        investor.profit
+                                                            .pending_balance,
+                                                    )}
+                                                </span>
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="px-4 py-3 text-center">
+                                                <StatusBadge
+                                                    status={investor.status}
+                                                />
+                                            </td>
+
+                                            {/* Action */}
+                                            <td className="px-4 py-3 text-center">
+                                                {can.view && (
+                                                    <Link
+                                                        href={statementUrl(
+                                                            investor,
+                                                        )}
+                                                        className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                    >
+                                                        <FileText className="h-3.5 w-3.5" />
+                                                        View Statement
+                                                    </Link>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
 
-                            {/* Footer totals */}
+                            {/* Footer totals — capital columns blank for partner rows */}
                             <tfoot>
-                                <tr className="bg-gray-50 border-t border-gray-200">
+                                <tr className="border-t border-gray-200 bg-gray-50">
                                     <td
                                         colSpan={2}
-                                        className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase"
+                                        className="px-4 py-3 text-xs font-semibold uppercase text-gray-600"
                                     >
                                         Totals
                                     </td>
+                                    {/* Initial Amount — investments only */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
                                         {formatAmount(
-                                            investors.reduce(
-                                                (s, i) => s + Number(i.amount),
-                                                0,
-                                            ),
+                                            investors
+                                                .filter(
+                                                    (i) =>
+                                                        i.type === "investment",
+                                                )
+                                                .reduce(
+                                                    (s, i) =>
+                                                        s + Number(i.amount),
+                                                    0,
+                                                ),
                                         )}
                                     </td>
+                                    {/* Capital Balance — investments only */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-indigo-600">
                                         {formatAmount(
-                                            investors.reduce(
-                                                (s, i) =>
-                                                    s +
-                                                    Number(
-                                                        i.capital
-                                                            .current_balance,
-                                                    ),
-                                                0,
-                                            ),
+                                            investors
+                                                .filter(
+                                                    (i) =>
+                                                        i.type === "investment",
+                                                )
+                                                .reduce(
+                                                    (s, i) =>
+                                                        s +
+                                                        Number(
+                                                            i.capital
+                                                                .current_balance,
+                                                        ),
+                                                    0,
+                                                ),
                                         )}
                                     </td>
+                                    {/* Total Earned — all rows */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">
                                         {formatAmount(
                                             investors.reduce(
@@ -226,6 +279,7 @@ export default function InvestorStatementsIndex({ investors, can }: Props) {
                                             ),
                                         )}
                                     </td>
+                                    {/* Pending Profit — all rows */}
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-amber-600">
                                         {formatAmount(
                                             investors.reduce(
@@ -251,6 +305,7 @@ export default function InvestorStatementsIndex({ investors, can }: Props) {
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Wallet className="h-3.5 w-3.5 text-indigo-500" />
                         Capital Balance = current investable capital
+                        (investment-based only)
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                         <TrendingUp className="h-3.5 w-3.5 text-amber-500" />

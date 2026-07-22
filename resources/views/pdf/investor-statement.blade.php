@@ -156,7 +156,7 @@
         }
 
         .info-cell {
-            width: 25%;
+            width: auto;
             padding: 6px 8px 6px 0;
         }
 
@@ -441,44 +441,46 @@
     </div>
 
     {{-- ════════════════════════════════════════
-     SECTION 2 — CAPITAL + PROFIT SUMMARY
-     ════════════════════════════════════════ --}}
+    SECTION 2 — CAPITAL + PROFIT SUMMARY
+    ════════════════════════════════════════ --}}
     <div class="summary-row">
 
-        {{-- Capital Summary --}}
-        <div class="summary-card">
-            <div class="summary-card-header summary-card-header-capital">Capital Summary</div>
-            <div class="summary-hero">
-                <div class="summary-hero-label">Current Capital Balance</div>
-                <div class="summary-hero-value summary-hero-value-capital">
-                    ৳{{ number_format($capital_summary?->current_balance ?? 0, 2) }}
+        {{-- Capital Summary — only when capital data exists --}}
+        @if ($capital_summary && $capital_summary->total_deposited > 0)
+            <div class="summary-card">
+                <div class="summary-card-header summary-card-header-capital">Capital Summary</div>
+                <div class="summary-hero">
+                    <div class="summary-hero-label">Current Capital Balance</div>
+                    <div class="summary-hero-value summary-hero-value-capital">
+                        ৳{{ number_format($capital_summary?->current_balance ?? 0, 2) }}
+                    </div>
+                </div>
+                <div class="summary-row-item">
+                    <span class="summary-row-label">Total Deposited</span>
+                    <span class="summary-row-value color-green">
+                        ৳{{ number_format($capital_summary?->total_deposited ?? 0, 2) }}
+                    </span>
+                </div>
+                <div class="summary-row-item">
+                    <span class="summary-row-label">Total Withdrawn</span>
+                    <span class="summary-row-value color-red">
+                        ৳{{ number_format($capital_summary?->total_withdrawn ?? 0, 2) }}
+                    </span>
+                </div>
+                <div class="summary-row-item">
+                    <span class="summary-row-label">Total Reinvested</span>
+                    <span class="summary-row-value color-indigo">
+                        ৳{{ number_format($capital_summary?->total_reinvested ?? 0, 2) }}
+                    </span>
+                </div>
+                <div class="summary-row-item">
+                    <span class="summary-row-label">Total Adjusted</span>
+                    <span class="summary-row-value color-amber">
+                        ৳{{ number_format($capital_summary?->total_adjusted ?? 0, 2) }}
+                    </span>
                 </div>
             </div>
-            <div class="summary-row-item">
-                <span class="summary-row-label">Total Deposited</span>
-                <span class="summary-row-value color-green">
-                    ৳{{ number_format($capital_summary?->total_deposited ?? 0, 2) }}
-                </span>
-            </div>
-            <div class="summary-row-item">
-                <span class="summary-row-label">Total Withdrawn</span>
-                <span class="summary-row-value color-red">
-                    ৳{{ number_format($capital_summary?->total_withdrawn ?? 0, 2) }}
-                </span>
-            </div>
-            <div class="summary-row-item">
-                <span class="summary-row-label">Total Reinvested</span>
-                <span class="summary-row-value color-indigo">
-                    ৳{{ number_format($capital_summary?->total_reinvested ?? 0, 2) }}
-                </span>
-            </div>
-            <div class="summary-row-item">
-                <span class="summary-row-label">Total Adjusted</span>
-                <span class="summary-row-value color-amber">
-                    ৳{{ number_format($capital_summary?->total_adjusted ?? 0, 2) }}
-                </span>
-            </div>
-        </div>
+        @endif
 
         {{-- Profit Summary --}}
         <div class="summary-card">
@@ -632,151 +634,155 @@
      SECTION 4 — CAPITAL TRANSACTION HISTORY
      (page break before if distribution table was long)
      ════════════════════════════════════════ --}}
-    @if ($distribution_history->count() > 8)
-        <div class="page-break"></div>
-    @endif
+    @if ($capital_transactions->isNotEmpty())
 
-    <div class="section">
-        <div class="section-title">Capital Transaction History</div>
-
-        @if ($capital_transactions->isEmpty())
-            <div class="empty-state">No capital transactions found for this investor.</div>
-        @else
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Reference</th>
-                        <th class="text-center">Type</th>
-                        <th class="text-right">Credit</th>
-                        <th class="text-right">Debit</th>
-                        <th class="text-right">Balance After</th>
-                        <th class="text-center">Status</th>
-                        <th>Reason / Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php
-                        $totalCredit = 0;
-                        $totalDebit = 0;
-                        $latestBalance = null;
-                    @endphp
-
-                    @foreach ($capital_transactions as $entry)
-                        @php
-                            $typeBadge = match ($entry->transaction_type) {
-                                'deposit' => 'badge-green',
-                                'withdrawal' => 'badge-red',
-                                'reinvestment' => 'badge-indigo',
-                                'adjustment' => 'badge-amber',
-                                default => 'badge-gray',
-                            };
-                            $statusBadge = match ($entry->status) {
-                                'completed' => 'badge-green',
-                                'approved' => 'badge-blue',
-                                'pending' => 'badge-amber',
-                                'rejected' => 'badge-red',
-                                'cancelled' => 'badge-gray',
-                                default => 'badge-gray',
-                            };
-                            $isSettled = in_array($entry->status, ['completed', 'approved']);
-                            $opacity = in_array($entry->status, ['cancelled', 'rejected']) ? 'opacity: 0.5;' : '';
-
-                            if ($entry->direction === 'credit' && $isSettled) {
-                                $totalCredit += (float) $entry->amount;
-                            }
-                            if ($entry->direction === 'debit' && $isSettled) {
-                                $totalDebit += (float) $entry->amount;
-                            }
-                            if ($isSettled && $latestBalance === null) {
-                                $latestBalance = (float) $entry->running_balance;
-                            }
-                        @endphp
-                        <tr style="{{ $opacity }}">
-                            <td style="white-space: nowrap;">
-                                {{ \Carbon\Carbon::parse($entry->created_at)->format('d M Y') }}
-                            </td>
-                            <td>
-                                @if ($entry->reference_no)
-                                    <span class="mono">{{ $entry->reference_no }}</span>
-                                @else
-                                    <span class="muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <span class="badge {{ $typeBadge }}">
-                                    {{ ucfirst($entry->transaction_type) }}
-                                </span>
-                            </td>
-                            <td class="text-right">
-                                @if ($entry->direction === 'credit')
-                                    <span class="color-green" style="font-weight: 600;">
-                                        ৳{{ number_format($entry->amount, 2) }}
-                                    </span>
-                                @else
-                                    <span class="muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-right">
-                                @if ($entry->direction === 'debit')
-                                    <span class="color-red" style="font-weight: 600;">
-                                        ৳{{ number_format($entry->amount, 2) }}
-                                    </span>
-                                @else
-                                    <span class="muted">—</span>
-                                @endif
-                            </td>
-                            <td class="text-right">
-                                @if ($isSettled)
-                                    <span style="font-weight: 700; color: #4338ca;">
-                                        ৳{{ number_format($entry->running_balance, 2) }}
-                                    </span>
-                                @else
-                                    <span style="font-size: 9px; color: #d1d5db; font-style: italic;">pending</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <span class="badge {{ $statusBadge }}">
-                                    {{ ucfirst($entry->status) }}
-                                </span>
-                            </td>
-                            <td style="max-width: 140px;">
-                                @if ($entry->reason)
-                                    <span style="font-size: 9px; color: #374151;">
-                                        {{ \Illuminate\Support\Str::limit($entry->reason, 60) }}
-                                    </span>
-                                @elseif ($entry->note)
-                                    <span style="font-size: 9px; color: #9ca3af; font-style: italic;">
-                                        {{ \Illuminate\Support\Str::limit($entry->note, 60) }}
-                                    </span>
-                                @else
-                                    <span class="muted">—</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr class="tfoot-row">
-                        <td colspan="3">
-                            Completed Totals ({{ $capital_transactions->where('status', 'completed')->count() }}
-                            of {{ $capital_transactions->count() }})
-                        </td>
-                        <td class="text-right color-green">
-                            {{ $totalCredit > 0 ? '৳' . number_format($totalCredit, 2) : '—' }}
-                        </td>
-                        <td class="text-right color-red">
-                            {{ $totalDebit > 0 ? '৳' . number_format($totalDebit, 2) : '—' }}
-                        </td>
-                        <td class="text-right" style="color: #4338ca;">
-                            {{ $latestBalance !== null ? '৳' . number_format($latestBalance, 2) : '—' }}
-                        </td>
-                        <td colspan="2"></td>
-                    </tr>
-                </tfoot>
-            </table>
+        @if ($distribution_history->count() > 8)
+            <div class="page-break"></div>
         @endif
-    </div>
+
+        <div class="section">
+            <div class="section-title">Capital Transaction History</div>
+
+            @if ($capital_transactions->isEmpty())
+                <div class="empty-state">No capital transactions found for this investor.</div>
+            @else
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th class="text-center">Type</th>
+                            <th class="text-right">Credit</th>
+                            <th class="text-right">Debit</th>
+                            <th class="text-right">Balance After</th>
+                            <th class="text-center">Status</th>
+                            <th>Reason / Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $totalCredit = 0;
+                            $totalDebit = 0;
+                            $latestBalance = null;
+                        @endphp
+
+                        @foreach ($capital_transactions as $entry)
+                            @php
+                                $typeBadge = match ($entry->transaction_type) {
+                                    'deposit' => 'badge-green',
+                                    'withdrawal' => 'badge-red',
+                                    'reinvestment' => 'badge-indigo',
+                                    'adjustment' => 'badge-amber',
+                                    default => 'badge-gray',
+                                };
+                                $statusBadge = match ($entry->status) {
+                                    'completed' => 'badge-green',
+                                    'approved' => 'badge-blue',
+                                    'pending' => 'badge-amber',
+                                    'rejected' => 'badge-red',
+                                    'cancelled' => 'badge-gray',
+                                    default => 'badge-gray',
+                                };
+                                $isSettled = in_array($entry->status, ['completed', 'approved']);
+                                $opacity = in_array($entry->status, ['cancelled', 'rejected']) ? 'opacity: 0.5;' : '';
+
+                                if ($entry->direction === 'credit' && $isSettled) {
+                                    $totalCredit += (float) $entry->amount;
+                                }
+                                if ($entry->direction === 'debit' && $isSettled) {
+                                    $totalDebit += (float) $entry->amount;
+                                }
+                                if ($isSettled && $latestBalance === null) {
+                                    $latestBalance = (float) $entry->running_balance;
+                                }
+                            @endphp
+                            <tr style="{{ $opacity }}">
+                                <td style="white-space: nowrap;">
+                                    {{ \Carbon\Carbon::parse($entry->created_at)->format('d M Y') }}
+                                </td>
+                                <td>
+                                    @if ($entry->reference_no)
+                                        <span class="mono">{{ $entry->reference_no }}</span>
+                                    @else
+                                        <span class="muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ $typeBadge }}">
+                                        {{ ucfirst($entry->transaction_type) }}
+                                    </span>
+                                </td>
+                                <td class="text-right">
+                                    @if ($entry->direction === 'credit')
+                                        <span class="color-green" style="font-weight: 600;">
+                                            ৳{{ number_format($entry->amount, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    @if ($entry->direction === 'debit')
+                                        <span class="color-red" style="font-weight: 600;">
+                                            ৳{{ number_format($entry->amount, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    @if ($isSettled)
+                                        <span style="font-weight: 700; color: #4338ca;">
+                                            ৳{{ number_format($entry->running_balance, 2) }}
+                                        </span>
+                                    @else
+                                        <span
+                                            style="font-size: 9px; color: #d1d5db; font-style: italic;">pending</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {{ $statusBadge }}">
+                                        {{ ucfirst($entry->status) }}
+                                    </span>
+                                </td>
+                                <td style="max-width: 140px;">
+                                    @if ($entry->reason)
+                                        <span style="font-size: 9px; color: #374151;">
+                                            {{ \Illuminate\Support\Str::limit($entry->reason, 60) }}
+                                        </span>
+                                    @elseif ($entry->note)
+                                        <span style="font-size: 9px; color: #9ca3af; font-style: italic;">
+                                            {{ \Illuminate\Support\Str::limit($entry->note, 60) }}
+                                        </span>
+                                    @else
+                                        <span class="muted">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="tfoot-row">
+                            <td colspan="3">
+                                Completed Totals ({{ $capital_transactions->where('status', 'completed')->count() }}
+                                of {{ $capital_transactions->count() }})
+                            </td>
+                            <td class="text-right color-green">
+                                {{ $totalCredit > 0 ? '৳' . number_format($totalCredit, 2) : '—' }}
+                            </td>
+                            <td class="text-right color-red">
+                                {{ $totalDebit > 0 ? '৳' . number_format($totalDebit, 2) : '—' }}
+                            </td>
+                            <td class="text-right" style="color: #4338ca;">
+                                {{ $latestBalance !== null ? '৳' . number_format($latestBalance, 2) : '—' }}
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            @endif
+        </div>
+    @endif
 
     {{-- ════════════════════════════════════════
      PDF FOOTER — fixed position

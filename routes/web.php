@@ -475,15 +475,21 @@ Route::middleware(['auth', 'verified'])
             [InvestmentFundUsageController::class, 'destroy']
         )->name('capital-ledger.fund-usages.destroy');
 
-        // Investor Statements (read-only — export before resource pattern)
-        Route::get('investor-statements/{investment}/pdf', [InvestorStatementController::class, 'pdf'])
-            ->name('investor-statements.pdf');
-
+        // Investor Statements (read-only — pdf/partner routes BEFORE show to prevent wildcard swallowing)
         Route::get('investor-statements', [InvestorStatementController::class, 'index'])
             ->name('investor-statements.index');
 
-        Route::get('investor-statements/{investment}', [InvestorStatementController::class, 'show'])
+        // Investment-based statement
+        Route::get('investor-statements/investment/{investment}/pdf', [InvestorStatementController::class, 'pdf'])
+            ->name('investor-statements.pdf');
+        Route::get('investor-statements/investment/{investment}', [InvestorStatementController::class, 'show'])
             ->name('investor-statements.show');
+
+        // Partner-based statement (new)
+        Route::get('investor-statements/partner/{partner}/pdf', [InvestorStatementController::class, 'pdfPartner'])
+            ->name('investor-statements.partner.pdf');
+        Route::get('investor-statements/partner/{partner}', [InvestorStatementController::class, 'showPartner'])
+            ->name('investor-statements.partner.show');
 
 
         // -------------------------------------------------------------------------

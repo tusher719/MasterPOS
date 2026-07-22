@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Should Fix items (Gap 1.2, 2.4)
-- **Next Step:** Gap 1.2 — Investor Statement Partner Support
-- **Last Completed:** Gap 1.5 — Investment/Partner Show Page Financial Summary ✅
+- **Current Step:** Should Fix items (Gap 2.4)
+- **Next Step:** Gap 2.4 — Mixed Rule Resolution clarification (doc only)
+- **Last Completed:** Gap 1.2 — Investor Statement Partner Support ✅
 
 ## Financial Domain Overview
 
@@ -86,6 +86,7 @@ The system is now organized into two independent financial domains:
 | 4.1         | Capital Principal Lock + Partial Unlock             | ✅     |
 | 4.2         | Product Partner Cost/Profit Split                   | ✅     |
 | 1.5         | Investment/Partner Show Page Financial Summary      | ✅     |
+| 1.2         | Investor Statement — Partner Support                | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 

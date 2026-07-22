@@ -2,6 +2,80 @@
 
 ---
 
+## [v2.18 — Gap 1.2] — Investor Statement Partner Support — 2026-07-22
+
+### New Files (2)
+
+- `InvestorStatements/PartnerShow.tsx`: Partner-only statement page.
+  Header with partner name, code, type badge. Partner Information card.
+  Profit Summary card (total pending, earned, paid). Cost Return Summary
+  card (product partners only, shown when total_cost_returned > 0).
+  Distribution History table: Profit Share / Cost Return / Total columns,
+  payment status badge, tfoot totals. Export PDF button.
+- `pdf/partner-statement.blade.php`: Partner PDF (A4 portrait, DejaVu Sans).
+  Header with logo + type/status badges. Section 1: Partner Information.
+  Section 2: Profit Summary card + Cost Return Summary card (conditional).
+  Section 3: Distribution History table with profit share / cost return /
+  total columns. Fixed footer with page number. No capital section.
+
+### Updated Files (7)
+
+- `InvestorStatementController.php`:
+    - `index()`: merges investment rows + partner rows; partner rows include
+      only partners with no linked investment AND ≥1 distribution item;
+      both row types carry `type: 'investment'|'partner'` field
+    - `show()`: distribution items now queried directly via
+      `ProfitDistributionItem` with `investment_id OR (partner_id + null investment_id)`
+      — catches partner_based items when investment.partner_id is set;
+      `cost_return_amount` added to distribution_history map
+    - `pdf()`: same OR query as show()
+    - `showPartner(Partner $partner)`: new — loads PartnerProfitBalance +
+      distribution items by partner_id; renders PartnerShow.tsx
+    - `pdfPartner(Partner $partner)`: new — same data, renders
+      partner-statement.blade.php
+    - `partnerTypeLabel()`: new private helper
+
+- `routes/web.php`: investor-statements section replaced — old single route
+  split into 5 routes: index, investment show, investment pdf,
+  partner show, partner pdf
+
+- `investor-statement.d.ts`: `type` field added to `InvestorStatementSummary`;
+  `investment_date` made nullable; 4 new partner interfaces added:
+  `PartnerStatementInfo`, `PartnerProfitBalanceSummary`,
+  `PartnerStatementDistributionItem`, `PartnerStatement`
+
+- `InvestorStatements/Index.tsx`: `statementUrl()` helper routes to correct
+  show page by `type`; `PartnerTypeBadge` component for partner rows;
+  capital columns show "—" for partner rows; tfoot totals filter by type;
+  React key uses `type-id` composite to prevent collision
+
+- `InvestorStatements/Show.tsx`: capital summary section conditional
+  (hidden when `total_deposited = 0`); capital transactions section
+  conditional (hidden when array empty)
+
+- `pdf/investor-statement.blade.php`: capital summary card wrapped in
+  `@if total_deposited > 0`; capital transactions section wrapped in
+  `@if isNotEmpty()`
+
+- `Partner.php`: `distributionItems()` HasMany relation added
+  (FK: `partner_id` on `profit_distribution_items`)
+
+### Business Rules Established
+
+- Investment statements include both investment_based AND partner_based
+  distribution items when `investments.partner_id` is set — single complete
+  view per investor regardless of distribution source type
+- Partner statements (no investment) show profit-only view — no capital
+  section, no capital transactions
+- Index page lists all investors + standalone partners (no investment, ≥1
+  distribution) in one unified table
+- Partners with linked investments appear as investment rows — their
+  partner_based items are merged into the investment statement
+- `investments.partner_id` must be set for OR query to work — without it,
+  partner_based items are invisible in investment statements
+
+---
+
 ## [v2.17 — Gap 1.5] — Investment/Partner Show Page Financial Summary — 2026-07-21
 
 ### New Files (0)

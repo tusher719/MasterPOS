@@ -83,8 +83,35 @@ Partner-based distribution items have `investment_id = null`.
 from this page.
 
 **Priority:** Should Fix
+**Status:** ✅ Done
 **Fix:** Update the controller query to look up distribution items by either
 `investment_id` OR `partner_id`.
+
+**Post-implementation note (Gap 1.2):**
+
+- Two new routes added: `investor-statements/investment/{investment}` and
+  `investor-statements/partner/{partner}` (+ pdf variants) — replaces old
+  single `investor-statements/{investment}` route
+- `InvestorStatementController` updated: `index()` now merges investment rows
+    - partner rows (partners with no investment but ≥1 distribution item);
+      `show()` and `pdf()` query distribution items by `investment_id OR partner_id`
+      (when investment has a linked partner_id); new `showPartner()` and
+      `pdfPartner()` methods added for partner-only statements
+- New page: `InvestorStatements/PartnerShow.tsx` — partner statement with
+  profit balance (cost return + profit share split), distribution history
+  (profit share / cost return / total columns), PDF export
+- New Blade: `pdf/partner-statement.blade.php` — partner PDF without capital
+  section; cost return summary card shown only for product partners
+- `investor-statement.blade.php` updated — capital section conditional
+  (`@if total_deposited > 0`); capital transactions section conditional
+- `investor-statement.d.ts` updated — `type` field added to
+  `InvestorStatementSummary`; new `PartnerStatement`, `PartnerStatementInfo`,
+  `PartnerProfitBalanceSummary`, `PartnerStatementDistributionItem` interfaces
+- `Partner` model: `distributionItems()` HasMany relation added
+- **Important workflow note:** For partners who have both an investment AND
+  partner_based distributions, the investment record must have `partner_id` set
+  correctly — otherwise partner_based items won't appear in the investment
+  statement. Set via: `Investment::find($id)->forceFill(['partner_id' => $partnerId])->save()`
 
 ---
 
@@ -483,7 +510,7 @@ them together, not separately)
 | 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | ✅ Done                         | Yes            |
 | 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | ✅ Done                         | No             |
 | 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
-| 1.2       | Investor Statement — Partner support                   | Should Fix   | Pending                         | No             |
+| 1.2       | Investor Statement — Partner support                   | Should Fix   | ✅ Done                         | No             |
 | 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending                         | No (doc only)  |
 | 1.3       | Distribution List UI Badge                             | Nice to Have | Pending                         | No             |
 | 1.4       | Partner Financial Overview page                        | Nice to Have | Pending                         | No             |

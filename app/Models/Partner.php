@@ -122,6 +122,15 @@ class Partner extends Model
         return $this->hasOne(PartnerProfitBalance::class);
     }
 
+    /**
+     * Profit distribution items assigned to this partner (partner_based distributions).
+     * Used by InvestorStatementController to build partner statements.
+     */
+    public function distributionItems(): HasMany
+    {
+        return $this->hasMany(ProfitDistributionItem::class, 'partner_id');
+    }
+
     // -------------------------------------------------------------------------
     // Accessors
     // -------------------------------------------------------------------------
