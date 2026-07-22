@@ -31,9 +31,9 @@
 
 ## Current Status
 
-- **Current Step:** Should Fix items (Gap 2.4)
-- **Next Step:** Gap 2.4 — Mixed Rule Resolution clarification (doc only)
-- **Last Completed:** Gap 1.2 — Investor Statement Partner Support ✅
+- **Current Step:** All Must Fix + Should Fix items complete
+- **Next Step:** Nice to Have items (Gap 1.3, 1.4, 2.3, 3) — or as directed
+- **Last Completed:** Gap 2.4 — Mixed Rule Resolution clarification ✅
 
 ## Financial Domain Overview
 
@@ -87,6 +87,7 @@ The system is now organized into two independent financial domains:
 | 4.2         | Product Partner Cost/Profit Split                   | ✅     |
 | 1.5         | Investment/Partner Show Page Financial Summary      | ✅     |
 | 1.2         | Investor Statement — Partner Support                | ✅     |
+| 2.4         | Mixed Rule Resolution clarification                 | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 

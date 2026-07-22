@@ -109,7 +109,38 @@ Given distribution `period_start = 2026-04-01`:
 - Find rules where `effective_from <= 2026-04-01`
 - AND `effective_to IS NULL OR effective_to >= 2026-04-01`
 - AND `approved_by IS NOT NULL`
-- Use the most recent matching rule
+
+Resolution depends on how many rule_types the partner has:
+
+**Case 1 — Single rule_type (e.g. fixed_percent only):**
+Multiple versions of the same rule_type may exist due to versioning
+(old rule gets effective_to set, new rule created with new effective_from).
+In this case, use the most recent matching rule — the one with the
+latest effective_from that still satisfies the date conditions above.
+
+**Case 2 — Multiple rule_types (e.g. fixed_percent + product_based):**
+A partner CAN have multiple active rules at the same time, provided each
+rule has a different rule_type. These are not versions of the same rule —
+they are independent income streams.
+In this case, MixedStrategy is used: ALL applicable rules are resolved
+independently and their results are summed to produce the partner's
+total share_amount.
+
+Example — Partner with capital + product type:
+Rule A: fixed_percent, 25%, effective_from: Jan 1, effective_to: null
+Rule B: product_based, 65%, effective_from: Jan 1, effective_to: null
+
+Distribution period: Apr 1 → Apr 30
+
+Rule A result: 25% of distributable_amount = 10,000 BDT
+Rule B result: product sales profit × 65% = 5,200 BDT
+Total share_amount: = 15,200 BDT
+
+Rule to remember:
+
+- Same rule_type → most recent matching rule (versioning)
+- Different rule_type → all applicable rules summed (MixedStrategy)
+- A partner cannot have two active rules of the same rule_type simultaneously
 
 ---
 

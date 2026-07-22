@@ -2,6 +2,39 @@
 
 ---
 
+## [v2.19 — Gap 2.4] — Mixed Rule Resolution Clarification — 2026-07-22
+
+### Documentation Only — No Code Changes
+
+### Updated Files (1)
+
+- `BUSINESS_RULES.md` (Section 3 — Rule Resolution at Calculation Time):
+    - "most recent matching rule" statement replaced with explicit two-case
+      resolution rule
+    - Case 1 (same rule_type): most recent matching rule by effective_from —
+      applies when a partner has multiple versions of the same rule_type
+      due to versioning (old rule gets effective_to set, new rule created)
+    - Case 2 (different rule_type): all applicable rules resolved independently
+      and summed — MixedStrategy case; a partner with fixed_percent + product_based
+      rules gets both calculated and added together
+    - Example added: fixed_percent 25% + product_based 65% on same partner →
+      Rule A result (10,000 BDT) + Rule B result (5,200 BDT) = 15,200 BDT total
+    - Constraint documented: a partner cannot have two active rules of the
+      same rule_type simultaneously
+
+### Business Rules Established
+
+- Same rule_type + multiple versions → most recent matching rule (by effective_from)
+- Different rule_type + same partner → all applicable rules summed (MixedStrategy)
+- MixedStrategy does NOT pick a single "most recent" rule across different rule_types —
+  it sums results from ALL applicable rules independently
+- A partner cannot have two active rules of the same rule_type active simultaneously
+- These rules apply at calculation time in ProfitCalculationEngine —
+  no engine code change needed; behavior was already correct,
+  only the documentation was ambiguous
+
+---
+
 ## [v2.18 — Gap 1.2] — Investor Statement Partner Support — 2026-07-22
 
 ### New Files (2)

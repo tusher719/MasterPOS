@@ -252,6 +252,20 @@ behavior is finalized)
 **Fix:** Document explicitly: a partner CAN have multiple active rules
 (different `rule_type` each) at the same time; `MixedStrategy` sums the results
 of all applicable rules.
+**Status:** ✅ Done
+
+**Post-implementation note (Gap 2.4):**
+
+- No code or migration changes required — documentation only.
+- BUSINESS_RULES.md Section 3 updated: "Rule Resolution at Calculation Time"
+  now explicitly separates two cases:
+    - Same rule_type → most recent matching rule (versioning case)
+    - Different rule_type → all applicable rules summed (MixedStrategy case)
+- A partner cannot have two active rules of the same rule_type simultaneously.
+- MixedStrategy sums results from ALL applicable rules independently —
+  it does not pick a single "most recent" rule across different rule_types.
+- Example documented: fixed_percent (25%) + product_based (65%) on same partner
+  → Rule A result + Rule B result = total share_amount.
 
 ---
 
@@ -511,7 +525,7 @@ them together, not separately)
 | 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | ✅ Done                         | No             |
 | 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
 | 1.2       | Investor Statement — Partner support                   | Should Fix   | ✅ Done                         | No             |
-| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | Pending                         | No (doc only)  |
+| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | ✅ Done                         | No (doc only)  |
 | 1.3       | Distribution List UI Badge                             | Nice to Have | Pending                         | No             |
 | 1.4       | Partner Financial Overview page                        | Nice to Have | Pending                         | No             |
 | 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | Pending                         | Yes            |
