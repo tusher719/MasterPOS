@@ -1,3 +1,5 @@
+// resources/js/types/partner.d.ts
+
 import { PageProps } from "@/types";
 
 // -------------------------------------------------------------------------
@@ -76,6 +78,28 @@ export interface InvestmentOption {
     title: string;
     investor_name: string;
     amount: string; // decimal serialized as string
+}
+
+// -------------------------------------------------------------------------
+// Capital Summary (Gap 1.4)
+// — one record per linked investment, computed from existing tables
+// -------------------------------------------------------------------------
+
+export interface PartnerCapitalSummary {
+    investment_id: number;
+    investment_title: string;
+    investor_name: string;
+    investment_date: string; // YYYY-MM-DD
+    is_primary: boolean;
+    // From investor_capital_balances
+    total_deposited: string; // decimal as string
+    total_withdrawn: string;
+    current_balance: string;
+    // From Gap 4.1 — lock status (recomputed live)
+    unlocked_amount: string;
+    locked_amount: string;
+    available_to_withdraw: string; // unlocked − withdrawn, floored at 0
+    unlock_percent: number; // 0–100, for progress bar
 }
 
 // -------------------------------------------------------------------------
@@ -279,6 +303,8 @@ export interface PartnerShowProps extends PageProps {
     products: ProductOption[];
     // Gap 4.2 — cost/profit balance split (null if no distributions approved yet)
     profitBalance: PartnerProfitBalance | null;
+    // Gap 1.4 — capital summary per linked investment (empty array if no investments)
+    capitalSummaries: PartnerCapitalSummary[];
     can: PartnerCan;
     profitRuleCan: ProfitRuleCan;
     eligibilityCan: EligibilityCan;

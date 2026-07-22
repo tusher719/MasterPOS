@@ -2,6 +2,55 @@
 
 ---
 
+## [v2.21 — Gap 1.4] — Partner Financial Overview Page — 2026-07-23
+
+### New Files (0)
+
+No new files — all data pulled from existing tables and services.
+
+### Updated Files (3)
+
+- `partner.d.ts`: `PartnerCapitalSummary` interface added — one record per
+  linked investment, holds total_deposited, total_withdrawn, current_balance,
+  unlocked_amount, locked_amount, available_to_withdraw, unlock_percent;
+  `PartnerShowProps` updated with `capitalSummaries: PartnerCapitalSummary[]` prop
+
+- `PartnerController.php` (show method): capital summaries block added after
+  recentProfitItems query — iterates partner's linked investments, calls
+  `computeAndSaveUnlockStatus()` on each `InvestorCapitalBalance` for live
+  lock recompute (Gap 4.1 pattern), builds summary array with unlock_percent
+  computed as `min(100, (unlocked / deposited) * 100)`; null balances filtered
+  via `->filter()->values()`; `capitalSummaries` prop added to Inertia render
+
+- `Partners/Show.tsx`: `PartnerCapitalSummary` imported from partner.d.ts;
+  `Lock`, `Unlock`, `Wallet` icons added from lucide-react; `ExtendedShowProps`
+  extended with `capitalSummaries`; `CapitalOverviewSection` component added —
+  renders nothing when summaries empty (pure working/product partners),
+  one card per linked investment with: investment title link → capital-ledger.show,
+  Primary badge, investment date, 3-col balance stat boxes (Deposited/Withdrawn/
+  Current Balance), principal lock progress bar (green fill = unlock%), 3 lock
+  stat boxes (Unlocked green / Locked amber / Available indigo); `capitalSummaries`
+  destructured in main component and passed to `CapitalOverviewSection`;
+  section placed in main column between Partner Information card and Profit Balance
+  card; `RecentProfitPaymentsCard` partnerId prop removed (unused); Quick Actions
+  sidebar card now conditionally rendered only when `capitalSummaries.length > 0`
+
+### Business Rules Established
+
+- Capital Overview section hidden entirely for pure working/product partners
+  (no linked investments → `capitalSummaries` is empty array → component returns null)
+- Lock status recomputed live on every Partner Show page load via
+  `computeAndSaveUnlockStatus()` — same pattern as Investment Show and
+  Capital Ledger Show pages; no stale data possible
+- One card per linked investment — aggregate totals not used, preserving
+  per-investment lock tracking (each investment has its own investment_date floor)
+- `available_to_withdraw` floored at 0 via `max(0, unlocked − withdrawn)` —
+  prevents negative display when edge cases occur
+- Capital Ledger link in CapitalOverviewSection header navigates to ledger index,
+  not per-investment show, because Partner Show already shows the summary inline
+
+---
+
 ## [v2.20 — Gap 1.3] — Distribution List Source Type Badge & Filter — 2026-07-23
 
 ### New Files (0)

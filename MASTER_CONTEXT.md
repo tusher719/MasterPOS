@@ -32,8 +32,8 @@
 ## Current Status
 
 - **Current Step:** Nice to Have items in progress
-- **Next Step:** Gap 1.4 — Partner Financial Overview page
-- **Last Completed:** Gap 1.3 — Distribution List UI Badge ✅
+- **Next Step:** Gap 2.3 — Mixed Partner per-type Settlement/Eligibility
+- **Last Completed:** Gap 1.4 — Partner Financial Overview page ✅
 
 ## Financial Domain Overview
 
@@ -89,6 +89,7 @@ The system is now organized into two independent financial domains:
 | 1.2         | Investor Statement — Partner Support                | ✅     |
 | 2.4         | Mixed Rule Resolution clarification                 | ✅     |
 | 1.3         | Distribution List — Source Type Badge & Filter      | ✅     |
+| 1.4         | Partner Financial Overview page                     | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 

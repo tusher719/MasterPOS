@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Investment;
+use App\Models\InvestorCapitalBalance;
 use App\Models\Partner;
 use App\Models\PartnerInvestment;
 use App\Models\PartnerProductAssignment;
@@ -97,7 +98,7 @@ class PartnerController extends Controller
     // Show
     // -------------------------------------------------------------------------
 
-    public function show(Partner $partner): Response
+        public function show(Partner $partner): Response
     {
         abort_unless(Gate::allows('view', $partner), 403);
 
@@ -182,6 +183,43 @@ class PartnerController extends Controller
                 'updated_at',
             ]);
 
+        // Gap 1.4 — capital summary per linked investment
+        // Recompute unlock status live (same pattern as Investment Show page)
+        // and build a summary array — one entry per linked investment.
+        $capitalSummaries = $partner->investments->map(function ($investment) {
+            $balance = InvestorCapitalBalance::where('investment_id', $investment->id)->first();
+
+            if (! $balance) {
+                return null;
+            }
+
+            // Recompute unlock status from live sales (Gap 4.1 pattern)
+            $balance->computeAndSaveUnlockStatus($investment->investment_date);
+
+            $unlockedAmount      = (float) $balance->unlocked_amount;
+            $totalWithdrawn      = (float) $balance->total_withdrawn;
+            $availableToWithdraw = max(0, $unlockedAmount - $totalWithdrawn);
+            $totalDeposited      = (float) $balance->total_deposited;
+            $unlockPercent       = $totalDeposited > 0
+                ? min(100, round(($unlockedAmount / $totalDeposited) * 100, 1))
+                : 0;
+
+            return [
+                'investment_id'       => $investment->id,
+                'investment_title'    => $investment->title,
+                'investor_name'       => $investment->investor_name,
+                'investment_date'     => $investment->investment_date,
+                'is_primary'          => (bool) ($investment->pivot->is_primary ?? false),
+                'total_deposited'     => $balance->total_deposited,
+                'total_withdrawn'     => $balance->total_withdrawn,
+                'current_balance'     => $balance->current_balance,
+                'unlocked_amount'     => $balance->unlocked_amount,
+                'locked_amount'       => $balance->locked_amount,
+                'available_to_withdraw' => number_format($availableToWithdraw, 2, '.', ''),
+                'unlock_percent'      => $unlockPercent,
+            ];
+        })->filter()->values()->toArray();
+
         return Inertia::render('Backend/Partners/Show', [
             'partner'            => $partner,
             'investmentOptions'  => $investmentOptions,
@@ -192,6 +230,8 @@ class PartnerController extends Controller
             'products'           => $products,
             // Gap 4.2 — cost/profit balance split for this partner
             'profitBalance'      => $partner->profitBalance,
+            // Gap 1.4 — capital summary per linked investment
+            'capitalSummaries'   => $capitalSummaries,
             // Gap 1.5 — recent profit payment history
             'recentProfitItems'  => $recentProfitItems,
             'can'                => [

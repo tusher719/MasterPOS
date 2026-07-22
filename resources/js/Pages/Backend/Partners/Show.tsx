@@ -1,5 +1,12 @@
+// resources/js/Pages/Backend/Partners/Show.tsx
+// Full file replace
+
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { PartnerProfitBalance, PartnerShowProps } from "@/types/partner";
+import {
+    PartnerCapitalSummary,
+    PartnerProfitBalance,
+    PartnerShowProps,
+} from "@/types/partner";
 import {
     PARTNER_STATUS_COLORS,
     PARTNER_TYPE_COLORS,
@@ -12,6 +19,7 @@ import {
     ArrowRight,
     Calendar,
     FileText,
+    Lock,
     Mail,
     MapPin,
     Pencil,
@@ -20,7 +28,9 @@ import {
     ShieldAlert,
     Trash2,
     TrendingUp,
+    Unlock,
     User,
+    Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -56,6 +66,7 @@ interface RecentProfitItem {
 
 interface ExtendedShowProps extends PartnerShowProps {
     recentProfitItems: RecentProfitItem[];
+    capitalSummaries: PartnerCapitalSummary[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,7 +97,7 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",
 };
 
-// ─── Profit Balance Card ──────────────────────────────────────────────────────
+// ─── Shared StatBox ───────────────────────────────────────────────────────────
 
 function StatBox({
     label,
@@ -106,6 +117,143 @@ function StatBox({
         </div>
     );
 }
+
+// ─── Capital Overview Section (Gap 1.4) ───────────────────────────────────────
+
+function CapitalOverviewSection({
+    summaries,
+}: {
+    summaries: PartnerCapitalSummary[];
+}) {
+    if (summaries.length === 0) return null;
+
+    return (
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-indigo-600" />
+                    <h2 className="text-sm font-semibold text-gray-700">
+                        Capital Overview
+                    </h2>
+                </div>
+                <Link
+                    href={route("backend.capital-ledger.index")}
+                    className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+                >
+                    Capital Ledger <ArrowRight className="h-3 w-3" />
+                </Link>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+                {summaries.map((s) => (
+                    <div key={s.investment_id} className="p-5 space-y-4">
+                        {/* Investment header row */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Link
+                                    href={route(
+                                        "backend.capital-ledger.show",
+                                        s.investment_id,
+                                    )}
+                                    className="text-sm font-semibold text-indigo-700 hover:underline"
+                                >
+                                    {s.investment_title}
+                                </Link>
+                                {s.is_primary && (
+                                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                        Primary
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-xs text-gray-400">
+                                Since {fmtShortDate(s.investment_date)}
+                            </span>
+                        </div>
+
+                        {/* Balance stats */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <StatBox
+                                label="Total Deposited"
+                                value={s.total_deposited}
+                                color="text-green-700"
+                            />
+                            <StatBox
+                                label="Total Withdrawn"
+                                value={s.total_withdrawn}
+                                color="text-red-600"
+                            />
+                            <StatBox
+                                label="Current Balance"
+                                value={s.current_balance}
+                                color="text-gray-800"
+                            />
+                        </div>
+
+                        {/* Principal lock progress bar (Gap 4.1) */}
+                        <div>
+                            <div className="mb-1.5 flex items-center justify-between">
+                                <span className="flex items-center gap-1 text-xs font-medium text-gray-500">
+                                    <Unlock className="h-3 w-3 text-green-600" />
+                                    Principal Lock Status
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                    {s.unlock_percent}% unlocked
+                                </span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                                <div
+                                    className="h-2 rounded-full bg-green-500 transition-all"
+                                    style={{
+                                        width: `${s.unlock_percent}%`,
+                                    }}
+                                />
+                            </div>
+
+                            {/* Lock stat boxes */}
+                            <div className="mt-3 grid grid-cols-3 gap-3">
+                                <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                                    <div className="flex items-center gap-1 mb-1">
+                                        <Unlock className="h-3 w-3 text-green-600" />
+                                        <p className="text-xs text-green-700">
+                                            Unlocked
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-green-700">
+                                        ৳ {fmt(s.unlocked_amount)}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                                    <div className="flex items-center gap-1 mb-1">
+                                        <Lock className="h-3 w-3 text-amber-600" />
+                                        <p className="text-xs text-amber-700">
+                                            Locked
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-amber-700">
+                                        ৳ {fmt(s.locked_amount)}
+                                    </p>
+                                </div>
+                                <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+                                    <p className="text-xs text-indigo-700 mb-1">
+                                        Available
+                                    </p>
+                                    <p className="text-sm font-semibold text-indigo-700">
+                                        ৳ {fmt(s.available_to_withdraw)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Profit Balance Card ──────────────────────────────────────────────────────
 
 function ProfitBalanceCard({ balance }: { balance: PartnerProfitBalance }) {
     const totalPending =
@@ -184,13 +332,7 @@ function ProfitBalanceCard({ balance }: { balance: PartnerProfitBalance }) {
 
 // ─── Recent Profit Payments Card ──────────────────────────────────────────────
 
-function RecentProfitPaymentsCard({
-    items,
-    partnerId,
-}: {
-    items: RecentProfitItem[];
-    partnerId: number;
-}) {
+function RecentProfitPaymentsCard({ items }: { items: RecentProfitItem[] }) {
     return (
         <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
@@ -237,7 +379,6 @@ function RecentProfitPaymentsCard({
                                     );
                                     const profitShare =
                                         Number(item.share_amount) - costReturn;
-
                                     return (
                                         <tr
                                             key={item.id}
@@ -252,7 +393,7 @@ function RecentProfitPaymentsCard({
                                                                 .profit_distribution
                                                                 .id,
                                                         )}
-                                                        className="text-xs font-medium font-mono text-indigo-600 hover:underline"
+                                                        className="font-mono text-xs font-medium text-indigo-600 hover:underline"
                                                     >
                                                         {
                                                             item
@@ -331,6 +472,7 @@ export default function Show({
     productAssignments,
     products,
     profitBalance,
+    capitalSummaries,
     recentProfitItems,
     can,
     profitRuleCan,
@@ -446,7 +588,7 @@ export default function Show({
                                     {partner.name}
                                 </h1>
                                 {partner.code && (
-                                    <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-mono font-medium text-indigo-700">
+                                    <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 font-mono text-xs font-medium text-indigo-700">
                                         {partner.code}
                                     </span>
                                 )}
@@ -529,7 +671,7 @@ export default function Show({
                             <div className="p-5 space-y-4">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="flex items-start gap-3">
-                                        <Phone className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                        <Phone className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                         <div>
                                             <p className="text-xs text-gray-400">
                                                 Phone
@@ -545,7 +687,7 @@ export default function Show({
                                     </div>
 
                                     <div className="flex items-start gap-3">
-                                        <Mail className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                        <Mail className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                         <div>
                                             <p className="text-xs text-gray-400">
                                                 Email
@@ -568,12 +710,12 @@ export default function Show({
                                     </div>
 
                                     <div className="flex items-start gap-3 sm:col-span-2">
-                                        <MapPin className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                         <div>
                                             <p className="text-xs text-gray-400">
                                                 Address
                                             </p>
-                                            <p className="text-sm text-gray-800 whitespace-pre-line">
+                                            <p className="whitespace-pre-line text-sm text-gray-800">
                                                 {partner.address ?? (
                                                     <span className="text-gray-400">
                                                         —
@@ -585,7 +727,7 @@ export default function Show({
 
                                     {partner.user && (
                                         <div className="flex items-start gap-3 sm:col-span-2">
-                                            <User className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                            <User className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                             <div>
                                                 <p className="text-xs text-gray-400">
                                                     Linked System User
@@ -607,12 +749,12 @@ export default function Show({
 
                                 {partner.note && (
                                     <div className="flex items-start gap-3 border-t border-gray-100 pt-4">
-                                        <FileText className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                        <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                         <div>
                                             <p className="text-xs text-gray-400">
                                                 Note
                                             </p>
-                                            <p className="text-sm text-gray-700 whitespace-pre-line">
+                                            <p className="whitespace-pre-line text-sm text-gray-700">
                                                 {partner.note}
                                             </p>
                                         </div>
@@ -621,12 +763,15 @@ export default function Show({
                             </div>
                         </div>
 
-                        {/* Gap 1.5 — Profit Balance Card */}
+                        {/* Gap 1.4 — Capital Overview (shown only when linked investments exist) */}
+                        <CapitalOverviewSection summaries={capitalSummaries} />
+
+                        {/* Gap 1.5 / 4.2 — Profit Balance */}
                         {profitBalance ? (
                             <ProfitBalanceCard balance={profitBalance} />
                         ) : (
                             <div className="rounded-lg border border-gray-200 bg-white p-5">
-                                <div className="flex items-center gap-2 mb-2">
+                                <div className="mb-2 flex items-center gap-2">
                                     <TrendingUp className="h-4 w-4 text-gray-400" />
                                     <h2 className="text-sm font-semibold text-gray-700">
                                         Profit Balance
@@ -640,10 +785,7 @@ export default function Show({
                         )}
 
                         {/* Gap 1.5 — Recent Profit Payments */}
-                        <RecentProfitPaymentsCard
-                            items={recentProfitItems}
-                            partnerId={partner.id}
-                        />
+                        <RecentProfitPaymentsCard items={recentProfitItems} />
 
                         {/* Linked Investments */}
                         <LinkedInvestmentsCard
@@ -741,7 +883,7 @@ export default function Show({
                                         key={key}
                                         className="flex items-center justify-between"
                                     >
-                                        <span className="text-sm text-gray-500 capitalize">
+                                        <span className="text-sm capitalize text-gray-500">
                                             {PARTNER_TYPE_LABELS[key]}
                                         </span>
                                         <span
@@ -754,6 +896,35 @@ export default function Show({
                             </div>
                         </div>
 
+                        {/* Quick Actions Card */}
+                        {capitalSummaries.length > 0 && (
+                            <div className="rounded-lg border border-gray-200 bg-white">
+                                <div className="border-b border-gray-100 px-5 py-3 text-sm font-medium text-gray-700">
+                                    Quick Actions
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    <Link
+                                        href={route(
+                                            "backend.capital-ledger.index",
+                                        )}
+                                        className="flex w-full items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <Wallet className="h-4 w-4 text-indigo-500" />
+                                        Capital Ledger
+                                    </Link>
+                                    <Link
+                                        href={route(
+                                            "backend.investor-statements.index",
+                                        )}
+                                        className="flex w-full items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    >
+                                        <FileText className="h-4 w-4 text-indigo-500" />
+                                        Full Statement
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Audit Card */}
                         <div className="rounded-lg border border-gray-200 bg-white">
                             <div className="border-b border-gray-100 px-5 py-3 text-sm font-medium text-gray-700">
@@ -761,7 +932,7 @@ export default function Show({
                             </div>
                             <div className="p-5 space-y-3 text-sm">
                                 <div className="flex items-start gap-2">
-                                    <Calendar className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                    <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                     <div>
                                         <p className="text-xs text-gray-400">
                                             Created
@@ -785,7 +956,7 @@ export default function Show({
                                 </div>
                                 {partner.updated_by_user && (
                                     <div className="flex items-start gap-2">
-                                        <Calendar className="mt-0.5 h-4 w-4 text-gray-400 shrink-0" />
+                                        <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                                         <div>
                                             <p className="text-xs text-gray-400">
                                                 Last Updated
