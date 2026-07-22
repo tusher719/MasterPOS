@@ -1,9 +1,9 @@
-import { Eye, Edit2, Trash2 } from "lucide-react";
-import { route } from "ziggy-js";
 import type {
     Distribution,
     DistributionPermissions,
 } from "@/types/profit-distribution";
+import { Edit2, Eye, Trash2 } from "lucide-react";
+import { route } from "ziggy-js";
 
 interface Props {
     distributions: Distribution[];
@@ -44,6 +44,26 @@ function StatusBadge({ status }: { status: Distribution["status"] }) {
     );
 }
 
+// Gap 1.3 — source type badge
+function SourceTypeBadge({
+    sourceType,
+}: {
+    sourceType: Distribution["source_type"];
+}) {
+    if (sourceType === "partner_based") {
+        return (
+            <span className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                Partner-based
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
+            Legacy
+        </span>
+    );
+}
+
 export default function ProfitDistributionTable({
     distributions,
     can,
@@ -75,6 +95,10 @@ export default function ProfitDistributionTable({
                             </th>
                             <th className="px-4 py-3 text-left font-medium text-gray-500">
                                 Title
+                            </th>
+                            {/* Gap 1.3 */}
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Type
                             </th>
                             <th className="px-4 py-3 text-left font-medium text-gray-500">
                                 Period
@@ -129,6 +153,13 @@ export default function ProfitDistributionTable({
                                         <p className="text-xs text-gray-400">
                                             by {dist.creator?.name ?? "—"}
                                         </p>
+                                    </td>
+
+                                    {/* Type — Gap 1.3 */}
+                                    <td className="px-4 py-3">
+                                        <SourceTypeBadge
+                                            sourceType={dist.source_type}
+                                        />
                                     </td>
 
                                     {/* Period */}

@@ -1,11 +1,11 @@
 import { BarChart2, CheckCircle, Clock, DollarSign, Send } from "lucide-react";
 
 interface Stats {
-    total: number;
-    draft: number;
-    approved: number;
-    distributed: number;
-    total_distributed: string;
+    total?: number;
+    draft?: number;
+    approved?: number;
+    distributed?: number;
+    total_distributed?: number | string;
 }
 
 interface Props {
@@ -23,43 +23,43 @@ export default function ProfitDistributionStatsCards({ stats }: Props) {
     const cards = [
         {
             label: "Total Distributions",
-            value: stats.total,
+            value: stats.total ?? 0,
             icon: BarChart2,
             color: "text-indigo-600",
             bg: "bg-indigo-50",
-            display: String(stats.total),
+            display: String(stats.total ?? 0),
         },
         {
             label: "Draft",
-            value: stats.draft,
+            value: stats.draft ?? 0,
             icon: Clock,
             color: "text-gray-600",
             bg: "bg-gray-100",
-            display: String(stats.draft),
+            display: String(stats.draft ?? 0),
         },
         {
             label: "Approved",
-            value: stats.approved,
+            value: stats.approved ?? 0,
             icon: CheckCircle,
             color: "text-amber-600",
             bg: "bg-amber-50",
-            display: String(stats.approved),
+            display: String(stats.approved ?? 0),
         },
         {
             label: "Distributed",
-            value: stats.distributed,
+            value: stats.distributed ?? 0,
             icon: Send,
             color: "text-green-600",
             bg: "bg-green-50",
-            display: String(stats.distributed),
+            display: String(stats.distributed ?? 0),
         },
         {
             label: "Total Distributed Amount",
-            value: stats.total_distributed,
+            value: stats.total_distributed ?? 0,
             icon: DollarSign,
             color: "text-indigo-600",
             bg: "bg-indigo-50",
-            display: `৳ ${fmt(stats.total_distributed)}`,
+            display: `৳ ${fmt(stats.total_distributed ?? 0)}`,
             wide: true,
         },
     ];

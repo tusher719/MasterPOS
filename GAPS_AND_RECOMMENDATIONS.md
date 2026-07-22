@@ -125,8 +125,24 @@ from this page.
 another in the same list.
 
 **Priority:** Nice to Have
+**Status:** ✅ Done
 **Fix:** Add a visual badge/filter on the distribution list based on
 `source_type` (Legacy vs Partner-based).
+
+**Post-implementation note (Gap 1.3):**
+
+- `DistributionSourceType` type alias added to `profit-distribution.d.ts`
+- `Distribution.source_type` field added to `Distribution` interface
+- `ProfitDistributionController::index()`: `source_type` filter query added;
+  `source_type` included in `filters` prop passed to Inertia
+- `Index.tsx`: `sourceType` state + button group UI (All Types / Legacy /
+  Partner-based); active button styled per type — gray for Legacy,
+  indigo for Partner-based; `hasActiveFilter` updated to include `sourceType`;
+  `resetFilters()` clears `sourceType`
+- `ProfitDistributionTable.tsx`: `SourceTypeBadge` component added —
+  Legacy: `gray-100/500`, Partner-based: `indigo-100/700`;
+  "Type" column added after "Title" column
+- No migration required — `source_type` column exists since Phase 4H
 
 ---
 
@@ -526,7 +542,7 @@ them together, not separately)
 | 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
 | 1.2       | Investor Statement — Partner support                   | Should Fix   | ✅ Done                         | No             |
 | 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | ✅ Done                         | No (doc only)  |
-| 1.3       | Distribution List UI Badge                             | Nice to Have | Pending                         | No             |
+| 1.3       | Distribution List UI Badge                             | Nice to Have | ✅ Done                         | No             |
 | 1.4       | Partner Financial Overview page                        | Nice to Have | Pending                         | No             |
 | 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | Pending                         | Yes            |
 | 3         | Investor → Partner Naming Migration                    | Nice to Have | Pending                         | Gradual        |

@@ -11,6 +11,9 @@ export type PaymentStatus =
 
 export type DistributionStatus = "draft" | "approved" | "distributed";
 
+// Gap 1.3 — source type
+export type DistributionSourceType = "investment_based" | "partner_based";
+
 // ─── Payment Transaction ──────────────────────────────────────────────────
 
 export interface ItemPayment {
@@ -87,6 +90,7 @@ export interface Distribution {
     net_profit: number;
     distribution_percent: number;
     distributable_amount: number;
+    source_type: DistributionSourceType; // Gap 1.3
     status: DistributionStatus;
     is_locked: boolean;
     note: string | null;
@@ -184,9 +188,7 @@ export interface PaymentSummaryEntry {
     label: string;
 }
 
-export type PaymentSummary = Partial<
-    Record<PaymentStatus, PaymentSummaryEntry>
->;
+export type PaymentSummary = Partial<Record<PaymentStatus, PaymentSummaryEntry>>;
 
 // ─── Item Summary (from API) ──────────────────────────────────────────────
 

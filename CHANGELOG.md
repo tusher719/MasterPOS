@@ -2,6 +2,50 @@
 
 ---
 
+## [v2.20 — Gap 1.3] — Distribution List Source Type Badge & Filter — 2026-07-23
+
+### New Files (0)
+
+No new files.
+
+### Updated Files (4)
+
+- `profit-distribution.d.ts`: `DistributionSourceType` type alias added
+  (`"investment_based" | "partner_based"`); `Distribution.source_type` field
+  added as required `DistributionSourceType` (DB default ensures all records
+  have a value)
+
+- `ProfitDistributionController.php` (index method):
+  `source_type` filter query added — `where('source_type', $sourceType)` when
+  param present; `source_type` added to `filters` array in Inertia render
+
+- `ProfitDistributions/Index.tsx`:
+  `DistributionSourceType` imported from types; `SOURCE_TYPE_OPTIONS` const
+  array defined at module level (All Types / Legacy / Partner-based);
+  `sourceType` state added, initialized from `filters.source_type`;
+  `applyFilters()` passes `source_type: sourceType`; `resetFilters()` clears
+  `sourceType`; `hasActiveFilter` replaces inline `(search || status || year)`
+  check — now includes `sourceType`; button group UI added below existing
+  filter row — segmented control with per-type active color
+
+- `ProfitDistributions/_components/ProfitDistributionTable.tsx`:
+  `SourceTypeBadge` component added — `partner_based` → indigo-100/700 badge
+  labeled "Partner-based"; `investment_based` → gray-100/500 badge labeled
+  "Legacy"; "Type" `<th>` added after "Title"; `<SourceTypeBadge>` `<td>`
+  added in matching row position
+
+### Business Rules Established
+
+- `investment_based` distributions display as "Legacy" (gray badge) —
+  communicates that these are pre-Partner-domain records
+- `partner_based` distributions display as "Partner-based" (indigo badge) —
+  consistent with indigo used throughout the Partner domain
+- Source type filter is independent of status and year filters —
+  all four filters combine with AND logic via query string
+- No data change — `source_type` column and values exist since Phase 4H
+
+---
+
 ## [v2.19 — Gap 2.4] — Mixed Rule Resolution Clarification — 2026-07-22
 
 ### Documentation Only — No Code Changes

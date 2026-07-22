@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Head, router, usePage } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import { toast } from "sonner";
 import { PlusCircle, Search, RotateCcw } from "lucide-react";
@@ -12,6 +12,7 @@ import type {
     Distribution,
     DistributionStats,
     DistributionPermissions,
+    DistributionSourceType,
 } from "@/types/profit-distribution";
 
 interface PaginatedDistributions {
@@ -30,9 +31,24 @@ interface PaginatedDistributions {
 interface Props {
     distributions: PaginatedDistributions;
     stats: DistributionStats;
-    filters: { search?: string; status?: string; year?: string };
+    filters: {
+        search?: string;
+        status?: string;
+        year?: string;
+        source_type?: string; // Gap 1.3
+    };
     can: DistributionPermissions;
 }
+
+// Gap 1.3 — source type filter button config
+const SOURCE_TYPE_OPTIONS: {
+    value: DistributionSourceType | "";
+    label: string;
+}[] = [
+    { value: "", label: "All Types" },
+    { value: "investment_based", label: "Legacy" },
+    { value: "partner_based", label: "Partner-based" },
+];
 
 export default function Index({ distributions, stats, filters, can }: Props) {
     useFlashToast();
@@ -40,11 +56,19 @@ export default function Index({ distributions, stats, filters, can }: Props) {
     const [search, setSearch] = useState(filters.search ?? "");
     const [status, setStatus] = useState(filters.status ?? "");
     const [year, setYear] = useState(filters.year ?? "");
+    const [sourceType, setSourceType] = useState(
+        filters.source_type ?? "",
+    ); // Gap 1.3
     const [processing, setProcessing] = useState<number | null>(null);
 
     const data = distributions.data ?? [];
     const meta = distributions.meta ?? {};
     const links = distributions.links ?? [];
+
+    const statsForCards = {
+        ...stats,
+        total: stats.total ?? 0,
+    };
 
     // -----------------------------------------------------------------------
     // Filter
@@ -53,7 +77,7 @@ export default function Index({ distributions, stats, filters, can }: Props) {
     function applyFilters(overrides: Record<string, string> = {}) {
         router.get(
             route("backend.profit-distributions.index"),
-            { search, status, year, ...overrides },
+            { search, status, year, source_type: sourceType, ...overrides },
             { preserveState: true, replace: true },
         );
     }
@@ -66,6 +90,7 @@ export default function Index({ distributions, stats, filters, can }: Props) {
         setSearch("");
         setStatus("");
         setYear("");
+        setSourceType(""); // Gap 1.3
         router.get(route("backend.profit-distributions.index"));
     }
 
@@ -136,6 +161,9 @@ export default function Index({ distributions, stats, filters, can }: Props) {
     const currentYear = new Date().getFullYear();
     const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+    // Gap 1.3 — any active filter check (includes sourceType)
+    const hasActiveFilter = !!(search || status || year || sourceType);
+
     return (
         <AuthenticatedLayout>
             <Head title="Profit Distributions" />
@@ -152,7 +180,7 @@ export default function Index({ distributions, stats, filters, can }: Props) {
                         </p>
                     </div>
                     {can.create && (
-                        <a
+<a
                             href={route("backend.profit-distributions.create")}
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                         >
@@ -225,7 +253,7 @@ export default function Index({ distributions, stats, filters, can }: Props) {
                         </button>
 
                         {/* Reset */}
-                        {(search || status || year) && (
+                        {hasActiveFilter && (
                             <button
                                 onClick={resetFilters}
                                 className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
@@ -234,6 +262,37 @@ export default function Index({ distributions, stats, filters, can }: Props) {
                                 Reset
                             </button>
                         )}
+                    </div>
+
+                    {/* Gap 1.3 — Source type button group */}
+                    <div className="mt-3 flex items-center gap-2">
+                        <span className="text-xs text-gray-400 font-medium">
+                            Type:
+                        </span>
+                        <div className="flex rounded-md border border-gray-200 overflow-hidden">
+                            {SOURCE_TYPE_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => {
+                                        setSourceType(opt.value);
+                                        applyFilters({
+                                            source_type: opt.value,
+                                        });
+                                    }}
+                                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 last:border-r-0 ${
+                                        sourceType === opt.value
+                                            ? opt.value === "investment_based"
+                                                ? "bg-gray-600 text-white"
+                                                : opt.value === "partner_based"
+                                                  ? "bg-indigo-600 text-white"
+                                                  : "bg-gray-700 text-white"
+                                            : "bg-white text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

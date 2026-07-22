@@ -43,7 +43,7 @@ class ProfitDistributionController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('distribution_no', 'like', "%{$search}%")
-                  ->orWhere('title', 'like', "%{$search}%");
+                ->orWhere('title', 'like', "%{$search}%");
             });
         }
 
@@ -53,6 +53,11 @@ class ProfitDistributionController extends Controller
 
         if ($year = $request->input('year')) {
             $query->whereYear('distribution_date', $year);
+        }
+
+        // Gap 1.3 — source_type filter
+        if ($sourceType = $request->input('source_type')) {
+            $query->where('source_type', $sourceType);
         }
 
         $distributions = $query
@@ -83,7 +88,7 @@ class ProfitDistributionController extends Controller
         return Inertia::render('Backend/ProfitDistributions/Index', [
             'distributions' => $distributions,
             'stats'         => $stats,
-            'filters'       => $request->only(['search', 'status', 'year']),
+            'filters'       => $request->only(['search', 'status', 'year', 'source_type']),
             'can'           => $can,
         ]);
     }
