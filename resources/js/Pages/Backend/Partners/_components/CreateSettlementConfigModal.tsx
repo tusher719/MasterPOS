@@ -1,7 +1,11 @@
-import { Partner, SettlementConfigFormData } from "@/types/partner";
+import {
+    AppliesToType,
+    Partner,
+    SettlementConfigFormData,
+} from "@/types/partner";
 import { router } from "@inertiajs/react";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -35,6 +39,38 @@ const PAYMENT_PREFERENCE_OPTIONS = [
     { value: "reinvestment", label: "Reinvestment" },
 ] as const;
 
+const APPLIES_TO_OPTIONS: {
+    value: AppliesToType;
+    label: string;
+    description: string;
+    requiresType: keyof Partner | null;
+}[] = [
+    {
+        value: "all",
+        label: "All Streams",
+        description: "Applies to all income streams of this partner",
+        requiresType: null,
+    },
+    {
+        value: "capital",
+        label: "Capital Stream",
+        description: "Applies to capital investment profit only",
+        requiresType: "partner_type_capital",
+    },
+    {
+        value: "working",
+        label: "Working Stream",
+        description: "Applies to working/labour profit only",
+        requiresType: "partner_type_working",
+    },
+    {
+        value: "product",
+        label: "Product Stream",
+        description: "Applies to product sales profit only",
+        requiresType: "partner_type_product",
+    },
+];
+
 export default function CreateSettlementConfigModal({
     partner,
     onClose,
@@ -44,8 +80,17 @@ export default function CreateSettlementConfigModal({
         payment_preference: "",
         auto_cost_return: false,
         notes: "",
+        applies_to: "all",
     });
     const [processing, setProcessing] = useState(false);
+
+    // Only show applies_to options that match partner's active type flags
+    const availableAppliesToOptions = useMemo(() => {
+        return APPLIES_TO_OPTIONS.filter((opt) => {
+            if (opt.requiresType === null) return true; // 'all' always available
+            return partner[opt.requiresType] === true;
+        });
+    }, [partner]);
 
     const handleSubmit = () => {
         if (!form.settlement_type) {
@@ -68,6 +113,7 @@ export default function CreateSettlementConfigModal({
                 payment_preference: form.payment_preference,
                 auto_cost_return: form.auto_cost_return,
                 notes: form.notes,
+                applies_to: form.applies_to,
             },
             {
                 onSuccess: () => {
@@ -86,10 +132,6 @@ export default function CreateSettlementConfigModal({
             },
         );
     };
-
-    // -------------------------------------------------------------------------
-    // Render
-    // -------------------------------------------------------------------------
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -122,6 +164,40 @@ export default function CreateSettlementConfigModal({
                         )}
                     </div>
 
+                    {/* Applies To — only show when partner has multiple types */}
+                    {availableAppliesToOptions.length > 1 && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                Applies To{" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={form.applies_to}
+                                onChange={(e) =>
+                                    setForm((f) => ({
+                                        ...f,
+                                        applies_to: e.target
+                                            .value as AppliesToType,
+                                    }))
+                                }
+                                className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                {availableAppliesToOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500">
+                                {
+                                    availableAppliesToOptions.find(
+                                        (o) => o.value === form.applies_to,
+                                    )?.description
+                                }
+                            </p>
+                        </div>
+                    )}
+
                     {/* Settlement Type */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -150,7 +226,6 @@ export default function CreateSettlementConfigModal({
                                                 ...f,
                                                 settlement_type: e.target
                                                     .value as SettlementConfigFormData["settlement_type"],
-                                                // auto_cost_return only meaningful for cost_plus_profit
                                                 auto_cost_return:
                                                     e.target.value ===
                                                     "cost_plus_profit"

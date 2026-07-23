@@ -35,7 +35,7 @@ export default function PauseEligibilityModal({
         setProcessing(true);
 
         router.post(
-            route("partners.eligibilities.pause", {
+            route("backend.partners.eligibilities.pause", {
                 partner: partner.id,
                 eligibility: eligibility.id,
             }),

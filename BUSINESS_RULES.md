@@ -263,6 +263,23 @@ At distribution approval time, the settlement type is frozen into `profit_distri
 - Only paid/reinvested distribution statuses lock a partner's period in overlap checks
 - Deferred status = unpaid/postponed — period remains open for the next distribution
 
+### Per-Stream Settlement Config (Gap 2.3)
+
+- A Mixed Partner can have multiple active settlement configs simultaneously,
+  one per stream (capital / working / product / all).
+- `applies_to = 'all'` is the fallback — used when no stream-specific config exists.
+- Option A resolution: specific stream config always wins over 'all' config.
+- One active config per partner per `applies_to` value enforced at controller level.
+
+### Per-Stream Eligibility (Gap 2.3)
+
+- A Mixed Partner can have multiple active eligibility records simultaneously,
+  one per stream (capital / working / product / all).
+- Pausing one stream's eligibility does not affect other streams.
+- Resume carries forward the `applies_to` value from the paused record.
+- One active eligibility record per partner per `applies_to` value enforced
+  at service layer (PartnerEligibilityService::create() throws RuntimeException).
+
 ---
 
 ## 7. Profit Calculation Engine

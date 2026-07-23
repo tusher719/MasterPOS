@@ -14,6 +14,7 @@ class PartnerSettlementConfig extends Model
         'payment_preference',
         'auto_cost_return',
         'notes',
+        'applies_to',           // NEW — Gap 2.3
         'is_active',
         'created_by',
         // approved_by, approved_at — excluded from $fillable (Rule 66)
@@ -41,6 +42,21 @@ class PartnerSettlementConfig extends Model
     public function scopePending($query)
     {
         return $query->whereNull('approved_by');
+    }
+
+    /**
+     * Filter configs that apply to a given partner type stream.
+     * 'all' always matches any stream — specific type matches only its own stream.
+     * Used by SettlementCalculationService to find the most specific config.
+     *
+     * @param  string  $type  'capital' | 'working' | 'product'
+     */
+    public function scopeForType($query, string $type)
+    {
+        return $query->where(function ($q) use ($type) {
+            $q->where('applies_to', $type)
+              ->orWhere('applies_to', 'all');
+        });
     }
 
     // ─── Business Methods ─────────────────────────────────────────────────────
@@ -87,6 +103,17 @@ class PartnerSettlementConfig extends Model
             'adjustment'    => 'Adjustment',
             'reinvestment'  => 'Reinvestment',
             default         => ucfirst($this->payment_preference),
+        };
+    }
+
+    public function getAppliesToLabelAttribute(): string
+    {
+        return match ($this->applies_to) {
+            'capital' => 'Capital Stream',
+            'working' => 'Working Stream',
+            'product' => 'Product Stream',
+            'all'     => 'All Streams',
+            default   => ucfirst($this->applies_to),
         };
     }
 

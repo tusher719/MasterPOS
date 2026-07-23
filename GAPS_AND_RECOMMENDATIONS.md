@@ -544,7 +544,7 @@ them together, not separately)
 | 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | ✅ Done                         | No (doc only)  |
 | 1.3       | Distribution List UI Badge                             | Nice to Have | ✅ Done                         | No             |
 | 1.4       | Partner Financial Overview page                        | Nice to Have | ✅ Done                         | No             |
-| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | Pending                         | Yes            |
+| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | ✅ Done                         | Yes            |
 | 3         | Investor → Partner Naming Migration                    | Nice to Have | Pending                         | Gradual        |
 
 ---

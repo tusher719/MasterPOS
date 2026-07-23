@@ -27,6 +27,7 @@ class PartnerEligibilityController extends Controller
         $validated = $request->validate([
             'profit_start_date' => ['required', 'date'],
             'profit_end_date'   => ['nullable', 'date', 'after:profit_start_date'],
+            'applies_to'        => ['required', 'in:capital,working,product,all'],
         ]);
 
         try {

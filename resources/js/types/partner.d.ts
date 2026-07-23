@@ -180,11 +180,15 @@ export interface ProfitRuleCan {
 
 export type EligibilityStatus = "active" | "paused" | "ended";
 
+// Gap 2.3 — stream selector for per-type eligibility and settlement config
+export type AppliesToType = "capital" | "working" | "product" | "all";
+
 export interface PartnerEligibility {
     id: number;
     partner_id: number;
     profit_start_date: string; // YYYY-MM-DD
     profit_end_date: string | null; // null = ongoing
+    applies_to: AppliesToType; // NEW — Gap 2.3
     status: EligibilityStatus;
     pause_reason: string | null;
     paused_by: number | null;
@@ -200,6 +204,7 @@ export interface PartnerEligibility {
     is_paused: boolean;
     is_ended: boolean;
     is_ongoing: boolean;
+    applies_to_label: string; // NEW — Gap 2.3
 
     // Relations (when eager loaded)
     creator?: PartnerUser | null;
@@ -210,6 +215,7 @@ export interface PartnerEligibility {
 export interface EligibilityFormData {
     profit_start_date: string;
     profit_end_date: string;
+    applies_to: AppliesToType; // NEW — Gap 2.3
 }
 
 export interface PauseEligibilityFormData {
@@ -354,6 +360,7 @@ export interface PartnerSettlementConfig {
     payment_preference: PaymentPreference;
     auto_cost_return: boolean;
     notes: string | null;
+    applies_to: AppliesToType; // NEW — Gap 2.3
     is_active: boolean;
     approved_by: number | null;
     approved_at: string | null;
@@ -364,12 +371,21 @@ export interface PartnerSettlementConfig {
     // Accessors
     settlement_type_label: string;
     payment_preference_label: string;
+    applies_to_label: string; // NEW — Gap 2.3
     is_pending: boolean;
     is_approved: boolean;
 
     // Relations (when eager loaded)
     created_by_user?: PartnerUser | null;
     approved_by_user?: PartnerUser | null;
+}
+
+export interface SettlementConfigFormData {
+    settlement_type: SettlementType | "";
+    payment_preference: PaymentPreference | "";
+    auto_cost_return: boolean;
+    notes: string;
+    applies_to: AppliesToType; // NEW — Gap 2.3
 }
 
 export interface SettlementConfigCan {

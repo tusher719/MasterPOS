@@ -18,10 +18,11 @@ class PartnerEligibilityService
      * Check whether a partner is eligible for a given distribution period.
      * An active eligibility record must fully cover period_start → period_end.
      */
-    public function isEligible(Partner $partner, string $periodStart, string $periodEnd): bool
+    public function isEligible(Partner $partner, string $periodStart, string $periodEnd, string $type = 'all'): bool
     {
         return $partner->eligibilities()
             ->coveringPeriod($periodStart, $periodEnd)
+            ->forType($type)
             ->exists();
     }
 
@@ -29,11 +30,12 @@ class PartnerEligibilityService
      * Batch check — returns array keyed by partner_id => bool.
      * Used by the calculation engine to avoid N+1 on multi-partner distributions.
      */
-    public function isEligibleBatch(array $partnerIds, string $periodStart, string $periodEnd): array
+    public function isEligibleBatch(array $partnerIds, string $periodStart, string $periodEnd, string $type = 'all'): array
     {
         $eligibleIds = PartnerProfitEligibility::query()
             ->whereIn('partner_id', $partnerIds)
             ->coveringPeriod($periodStart, $periodEnd)
+            ->forType($type)
             ->pluck('partner_id')
             ->toArray();
 
@@ -56,9 +58,9 @@ class PartnerEligibilityService
     /**
      * Check whether a partner has any active eligibility record (regardless of period).
      */
-    public function hasActiveEligibility(Partner $partner): bool
+    public function hasActiveEligibility(Partner $partner, string $type = 'all'): bool
     {
-        return $partner->eligibilities()->active()->exists();
+        return $partner->eligibilities()->active()->forType($type)->exists();
     }
 
     // -----------------------------------------------------------------------
@@ -73,9 +75,16 @@ class PartnerEligibilityService
      */
     public function create(Partner $partner, array $data): PartnerProfitEligibility
     {
-        if ($this->hasActiveEligibility($partner)) {
+        $appliesTo = $data['applies_to'] ?? 'all';
+        if ($this->hasActiveEligibility($partner, $appliesTo)) {
+            $label = match ($appliesTo) {
+                'capital' => 'Capital Stream',
+                'working' => 'Working Stream',
+                'product' => 'Product Stream',
+                default   => 'All Streams',
+            };
             throw new \RuntimeException(
-                'Partner already has an active eligibility record. Pause or end the existing record before creating a new one.'
+                "Partner already has an active eligibility record for [{$label}]. Pause or end it before creating a new one."
             );
         }
 
@@ -84,6 +93,7 @@ class PartnerEligibilityService
                 'partner_id'        => $partner->id,
                 'profit_start_date' => $data['profit_start_date'],
                 'profit_end_date'   => $data['profit_end_date'] ?? null,
+                'applies_to'        => $data['applies_to'] ?? 'all',
                 'status'            => 'active',
                 'created_by'        => Auth::id(),
             ]);
@@ -173,6 +183,7 @@ class PartnerEligibilityService
                 'partner_id'        => $eligibility->partner_id,
                 'profit_start_date' => $resumeDate,
                 'profit_end_date'   => $endDate ?? null,
+                'applies_to'        => $eligibility->applies_to, // carry forward from paused record
                 'status'            => 'active',
                 'created_by'        => Auth::id(),
             ]);

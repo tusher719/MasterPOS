@@ -35,9 +35,10 @@ class SettlementCalculationService
         string $periodStart,
         string $periodEnd,
         float $distributableAmount,
-        float $partnerSharePercent
+        float $partnerSharePercent,
+        string $type = 'all'
     ): array {
-        $config = $this->getActiveConfig($partner);
+        $config = $this->getActiveConfig($partner, $type);
 
         $settlementType    = $config?->settlement_type ?? 'profit_only';
         $paymentPreference = $config?->payment_preference ?? 'cash';
@@ -83,35 +84,45 @@ class SettlementCalculationService
      * Get the active settlement config for a partner.
      * Returns null if no config exists — callers must handle the default case.
      */
-    public function getActiveConfig(Partner $partner): ?PartnerSettlementConfig
+    public function getActiveConfig(Partner $partner, string $type = 'all'): ?PartnerSettlementConfig
     {
-        return $partner->settlementConfigs()->active()->latest()->first();
+        // Option A: specific type wins over 'all'
+        // First look for an exact match, fall back to 'all' if not found
+        $specific = $partner->settlementConfigs()
+            ->active()
+            ->approved()
+            ->where('applies_to', $type)
+            ->latest()
+            ->first();
+
+        if ($specific) {
+            return $specific;
+        }
+
+        return $partner->settlementConfigs()
+            ->active()
+            ->approved()
+            ->where('applies_to', 'all')
+            ->latest()
+            ->first();
     }
 
     /**
      * Check whether a partner has an active settlement config.
      */
-    public function hasActiveConfig(Partner $partner): bool
+    public function hasActiveConfig(Partner $partner, string $type = 'all'): bool
     {
-        return $partner->settlementConfigs()->active()->exists();
+        return $this->getActiveConfig($partner, $type) !== null;
     }
 
-    /**
-     * Get the settlement type for a partner.
-     * Falls back to 'profit_only' when no config is set.
-     */
-    public function getSettlementType(Partner $partner): string
+    public function getSettlementType(Partner $partner, string $type = 'all'): string
     {
-        return $this->getActiveConfig($partner)?->settlement_type ?? 'profit_only';
+        return $this->getActiveConfig($partner, $type)?->settlement_type ?? 'profit_only';
     }
 
-    /**
-     * Get the payment preference for a partner.
-     * Falls back to 'cash' when no config is set.
-     */
-    public function getPaymentPreference(Partner $partner): string
+    public function getPaymentPreference(Partner $partner, string $type = 'all'): string
     {
-        return $this->getActiveConfig($partner)?->payment_preference ?? 'cash';
+        return $this->getActiveConfig($partner, $type)?->payment_preference ?? 'cash';
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────

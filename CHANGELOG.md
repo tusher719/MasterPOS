@@ -2,6 +2,79 @@
 
 ---
 
+## [v2.22 — Gap 2.3] — Mixed Partner per-type Settlement/Eligibility — 2026-07-23
+
+### New Migrations (2)
+
+- `add_applies_to_to_partner_settlement_configs_table`:
+  applies_to enum(capital/working/product/all) default 'all', after notes column
+- `add_applies_to_to_partner_profit_eligibilities_table`:
+  applies_to enum(capital/working/product/all) default 'all', after profit_end_date column
+
+### Updated Files (10)
+
+- `PartnerSettlementConfig.php`: applies_to added to $fillable; scopeForType(string $type)
+  added — matches applies_to = type OR applies_to = 'all'; getAppliesToLabelAttribute()
+  accessor added
+
+- `PartnerProfitEligibility.php`: applies_to added to $fillable; scopeForType(string $type)
+  added — same pattern as PartnerSettlementConfig; getAppliesToLabelAttribute() accessor added
+
+- `PartnerSettlementConfigController.php`: store() uniqueness check updated —
+  one active config per partner per applies_to value (was: one per partner total);
+  applies_to added to validation in store() and update(); activity log includes applies_to
+
+- `PartnerEligibilityController.php`: applies_to added to store() validation
+
+- `PartnerEligibilityService.php`: isEligible(), isEligibleBatch(), hasActiveEligibility()
+  all receive optional $type = 'all' parameter — forType() scope applied to all queries;
+  create() persists applies_to from $data; resume() carries forward applies_to from
+  paused record to new active record
+
+- `SettlementCalculationService.php`: getActiveConfig() updated — Option A resolution:
+  specific stream config (applies_to = type) wins over 'all' fallback; $type parameter
+  added to calculate(), getActiveConfig(), hasActiveConfig(), getSettlementType(),
+  getPaymentPreference()
+
+- `partner.d.ts`: AppliesToType type alias added; applies_to + applies_to_label added
+  to PartnerSettlementConfig and PartnerEligibility interfaces; applies_to added to
+  SettlementConfigFormData and EligibilityFormData
+
+- `CreateSettlementConfigModal.tsx` / `EditSettlementConfigModal.tsx`: applies_to
+  selector added — filtered by partner type flags via useMemo; hidden when partner
+  has only one type (no choice needed); description hint shown per selection
+
+- `SettlementConfigPanel.tsx`: activeConfig (single) → activeConfigs (array);
+  Add Config button always visible; applies_to badge (Layers icon) added to every
+  ConfigCard; active count badge in header
+
+- `EligibilityPanel.tsx`: activeRecord (single) → activeRecords (array);
+  pausedRecord (single) → pausedRecords (array); PausedBanner extracted as separate
+  component with applies_to badge; applies_to badge added to ActiveRecordCard and
+  HistoryRow; Add Eligibility button always visible
+
+### Bug Fixes
+
+- `PauseEligibilityModal.tsx`: route name fixed —
+  `partners.eligibilities.pause` → `backend.partners.eligibilities.pause`
+- `ResumeEligibilityModal.tsx`: route name fixed —
+  `partners.eligibilities.resume` → `backend.partners.eligibilities.resume`
+
+### Business Rules Established
+
+- Mixed Partner can have multiple active settlement configs simultaneously —
+  one per stream (capital / working / product / all)
+- Mixed Partner can have multiple active eligibility records simultaneously —
+  one per stream; pausing one stream does not affect others
+- Option A resolution in SettlementCalculationService: specific stream config
+  always wins over 'all' fallback — never merge or average
+- applies_to carried forward on resume — new active record inherits stream
+  from the paused record it resumes
+- applies_to selector hidden for single-type partners — 'all' used automatically
+- Existing records default to 'all' via migration — fully backward compatible
+
+---
+
 ## [v2.21 — Gap 1.4] — Partner Financial Overview Page — 2026-07-23
 
 ### New Files (0)

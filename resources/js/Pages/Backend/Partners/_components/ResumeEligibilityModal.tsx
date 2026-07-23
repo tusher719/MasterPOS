@@ -36,7 +36,7 @@ export default function ResumeEligibilityModal({
         setProcessing(true);
 
         router.post(
-            route("partners.eligibilities.resume", {
+            route("backend.partners.eligibilities.resume", {
                 partner: partner.id,
                 eligibility: eligibility.id,
             }),

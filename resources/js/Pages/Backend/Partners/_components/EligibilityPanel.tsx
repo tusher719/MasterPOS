@@ -11,6 +11,7 @@ import { router } from "@inertiajs/react";
 import {
     Calendar,
     CheckCircle,
+    Layers,
     PauseCircle,
     Plus,
     User,
@@ -28,6 +29,22 @@ interface Props {
     eligibilities: PartnerEligibility[];
     can: EligibilityCan;
 }
+
+// ─── Applies-To badge colors ──────────────────────────────────────────────
+
+const APPLIES_TO_COLORS: Record<string, string> = {
+    all: "bg-gray-100 text-gray-600",
+    capital: "bg-blue-100 text-blue-700",
+    working: "bg-purple-100 text-purple-700",
+    product: "bg-orange-100 text-orange-700",
+};
+
+const APPLIES_TO_LABELS: Record<string, string> = {
+    all: "All Streams",
+    capital: "Capital",
+    working: "Working",
+    product: "Product",
+};
 
 // -------------------------------------------------------------------------
 // Date formatting helper
@@ -76,7 +93,7 @@ function ActiveRecordCard({
     const handleEnd = () => {
         Swal.fire({
             title: "End Profit Eligibility?",
-            text: "This will set the end date to today and mark the record as ended. The partner will no longer be eligible for new distributions.",
+            text: "This will set the end date to today and mark the record as ended. The partner will no longer be eligible for new distributions from this stream.",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
@@ -106,10 +123,21 @@ function ActiveRecordCard({
     return (
         <div className="rounded-lg border border-green-200 bg-green-50 p-4">
             <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <CheckCircle size={16} className="text-green-600" />
                     <span className="text-sm font-semibold text-green-800">
                         Active Eligibility
+                    </span>
+                    {/* Applies-to badge */}
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            APPLIES_TO_COLORS[eligibility.applies_to] ??
+                            "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                        <Layers size={10} />
+                        {APPLIES_TO_LABELS[eligibility.applies_to] ??
+                            eligibility.applies_to}
                     </span>
                     {eligibility.is_ongoing && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
@@ -120,7 +148,7 @@ function ActiveRecordCard({
 
                 {/* Actions */}
                 {can.pause && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                         <button
                             onClick={onPause}
                             className="rounded-md border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50"
@@ -175,6 +203,58 @@ function ActiveRecordCard({
 }
 
 // -------------------------------------------------------------------------
+// Paused Record Banner
+// -------------------------------------------------------------------------
+
+function PausedBanner({
+    eligibility,
+    can,
+    onResume,
+}: {
+    eligibility: PartnerEligibility;
+    can: EligibilityCan;
+    onResume: () => void;
+}) {
+    return (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <PauseCircle size={15} className="text-amber-500" />
+                    <span className="text-sm font-medium text-amber-800">
+                        Eligibility Paused
+                    </span>
+                    {/* Applies-to badge */}
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            APPLIES_TO_COLORS[eligibility.applies_to] ??
+                            "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                        <Layers size={10} />
+                        {APPLIES_TO_LABELS[eligibility.applies_to] ??
+                            eligibility.applies_to}
+                    </span>
+                </div>
+                {can.resume && (
+                    <button
+                        onClick={onResume}
+                        className="rounded-md border border-indigo-300 bg-white px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                    >
+                        Resume
+                    </button>
+                )}
+            </div>
+            {eligibility.pause_reason && (
+                <p className="mt-2 text-xs text-amber-700">
+                    <span className="font-medium">Reason:</span>{" "}
+                    {eligibility.pause_reason}
+                </p>
+            )}
+        </div>
+    );
+}
+
+// -------------------------------------------------------------------------
 // History Row
 // -------------------------------------------------------------------------
 
@@ -192,6 +272,17 @@ function HistoryRow({ eligibility }: { eligibility: PartnerEligibility }) {
                         }`}
                     >
                         {ELIGIBILITY_STATUS_LABELS[eligibility.status]}
+                    </span>
+                    {/* Applies-to badge */}
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                            APPLIES_TO_COLORS[eligibility.applies_to] ??
+                            "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                        <Layers size={10} />
+                        {APPLIES_TO_LABELS[eligibility.applies_to] ??
+                            eligibility.applies_to}
                     </span>
                     <span className="text-xs text-gray-500">
                         {formatDate(eligibility.profit_start_date)}
@@ -211,7 +302,6 @@ function HistoryRow({ eligibility }: { eligibility: PartnerEligibility }) {
                         </p>
                     )}
 
-                {/* Paused by */}
                 {eligibility.paused_by_user && eligibility.paused_at && (
                     <p className="mt-0.5 text-xs text-gray-400">
                         Paused by{" "}
@@ -222,7 +312,6 @@ function HistoryRow({ eligibility }: { eligibility: PartnerEligibility }) {
                     </p>
                 )}
 
-                {/* Resumed by */}
                 {eligibility.resumed_by_user && eligibility.resumed_at && (
                     <p className="mt-0.5 text-xs text-gray-400">
                         Resumed by{" "}
@@ -233,7 +322,6 @@ function HistoryRow({ eligibility }: { eligibility: PartnerEligibility }) {
                     </p>
                 )}
 
-                {/* Created by */}
                 {eligibility.creator && (
                     <p className="mt-0.5 text-xs text-gray-400">
                         Created by{" "}
@@ -265,24 +353,24 @@ export default function EligibilityPanel({
         null,
     );
 
-    const activeRecord =
-        eligibilities.find((e) => e.status === "active") ?? null;
-    const pausedRecord =
-        eligibilities.find((e) => e.status === "paused") ?? null;
+    const activeRecords = eligibilities.filter((e) => e.status === "active");
+    const pausedRecords = eligibilities.filter((e) => e.status === "paused");
     const historyRecords = eligibilities.filter((e) => e.status !== "active");
-
-    const hasActive = activeRecord !== null;
-    const hasPaused = pausedRecord !== null;
 
     return (
         <>
             <div className="rounded-lg border border-gray-200 bg-white">
                 {/* Panel header */}
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-                    <span className="text-sm font-medium text-gray-700">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                         Profit Eligibility
-                    </span>
-                    {can.create && !hasActive && (
+                        {activeRecords.length > 0 && (
+                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                {activeRecords.length} active
+                            </span>
+                        )}
+                    </div>
+                    {can.create && (
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
@@ -313,47 +401,33 @@ export default function EligibilityPanel({
                         </div>
                     )}
 
-                    {/* Active record card */}
-                    {activeRecord && (
-                        <ActiveRecordCard
-                            eligibility={activeRecord}
-                            partner={partner}
-                            can={can}
-                            onPause={() => setPauseTarget(activeRecord)}
-                            onEnd={() => {}}
-                        />
+                    {/* Active records — one card per stream */}
+                    {activeRecords.length > 0 && (
+                        <div className="space-y-3">
+                            {activeRecords.map((e) => (
+                                <ActiveRecordCard
+                                    key={e.id}
+                                    eligibility={e}
+                                    partner={partner}
+                                    can={can}
+                                    onPause={() => setPauseTarget(e)}
+                                    onEnd={() => {}}
+                                />
+                            ))}
+                        </div>
                     )}
 
-                    {/* Paused record — show resume button */}
-                    {!hasActive && hasPaused && (
-                        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <PauseCircle
-                                        size={15}
-                                        className="text-amber-500"
-                                    />
-                                    <span className="text-sm font-medium text-amber-800">
-                                        Eligibility Paused
-                                    </span>
-                                </div>
-                                {can.resume && (
-                                    <button
-                                        onClick={() =>
-                                            setResumeTarget(pausedRecord)
-                                        }
-                                        className="rounded-md border border-indigo-300 bg-white px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
-                                    >
-                                        Resume
-                                    </button>
-                                )}
-                            </div>
-                            {pausedRecord.pause_reason && (
-                                <p className="mt-2 text-xs text-amber-700">
-                                    <span className="font-medium">Reason:</span>{" "}
-                                    {pausedRecord.pause_reason}
-                                </p>
-                            )}
+                    {/* Paused records — show resume button per stream */}
+                    {pausedRecords.length > 0 && (
+                        <div className="space-y-2">
+                            {pausedRecords.map((e) => (
+                                <PausedBanner
+                                    key={e.id}
+                                    eligibility={e}
+                                    can={can}
+                                    onResume={() => setResumeTarget(e)}
+                                />
+                            ))}
                         </div>
                     )}
 

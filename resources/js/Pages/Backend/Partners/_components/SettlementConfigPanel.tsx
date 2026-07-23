@@ -13,6 +13,7 @@ import { router } from "@inertiajs/react";
 import {
     CheckCircle,
     Clock,
+    Layers,
     Pencil,
     Plus,
     Settings,
@@ -30,6 +31,22 @@ interface Props {
     can: SettlementConfigCan;
 }
 
+// ─── Applies-To badge colors ──────────────────────────────────────────────
+
+const APPLIES_TO_COLORS: Record<string, string> = {
+    all: "bg-gray-100 text-gray-600",
+    capital: "bg-blue-100 text-blue-700",
+    working: "bg-purple-100 text-purple-700",
+    product: "bg-orange-100 text-orange-700",
+};
+
+const APPLIES_TO_LABELS: Record<string, string> = {
+    all: "All Streams",
+    capital: "Capital",
+    working: "Working",
+    product: "Product",
+};
+
 export default function SettlementConfigPanel({
     partner,
     settlementConfigs,
@@ -39,7 +56,7 @@ export default function SettlementConfigPanel({
     const [editingConfig, setEditingConfig] =
         useState<PartnerSettlementConfig | null>(null);
 
-    const activeConfig = settlementConfigs.find((c) => c.is_active) ?? null;
+    const activeConfigs = settlementConfigs.filter((c) => c.is_active);
     const inactiveConfigs = settlementConfigs.filter((c) => !c.is_active);
 
     // -------------------------------------------------------------------------
@@ -104,7 +121,7 @@ export default function SettlementConfigPanel({
     };
 
     // -------------------------------------------------------------------------
-    // Render helpers
+    // Config Card
     // -------------------------------------------------------------------------
 
     const ConfigCard = ({
@@ -127,6 +144,18 @@ export default function SettlementConfigPanel({
                 <div className="space-y-2 flex-1 min-w-0">
                     {/* Badges row */}
                     <div className="flex flex-wrap gap-2">
+                        {/* Applies-to badge */}
+                        <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                APPLIES_TO_COLORS[config.applies_to] ??
+                                "bg-gray-100 text-gray-600"
+                            }`}
+                        >
+                            <Layers className="h-3 w-3" />
+                            {APPLIES_TO_LABELS[config.applies_to] ??
+                                config.applies_to}
+                        </span>
+
                         <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${SETTLEMENT_TYPE_COLORS[config.settlement_type]}`}
                         >
@@ -193,7 +222,6 @@ export default function SettlementConfigPanel({
                 {/* Actions — only for active config */}
                 {isActive && (
                     <div className="flex items-center gap-1 shrink-0">
-                        {/* Approve button — only when pending */}
                         {config.is_pending && can.approve && (
                             <button
                                 onClick={() => handleApprove(config)}
@@ -203,7 +231,6 @@ export default function SettlementConfigPanel({
                                 <CheckCircle className="h-4 w-4" />
                             </button>
                         )}
-                        {/* Edit — only when pending */}
                         {config.is_pending && can.edit && (
                             <button
                                 onClick={() => setEditingConfig(config)}
@@ -213,7 +240,6 @@ export default function SettlementConfigPanel({
                                 <Pencil className="h-4 w-4" />
                             </button>
                         )}
-                        {/* Delete — only when pending */}
                         {config.is_pending && can.delete && (
                             <button
                                 onClick={() => handleDelete(config)}
@@ -241,8 +267,13 @@ export default function SettlementConfigPanel({
                     <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
                         <Settings className="h-4 w-4 text-gray-400" />
                         Settlement Config
+                        {activeConfigs.length > 0 && (
+                            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                {activeConfigs.length} active
+                            </span>
+                        )}
                     </div>
-                    {can.create && !activeConfig && !partner.deleted_at && (
+                    {can.create && !partner.deleted_at && (
                         <button
                             onClick={() => setShowCreateModal(true)}
                             className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
@@ -254,9 +285,17 @@ export default function SettlementConfigPanel({
                 </div>
 
                 <div className="p-5 space-y-4">
-                    {/* Active config */}
-                    {activeConfig ? (
-                        <ConfigCard config={activeConfig} isActive={true} />
+                    {/* Active configs */}
+                    {activeConfigs.length > 0 ? (
+                        <div className="space-y-3">
+                            {activeConfigs.map((config) => (
+                                <ConfigCard
+                                    key={config.id}
+                                    config={config}
+                                    isActive={true}
+                                />
+                            ))}
+                        </div>
                     ) : (
                         <div className="rounded-lg border border-dashed border-gray-200 py-8 text-center">
                             <Settings className="mx-auto h-8 w-8 text-gray-300" />

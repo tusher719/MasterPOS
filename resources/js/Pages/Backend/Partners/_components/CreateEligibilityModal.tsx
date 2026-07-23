@@ -1,7 +1,11 @@
-import type { EligibilityFormData, Partner } from "@/types/partner.d";
+import type {
+    AppliesToType,
+    EligibilityFormData,
+    Partner,
+} from "@/types/partner.d";
 import { router } from "@inertiajs/react";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -9,14 +13,55 @@ interface Props {
     onClose: () => void;
 }
 
+const APPLIES_TO_OPTIONS: {
+    value: AppliesToType;
+    label: string;
+    description: string;
+    requiresType: keyof Partner | null;
+}[] = [
+    {
+        value: "all",
+        label: "All Streams",
+        description: "Eligible for all income streams of this partner",
+        requiresType: null,
+    },
+    {
+        value: "capital",
+        label: "Capital Stream",
+        description: "Eligible for capital investment profit only",
+        requiresType: "partner_type_capital",
+    },
+    {
+        value: "working",
+        label: "Working Stream",
+        description: "Eligible for working/labour profit only",
+        requiresType: "partner_type_working",
+    },
+    {
+        value: "product",
+        label: "Product Stream",
+        description: "Eligible for product sales profit only",
+        requiresType: "partner_type_product",
+    },
+];
+
 const defaultForm = (): EligibilityFormData => ({
     profit_start_date: "",
     profit_end_date: "",
+    applies_to: "all",
 });
 
 export default function CreateEligibilityModal({ partner, onClose }: Props) {
     const [form, setForm] = useState<EligibilityFormData>(defaultForm());
     const [processing, setProcessing] = useState(false);
+
+    // Only show applies_to options that match partner's active type flags
+    const availableAppliesToOptions = useMemo(() => {
+        return APPLIES_TO_OPTIONS.filter((opt) => {
+            if (opt.requiresType === null) return true;
+            return partner[opt.requiresType] === true;
+        });
+    }, [partner]);
 
     const handleSubmit = () => {
         if (!form.profit_start_date) {
@@ -33,6 +78,7 @@ export default function CreateEligibilityModal({ partner, onClose }: Props) {
             {
                 profit_start_date: form.profit_start_date,
                 profit_end_date: form.profit_end_date || null,
+                applies_to: form.applies_to,
             },
             {
                 preserveScroll: true,
@@ -72,6 +118,40 @@ export default function CreateEligibilityModal({ partner, onClose }: Props) {
 
                 {/* Body */}
                 <div className="space-y-4 px-5 py-4">
+                    {/* Applies To — only show when partner has multiple types */}
+                    {availableAppliesToOptions.length > 1 && (
+                        <div>
+                            <label className="mb-1 block text-sm font-medium text-gray-700">
+                                Applies To{" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={form.applies_to}
+                                onChange={(e) =>
+                                    setForm((f) => ({
+                                        ...f,
+                                        applies_to: e.target
+                                            .value as AppliesToType,
+                                    }))
+                                }
+                                className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                {availableAppliesToOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-1 text-xs text-gray-500">
+                                {
+                                    availableAppliesToOptions.find(
+                                        (o) => o.value === form.applies_to,
+                                    )?.description
+                                }
+                            </p>
+                        </div>
+                    )}
+
                     {/* Profit Start Date */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -126,8 +206,8 @@ export default function CreateEligibilityModal({ partner, onClose }: Props) {
                         <p className="mt-1">
                             This partner can only receive profit for
                             distribution periods that fall entirely within these
-                            dates. Only one active eligibility record is allowed
-                            at a time.
+                            dates. Only one active eligibility record per stream
+                            is allowed at a time.
                         </p>
                     </div>
                 </div>

@@ -423,7 +423,9 @@ Note: Append-only table — no updates, no deletes ever.
 ### partner_profit_eligibilities
 
 id, partner_id(FK partners restrict),
-profit_start_date(date), profit_end_date(date nullable — null = ongoing),
+profit_start_date(date),
+profit_end_date(date nullable — null = ongoing),
+applies_to(enum: capital/working/product/all default:all),
 status(enum: active/paused/ended default: active),
 pause_reason(text nullable),
 paused_by(FK users nullable nullOnDelete), paused_at(timestamp nullable),
@@ -458,6 +460,7 @@ settlement_type(enum: profit_only/cost_plus_profit/custom),
 payment_preference(enum: cash/bank_transfer/adjustment/reinvestment),
 auto_cost_return(bool default false — auto-calculate cost return for product partners),
 notes(text nullable),
+applies_to(enum: capital/working/product/all default:all),
 is_active(bool default true),
 approved_by(FK users nullable nullOnDelete),
 approved_at(timestamp nullable),
@@ -504,6 +507,8 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 | partner_settlement_configs        | settlement_type    | profit_only, cost_plus_profit, custom                             |
 | partner_settlement_configs        | payment_preference | cash, bank_transfer, adjustment, reinvestment                     |
 | partner_profit_rule_history       | change_type        | created, updated, approved, deactivated                           |
+| partner_settlement_configs        | applies_to         | capital, working, product, all                                    |
+| partner_profit_eligibilities      | applies_to         | capital, working, product, all                                    |
 
 ---
 

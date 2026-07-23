@@ -32,8 +32,7 @@
 ## Current Status
 
 - **Current Step:** Nice to Have items in progress
-- **Next Step:** Gap 2.3 — Mixed Partner per-type Settlement/Eligibility
-- **Last Completed:** Gap 1.4 — Partner Financial Overview page ✅
+- **Last Completed:** Gap 2.3 — Mixed Partner per-type Settlement/Eligibility ✅
 
 ## Financial Domain Overview
 
@@ -90,6 +89,7 @@ The system is now organized into two independent financial domains:
 | 2.4         | Mixed Rule Resolution clarification                 | ✅     |
 | 1.3         | Distribution List — Source Type Badge & Filter      | ✅     |
 | 1.4         | Partner Financial Overview page                     | ✅     |
+| 2.3         | Mixed Partner per-type Settlement/Eligibility       | ✅     |
 
 ## Pending Work — Gaps & Recommendations (Must Fix, in order)
 
