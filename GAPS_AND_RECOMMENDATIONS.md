@@ -304,13 +304,36 @@ Not a bug, but the single biggest source of day-to-day confusion:
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `InvestorProfitBalance`                            | Name implies Investor-only, but also has a `partner_id` column — unclear who it actually serves |
 | `InvestorCapitalBalance`                           | Same issue                                                                                      |
-| `InvestorStatementController`                      | Doesn't surface partner-based data (see Gap 1.2)                                                |
+| `InvestorStatementController`                      | Handles both investment + partner statements (Gap 1.2 fixed) — name is misleading only          |
 | `investor_name` column (profit_distribution_items) | Partner name is also stored in this same column for partner-based items                         |
 
-**Priority:** Nice to Have (should be migrated gradually)
-**Fix:** Avoid the word "Investor" in any new code going forward — use "Partner"
-instead. Keep the old `Investor*` names clearly documented as
-legacy/investment_based-only.
+**Priority:** Nice to Have
+**Status:** ✅ Partially Done — safe changes applied, full rename deferred
+
+**What was done (Gap 3 safe resolution):**
+
+- `payee_name` accessor added to `ProfitDistributionItem` — new code uses
+  `->payee_name` instead of `->investor_name` directly. Zero migration, zero risk.
+- PROJECT_RULES.md Rule 20 added — documents all legacy names, prohibits new
+  `Investor*` names in any future code, lists deferred renames formally.
+- ARCHITECTURE.md Section 2 updated — explains WHY the rename was not done,
+  documents the two-balance-model pattern for future developers.
+
+**What was NOT done (deferred — post Step 20 Testing):**
+
+- `investor_profit_balances` table rename — blocked by naming conflict with
+  `partner_profit_balances` (Gap 4.2) and 10+ file references
+- `investor_capital_balances` table rename — 10+ file references, high risk
+- `investor_name` column rename to `payee_name` — requires migration + query updates
+- `InvestorCapitalBalance` / `InvestorProfitBalance` model rename — same risk
+
+**Why full rename is blocked:**
+Gap 4.2 introduced `PartnerProfitBalance` model and `partner_profit_balances`
+table for a different purpose (working/product partner balances with no
+investment link). Renaming `InvestorProfitBalance` → `PartnerProfitBalance`
+would create a direct class and table name collision. A unified balance table
+is the correct long-term solution but requires architectural planning and
+full test coverage before execution.
 
 ---
 
@@ -530,22 +553,22 @@ them together, not separately)
 
 ## 5. Priority Summary
 
-| #         | Item                                                   | Priority     | Status                          | New Migration? |
-| --------- | ------------------------------------------------------ | ------------ | ------------------------------- | -------------- |
-| 4.4 + 4.5 | Duplicate Prevention + Per-Partner Effective Period    | Must Fix     | ✅ Done                         | No             |
-| 2.2       | Settlement Config Approval Columns                     | Must Fix     | ✅ Done                         | Yes            |
-| 2.1       | Partner Type ↔ Rule Validation                         | Must Fix     | ✅ Done                         | No             |
-| 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | ✅ Done (guard already existed) | No             |
-| 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | ✅ Done                         | Yes            |
-| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | ✅ Done                         | Yes            |
-| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | ✅ Done                         | No             |
-| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)      | Yes            |
-| 1.2       | Investor Statement — Partner support                   | Should Fix   | ✅ Done                         | No             |
-| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | ✅ Done                         | No (doc only)  |
-| 1.3       | Distribution List UI Badge                             | Nice to Have | ✅ Done                         | No             |
-| 1.4       | Partner Financial Overview page                        | Nice to Have | ✅ Done                         | No             |
-| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | ✅ Done                         | Yes            |
-| 3         | Investor → Partner Naming Migration                    | Nice to Have | Pending                         | Gradual        |
+| #         | Item                                                   | Priority     | Status                                                                      | New Migration? |
+| --------- | ------------------------------------------------------ | ------------ | --------------------------------------------------------------------------- | -------------- |
+| 4.4 + 4.5 | Duplicate Prevention + Per-Partner Effective Period    | Must Fix     | ✅ Done                                                                     | No             |
+| 2.2       | Settlement Config Approval Columns                     | Must Fix     | ✅ Done                                                                     | Yes            |
+| 2.1       | Partner Type ↔ Rule Validation                         | Must Fix     | ✅ Done                                                                     | No             |
+| 2.5       | Verify Deactivated Partner Guard                       | Must Fix     | ✅ Done (guard already existed)                                             | No             |
+| 4.1       | Capital Principal Lock + Partial Unlock                | Must Fix     | ✅ Done                                                                     | Yes            |
+| 4.2       | Product Partner Cost/Profit Split                      | Must Fix     | ✅ Done                                                                     | Yes            |
+| 1.5       | Investment/Investor Show Page — Full Financial Summary | Must Fix     | ✅ Done                                                                     | No             |
+| 1.1       | Partner Profit Balance table (working/product)         | Should Fix   | ✅ Done (built in Gap 4.2)                                                  | Yes            |
+| 1.2       | Investor Statement — Partner support                   | Should Fix   | ✅ Done                                                                     | No             |
+| 2.4       | Mixed Rule Resolution clarification                    | Should Fix   | ✅ Done                                                                     | No (doc only)  |
+| 1.3       | Distribution List UI Badge                             | Nice to Have | ✅ Done                                                                     | No             |
+| 1.4       | Partner Financial Overview page                        | Nice to Have | ✅ Done                                                                     | No             |
+| 2.3       | Mixed Partner per-type Settlement/Eligibility          | Nice to Have | ✅ Done                                                                     | Yes            |
+| 3         | Investor → Partner Naming Migration                    | Nice to Have | ✅ Partially Done (safe changes applied, full rename deferred post-testing) | Gradual        |
 
 ---
 

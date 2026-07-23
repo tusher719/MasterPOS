@@ -32,7 +32,7 @@
 ## Current Status
 
 - **Current Step:** Nice to Have items in progress
-- **Last Completed:** Gap 2.3 — Mixed Partner per-type Settlement/Eligibility ✅
+- **Last Completed:** Gap 3 — Investor → Partner Naming Migration (Safe Changes) ✅
 
 ## Financial Domain Overview
 

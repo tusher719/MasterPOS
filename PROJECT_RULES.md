@@ -379,6 +379,10 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
 - PartnerProfitRule has no SoftDeletes — rules are versioned via effective_from/effective_to, never deleted
 - Pending rules (approved_by IS NULL) are invisible to frontend calculation engine AND
   must be filtered in ProfitRulesPanel via is_pending accessor
+- Mixed Partners can have multiple active settlement configs and eligibility
+  records simultaneously — one per applies_to stream value
+- applies_to resolution: specific stream (capital/working/product) always wins
+  over 'all' in SettlementCalculationService::getActiveConfig() — Option A
 
 ---
 
@@ -419,6 +423,8 @@ ActivityLogService::log('module', 'action', 'description', $model, $properties)
   and show it as a prominent toast (duration: 6000) since it is not tied to a
   specific form field.
 
+---
+
 ## 19. Date Component Rules (NEW)
 
 All date inputs across the project use two custom Mantine-based components
@@ -456,3 +462,61 @@ located at `resources/js/Components/DatePicker/`:
 - Future date types (time picker, month picker, year picker) → create new component in `resources/js/Components/DatePicker/` following the same pattern, export from `index.ts`
 - BD calendar settings: `firstDayOfWeek={6}` (Saturday), `weekendDays={[5]}` (Friday)
 - All date values stored and transmitted as `YYYY-MM-DD` strings — never Date objects or timestamps
+
+---
+
+## 20. Legacy "Investor" Naming Rules (Gap 3)
+
+### Background
+
+The system was originally built with "Investor" as the central entity for both
+capital and profit tracking. The Partner domain (Phase 4) introduced "Partner"
+as the correct profit entity, but the old Investor\* names were kept for backward
+compatibility. Both coexist permanently.
+
+### Legacy Names — Do NOT rename these
+
+These exist for backward compatibility. Renaming would break migrations,
+queries, and services across 10+ files. They are documented here so future
+developers understand why the naming looks inconsistent.
+
+| Legacy Name                   | Table                       | Still Used For                       |
+| ----------------------------- | --------------------------- | ------------------------------------ |
+| `InvestorProfitBalance`       | `investor_profit_balances`  | investment_based distribution items  |
+| `InvestorCapitalBalance`      | `investor_capital_balances` | capital ledger, withdrawal workflow  |
+| `InvestorStatementController` | —                           | both investment + partner statements |
+| `investor_name` column        | `profit_distribution_items` | payee name for both investor/partner |
+
+### New Names — Use these in all new code
+
+These were introduced in Phase 4 and Gap 4.2. All new features must use these.
+
+| New Name                  | Table                          | Used For                         |
+| ------------------------- | ------------------------------ | -------------------------------- |
+| `Partner`                 | `partners`                     | central profit entity            |
+| `PartnerProfitBalance`    | `partner_profit_balances`      | working/product partner balances |
+| `PartnerEligibility`      | `partner_profit_eligibilities` | profit eligibility per partner   |
+| `PartnerSettlementConfig` | `partner_settlement_configs`   | settlement type per partner      |
+
+### Rules for New Code
+
+- NEVER create a new class or method with `Investor` in the name
+- NEVER add new columns to `investor_profit_balances` or `investor_capital_balances`
+  for partner-domain features — use `partner_profit_balances` instead
+- When reading payee name from `profit_distribution_items`, use
+  `->payee_name` accessor (not `->investor_name` directly)
+- When building a new statement or report that covers both investment_based
+  and partner_based items, always query BOTH sources and merge results —
+  never assume one table covers all cases
+- `InvestorStatementController` is NOT investor-only — it handles both.
+  Do not create a separate PartnerStatementController.
+
+### Deferred Renames (Post Step 20 — Testing)
+
+The following renames are acknowledged but deferred until a full test suite
+exists. Do not attempt these without test coverage:
+
+- `investor_profit_balances` → merged into unified balance table (blocked by
+  naming conflict with `partner_profit_balances` — needs architectural decision)
+- `investor_capital_balances` → `partner_capital_balances`
+- `investor_name` column → `payee_name` column (migration required)

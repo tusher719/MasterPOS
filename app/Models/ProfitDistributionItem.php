@@ -38,6 +38,12 @@ class ProfitDistributionItem extends Model
     // paid_by               → legacy inline field (backward compat)
     // paid_at               → legacy inline field (backward compat)
 
+    protected $appends = [
+        'payee_name',
+        'payment_status_label',
+        'payment_status_badge',
+    ];
+
     protected $casts = [
         'invested_amount'      => 'decimal:2',
         'share_percent'        => 'decimal:4',
@@ -48,6 +54,16 @@ class ProfitDistributionItem extends Model
         'reinvested_amount'    => 'decimal:2',
         'paid_at'              => 'datetime',
     ];
+
+    /**
+     * Accessor: clean alias for investor_name column.
+     * Works for both investment_based and partner_based distribution items.
+     * Use this in new code instead of ->investor_name directly.
+     */
+    public function getPayeeNameAttribute(): string
+    {
+        return $this->investor_name ?? '';
+    }
 
     // ─── Relations ────────────────────────────────────────────
 

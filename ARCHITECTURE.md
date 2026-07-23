@@ -63,6 +63,74 @@ By keeping Investment as the capital entity and introducing Partner as the profi
 
 Because profit entitlement is a business agreement, not a mathematical consequence of capital contributed. Two people might agree that one gets 35% profit and one gets 65% regardless of their relative capital contributions. The system must be able to express this.
 
+### Per-Stream Settlement and Eligibility (Gap 2.3)
+
+**Why `applies_to` instead of separate tables:**
+A Mixed Partner's different income streams (capital / working / product) need
+independent settlement configs and eligibility records. Adding `applies_to` to
+the existing two tables costs one migration each and keeps all queries simple —
+no new join, no new model. The alternative (separate tables per stream) would
+have tripled the schema complexity for a Nice to Have feature.
+
+**Option A resolution in SettlementCalculationService:**
+When a partner has both a stream-specific config (e.g. `applies_to = 'product'`)
+and a general config (`applies_to = 'all'`), the specific one wins. This allows
+a Mixed Partner to override the general config for one stream without deleting
+the general config entirely.
+
+**Frontend: selector hidden for single-type partners:**
+`availableAppliesToOptions` useMemo filters by partner type flags — a pure
+Capital partner only sees `'all'` and `'capital'`, so the selector is hidden
+(one option = no choice needed). This keeps the UI simple for the common case.
+
+### Legacy "Investor" Naming — Why It Was Not Renamed (Gap 3)
+
+When the Partner domain was introduced in Phase 4, the ideal solution would
+have been to rename all `Investor*` classes and tables to `Partner*`. This was
+not done for three reasons:
+
+**Reason 1 — Volume of change**
+`InvestorProfitBalance` and `InvestorCapitalBalance` are referenced in 10+
+files across controllers, services, and models. A rename without a full test
+suite risks silent breakage across the capital ledger, withdrawal workflow,
+profit distribution, and investor statement modules.
+
+**Reason 2 — Naming conflict**
+Gap 4.2 introduced `PartnerProfitBalance` (model) and `partner_profit_balances`
+(table) for a different purpose — tracking working/product partner balances
+that have no linked investment. Renaming `InvestorProfitBalance` to
+`PartnerProfitBalance` would create a direct collision between two models
+serving different use cases.
+
+**Reason 3 — Backward compatibility**
+All existing `investment_based` distributions reference `investor_profit_balances`
+via `investment_id`. Renaming the table requires a migration, a data backfill,
+and updates to every query that joins or references this table. The risk
+outweighs the cosmetic benefit at this stage.
+
+**What was done instead (Gap 3 resolution):**
+
+- `payee_name` accessor added to `ProfitDistributionItem` — new code reads
+  `->payee_name` instead of `->investor_name` directly
+- PROJECT_RULES.md Rule 20 documents the legacy names and prohibits new
+  `Investor*` names in any future code
+- Deferred renames logged formally in GAPS_AND_RECOMMENDATIONS.md for
+  post-testing execution
+
+**The two-balance-model pattern:**
+
+investment_based partner partner_based partner (no investment)
+↓ ↓
+InvestorProfitBalance PartnerProfitBalance
+investor_profit_balances partner_profit_balances
+(has investment_id, partner_id) (has partner_id only)
+
+Both models coexist permanently. A partner with a linked investment uses
+`InvestorProfitBalance` for its profit history. A working or product partner
+with no investment uses `PartnerProfitBalance`. These are NOT duplicates —
+they serve different use cases and must never be merged without careful
+data migration planning.
+
 ---
 
 ## 3. Controller Architecture
