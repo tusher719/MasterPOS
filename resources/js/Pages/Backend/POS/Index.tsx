@@ -1,15 +1,15 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { toast } from "sonner";
+import { Head, router, usePage } from "@inertiajs/react";
 import axios from "axios";
-import ProductSearch from "./_components/ProductSearch";
-import ProductGrid, { Product } from "./_components/ProductGrid";
-import CartSidebar from "./_components/CartSidebar";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CartItemRow } from "./_components/CartItem";
+import CartSidebar from "./_components/CartSidebar";
 import CheckoutPanel from "./_components/CheckoutPanel";
-import ReceiptModal from "./_components/ReceiptModal";
 import HoldOrdersDrawer, { HoldOrder } from "./_components/HoldOrdersDrawer";
+import ProductGrid, { Product } from "./_components/ProductGrid";
+import ProductSearch from "./_components/ProductSearch";
+import ReceiptModal from "./_components/ReceiptModal";
 
 export interface Customer {
     id: number;
@@ -40,6 +40,8 @@ export default function POSIndex({
     paymentMethods,
     can,
 }: Props) {
+    const { settings } = usePage().props as any;
+
     const [search, setSearch] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -473,7 +475,7 @@ export default function POSIndex({
             {receiptSale && (
                 <ReceiptModal
                     sale={receiptSale}
-                    businessName="Master POS"
+                    businessName={settings?.business_name ?? "Master POS"}
                     onClose={() => setReceiptSale(null)}
                     onNewSale={handleNewSale}
                 />

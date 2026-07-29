@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -68,6 +69,8 @@ class HandleInertiaRequests extends Middleware
                     'unread_count' => 0,
                     'latest'       => [],
                 ],
+            // Global settings map — cache-backed, invalidated on every update
+            'settings' => SettingsService::all(),
         ];
     }
 }

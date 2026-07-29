@@ -28,6 +28,7 @@ use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Observers\BusinessSettingObserver;
 use App\Policies\CapitalLedgerPolicy;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\ExpensePolicy;
@@ -128,5 +129,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 17 Phase 4G Policies ─────────────────────────────────────────────────
         Gate::policy(InvestmentFundUsage::class, InvestmentFundUsagePolicy::class);
+
+        // Settings cache invalidation
+        BusinessSetting::observe(BusinessSettingObserver::class);
     }
 }

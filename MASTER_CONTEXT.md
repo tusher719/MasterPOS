@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Sprint 1 — Foundation & Safety (Ready to Start)
-- **Last Completed:** Gap 2.3 — Mixed Partner per-type Settlement/Eligibility ✅
+- **Current Step:** Sprint 1 — Foundation & Safety (In Progress)
+- **Last Completed:** Item 1.1 — Settings Dynamic Fix ✅
 
 ## Financial Domain Overview
 
@@ -107,7 +107,7 @@
 
 | #   | Item                                | Priority | Migration? |
 | --- | ----------------------------------- | -------- | ---------- |
-| 1.1 | Settings Dynamic Fix                | Must Fix | No         |
+| 1.1 | Settings Dynamic Fix                | ✅       | No         |
 | 1.5 | Cascade Soft-Delete Correction      | Must Fix | No         |
 | 3.3 | Product Variants                    | Must Fix | Yes        |
 | 3.4 | Secure Product Slug                 | Must Fix | Yes        |

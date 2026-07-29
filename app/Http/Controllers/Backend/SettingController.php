@@ -7,6 +7,7 @@ use App\Http\Requests\Backend\UpdateSettingRequest;
 use App\Http\Requests\Backend\UploadLogoRequest;
 use App\Models\BusinessSetting;
 use App\Services\ActivityLogService;
+use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -19,12 +20,17 @@ class SettingController extends Controller
     {
         abort_unless(optional(Auth::user())->can('settings.view'), 403);
 
+        // Cache থেকে flat map নাও, তারপর group করো
+        $flat = SettingsService::all();
+
+        // Group by করার জন্য DB একবার হিট করতে হবে (group column দরকার)
+        // তাই এটা আগের মতোই রাখো — index page এ performance critical না
         $settings = BusinessSetting::getAllGrouped();
 
         if (!empty($settings['business']['business_logo'])) {
-        $settings['business']['business_logo_url'] =
-            request()->getSchemeAndHttpHost() . request()->getBaseUrl()
-            . '/storage/' . $settings['business']['business_logo'];
+            $settings['business']['business_logo_url'] =
+                request()->getSchemeAndHttpHost() . request()->getBaseUrl()
+                . '/storage/' . $settings['business']['business_logo'];
         }
 
         return Inertia::render('Backend/Settings/Index', [

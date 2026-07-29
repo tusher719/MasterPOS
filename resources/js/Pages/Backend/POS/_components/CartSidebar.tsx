@@ -1,4 +1,4 @@
-import React from "react";
+import { usePage } from "@inertiajs/react";
 import { Pause, ShoppingCart, Trash2 } from "lucide-react";
 import CartItem, { CartItemRow } from "./CartItem";
 
@@ -23,6 +23,8 @@ export default function CartSidebar({
     isHolding,
     cartHasItems,
 }: Props) {
+    const { settings } = usePage().props as any;
+    const currency = settings?.currency_symbol ?? "৳";
     return (
         <div className="flex h-full flex-col">
             {/* ── Header ── */}
@@ -106,7 +108,8 @@ export default function CartSidebar({
                             {items.reduce((s, i) => s + i.quantity, 0)} items)
                         </span>
                         <span className="font-bold text-gray-800">
-                            ৳{Number(subtotal).toFixed(2)}
+                            {currency}
+                            {Number(subtotal).toFixed(2)}
                         </span>
                     </div>
                 </div>

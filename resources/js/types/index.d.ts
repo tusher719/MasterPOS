@@ -11,4 +11,5 @@ export type PageProps<
     auth: {
         user: User;
     };
+    settings: Record<string, string | null>;
 };

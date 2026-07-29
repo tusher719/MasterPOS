@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
 use App\Models\Sale;
+use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -103,6 +104,7 @@ class InvoiceController extends Controller
         $pdf = Pdf::loadView('pdf.invoice', [
             'sale'     => $sale,
             'business' => $this->resolveBusinessProfile(),
+            'settings' => SettingsService::all(),
         ])->setPaper('a4', 'portrait');
 
         $filename = 'Invoice-' . $sale->reference_no . '.pdf';
@@ -116,8 +118,20 @@ class InvoiceController extends Controller
      */
     private function resolveBusinessProfile(): array
     {
-        $business = BusinessSetting::getGroup('business');
-        $currency = BusinessSetting::getGroup('currency');
+        $all = SettingsService::all(); // cache-backed
+
+        $logoPath = $all['business_logo'] ?? null;
+
+        return [
+            'business_name'     => $all['business_name']     ?? config('app.name'),
+            'email'             => $all['business_email']    ?? null,
+            'phone'             => $all['business_phone']    ?? null,
+            'address'           => $all['business_address']  ?? null,
+            'logo'              => $logoPath,
+            'currency_symbol'   => $all['currency_symbol']   ?? '৳',
+            'currency_position' => $all['currency_position'] ?? 'before',
+            'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
+        ];
 
         $logoPath = $business['business_logo'] ?? null;
 

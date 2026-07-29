@@ -2,6 +2,41 @@
 
 ---
 
+## [v2.23 — Item 1.1] — Settings: Fully Dynamic — 2026-07-29
+
+### New Files (2)
+
+- `app/Services/SettingsService.php`: cache-backed settings service —
+  get($key, $default), all(), invalidate(); CACHE_KEY = 'business_settings_map';
+  TTL = 24h; invalidated by Observer on every save/delete
+- `app/Observers/BusinessSettingObserver.php`: saved() + deleted() hooks,
+  both call SettingsService::invalidate()
+- `resources/js/hooks/useSettings.ts`: frontend hook — currency, businessName,
+  taxRate, taxEnabled, taxName, currencyPosition, decimalPlaces, raw map
+
+### Updated Files (5)
+
+- `app/Providers/AppServiceProvider.php`: BusinessSetting::observe(BusinessSettingObserver::class) added in boot()
+- `app/Http/Middleware/HandleInertiaRequests.php`: 'settings' => SettingsService::all()
+  added to share() — globally available on every Inertia response
+- `app/Http/Controllers/Backend/InvoiceController.php`: resolveBusinessProfile()
+  now uses SettingsService::all() instead of two separate BusinessSetting::getGroup() calls
+- `resources/js/Layouts/AuthenticatedLayout.tsx`: sidebar business name reads
+  settings?.business_name ?? 'Master POS' via usePage().props
+- `resources/js/Pages/Backend/POS/Index.tsx`: ReceiptModal businessName prop reads
+  settings?.business_name ?? 'Master POS' via usePage() inside component
+- `resources/js/Pages/Backend/POS/_components/CartSidebar.tsx`: subtotal currency
+  symbol reads settings?.currency_symbol ?? '৳' via usePage() inside component
+
+### Rules Established
+
+- usePage() is a React Hook — must always be called inside a function component body, never at module level
+- SettingsService::all() is the single source for settings reads everywhere — never call BusinessSetting::getGroup() or BusinessSetting::get() in new code
+- settings map globally available on frontend via usePage().props.settings
+- Remaining 65+ files with hardcoded ৳ — update incrementally when working on those modules in later sprints
+
+---
+
 ## [v2.22 — Gap 2.3] — Mixed Partner per-type Settlement/Eligibility — 2026-07-23
 
 ### New Migrations (2)

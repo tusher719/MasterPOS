@@ -423,6 +423,7 @@ function NavGroup({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
 function NotificationBell() {
     const { notifications: notifShared } = usePage<{
         auth: any;
+        settings: any;
         notifications: NotificationShared;
     }>().props;
 
@@ -594,7 +595,7 @@ function NotificationBell() {
 // ─── Main Layout ────────────────────────────────────────────────────────────
 export default function AuthenticatedLayout({ children }: PropsWithChildren) {
     useFlashToast();
-    const { auth } = usePage().props as any;
+    const { auth, settings } = usePage().props as any;
     const [collapsed, setCollapsed] = useState(false);
 
     return (
@@ -608,7 +609,7 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                 <div className="flex h-16 items-center justify-between border-b border-gray-100 px-4">
                     {!collapsed && (
                         <span className="text-lg font-bold text-indigo-600">
-                            Master POS
+                            {settings?.business_name ?? "Master POS"}
                         </span>
                     )}
                     <button
