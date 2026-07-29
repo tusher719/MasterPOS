@@ -2,6 +2,36 @@
 
 ---
 
+## [v2.23] — 2026-07-29
+
+### Added — Item 1.5: Super Admin Cascade Delete — Soft Only
+
+**New Files:**
+
+- `app/Services/CascadeDeleteService.php` — dependency preview + soft-delete orchestration for all entity types
+- `app/Console/Commands/ResetDatabaseCommand.php` — `php artisan db:reset-dev` (local env only, double confirmation)
+- `app/Http/Controllers/Backend/DeletePreviewController.php` — GET /backend/delete-preview/{type}/{id} JSON endpoint
+- `resources/js/Components/shared/ConfirmDeleteModal.tsx` — modal showing dependency preview before any delete
+- `resources/js/hooks/useCascadeDelete.ts` — hook wiring modal + Inertia delete in one reusable unit
+
+**Modified:**
+
+- `routes/web.php` — added delete-preview route inside backend auth group
+
+**Policy enforced:**
+
+- Financial entities (Investment, Partner, Sale, Purchase, ProfitDistribution): soft delete only, hard delete permanently disabled
+- Non-financial (ProductCategory, Unit, ExpenseCategory): force delete allowed only when zero dependants — frontend confirm button hidden when `can_delete: false`
+- Dev reset: `php artisan db:reset-dev` only — no UI button exists
+
+**Integration note:**
+
+- `ConfirmDeleteModal` + `useCascadeDelete` hook to be wired into Index pages as each module is touched in Sprint 2–4
+- Existing `destroy()` controllers need zero changes — soft delete already works via SoftDeletes trait
+- `DeletePreviewController::resolveModel()` uses exact Spatie permission names from existing seeder
+
+---
+
 ## [v2.23 — Item 1.1] — Settings: Fully Dynamic — 2026-07-29
 
 ### New Files (2)

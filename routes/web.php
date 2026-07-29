@@ -5,6 +5,7 @@ use App\Http\Controllers\Backend\CapitalLedgerController;
 use App\Http\Controllers\Backend\CapitalWithdrawalController;
 use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\DashboardController;
+use App\Http\Controllers\Backend\DeletePreviewController;
 use App\Http\Controllers\Backend\DistributionReverseController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
@@ -561,7 +562,22 @@ Route::middleware(['auth', 'verified'])
             Route::put('/{partner}', [PartnerController::class, 'update'])->name('update');
             Route::delete('/{partner}', [PartnerController::class, 'destroy'])->name('destroy');
         });
+        // ─────────────────────────────────────────────────────────────────────────────
+        // Item 1.5 — Delete Preview endpoint
+        // Paste this INSIDE the backend auth middleware group, before resource routes.
+        // ─────────────────────────────────────────────────────────────────────────────
+
+        // GET /backend/delete-preview/{type}/{id}
+        Route::get('delete-preview/{type}/{id}', [DeletePreviewController::class, 'show'])
+            ->name('delete-preview')
+            ->whereIn('type', [
+                'investment', 'partner', 'sale', 'purchase', 'distribution',
+                'category', 'unit', 'expense-category', 'supplier', 'customer', 'user',
+            ])
+            ->whereNumber('id');
     });
+
+
 
 
 require __DIR__.'/auth.php';

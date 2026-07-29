@@ -28,7 +28,12 @@ class Supplier extends Model
     ];
 
     public function scopeActive($query)
-{
-    return $query->where('is_active', true);
+    {
+        return $query->where('is_active', true);
+    }
+    public function purchases(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Purchase::class);
+    }
 }
-}
+
