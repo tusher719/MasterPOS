@@ -10,6 +10,7 @@ import HoldOrdersDrawer, { HoldOrder } from "./_components/HoldOrdersDrawer";
 import ProductGrid, { Product } from "./_components/ProductGrid";
 import ProductSearch from "./_components/ProductSearch";
 import ReceiptModal from "./_components/ReceiptModal";
+import VariantPickerModal from "./_components/VariantPickerModal";
 
 export interface Customer {
     id: number;
@@ -68,20 +69,48 @@ export default function POSIndex({
     const [cartItems, setCartItems] = useState<CartItemRow[]>([]);
 
     const handleAddToCart = (product: Product) => {
+        // If product has variants → open picker modal first
+        if (
+            product.has_variants &&
+            product.variants &&
+            product.variants.length > 0
+        ) {
+            setVariantPickerProduct(product);
+            return;
+        }
+        addToCartDirect(
+            product,
+            null,
+            null,
+            product.sale_price,
+            product.stock_qty,
+        );
+    };
+
+    const addToCartDirect = (
+        product: Product,
+        variantId: number | null,
+        variantLabel: string | null,
+        unitPrice: number,
+        stockQty: number,
+    ) => {
         setCartItems((prev) => {
-            const existing = prev.find((i) => i.product_id === product.id);
+            const existing = prev.find(
+                (i) =>
+                    i.product_id === product.id && i.variant_id === variantId,
+            );
             if (existing) {
-                if (existing.quantity >= product.stock_qty) {
+                if (existing.quantity >= stockQty) {
                     toast.warning("Maximum stock reached for " + product.name);
                     return prev;
                 }
                 return prev.map((i) =>
-                    i.product_id === product.id
+                    i.product_id === product.id && i.variant_id === variantId
                         ? {
                               ...i,
                               quantity: i.quantity + 1,
                               subtotal:
-                                  i.unit_price * (i.quantity + 1) - i.discount,
+                                  unitPrice * (i.quantity + 1) - i.discount,
                           }
                         : i,
                 );
@@ -90,17 +119,23 @@ export default function POSIndex({
                 ...prev,
                 {
                     product_id: product.id,
+                    variant_id: variantId,
+                    variant_label: variantLabel,
                     name: product.name,
-                    unit_price: product.sale_price,
+                    unit_price: unitPrice,
                     quantity: 1,
                     discount: 0,
-                    stock_qty: product.stock_qty,
+                    stock_qty: stockQty,
                     unit: product.unit,
-                    subtotal: product.sale_price,
+                    subtotal: unitPrice,
                 },
             ];
         });
-        toast.success(product.name + " added to cart");
+        toast.success(
+            product.name +
+                (variantLabel ? ` (${variantLabel})` : "") +
+                " added to cart",
+        );
     };
 
     const handleUpdateItem = (
@@ -156,6 +191,8 @@ export default function POSIndex({
     );
     const [holdCount, setHoldCount] = useState(0);
     const [isHolding, setIsHolding] = useState(false);
+    const [variantPickerProduct, setVariantPickerProduct] =
+        useState<Product | null>(null);
 
     useEffect(() => {
         fetchHoldCount();
@@ -209,12 +246,12 @@ export default function POSIndex({
                 discount,
                 tax,
                 grand_total: grandTotal,
-                items: cartItems.map((item) => ({
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    discount: item.discount,
-                    subtotal: item.subtotal,
+                items: cartItems.map((i) => ({
+                    product_id: i.product_id,
+                    variant_id: i.variant_id ?? null,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                    discount: i.discount,
                 })),
             };
 
@@ -471,6 +508,28 @@ export default function POSIndex({
                     </div>
                 </div>
             </div>
+
+            {/* Variant Picker Modal */}
+            {variantPickerProduct && (
+                <VariantPickerModal
+                    productName={variantPickerProduct.name}
+                    variants={variantPickerProduct.variants ?? []}
+                    onSelect={(variant) => {
+                        addToCartDirect(
+                            variantPickerProduct,
+                            variant.id,
+                            variant.label,
+                            Number(
+                                variant.price_override ??
+                                    variantPickerProduct.sale_price,
+                            ),
+                            variant.stock_qty,
+                        );
+                        setVariantPickerProduct(null);
+                    }}
+                    onClose={() => setVariantPickerProduct(null)}
+                />
+            )}
 
             {receiptSale && (
                 <ReceiptModal

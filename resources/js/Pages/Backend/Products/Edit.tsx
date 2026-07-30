@@ -1,14 +1,14 @@
-import { Head, router, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Link } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
+import { AlertCircle, ChevronLeft, Loader2, PackageCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, PackageCheck, AlertCircle, Loader2 } from "lucide-react";
-import ProductFormFields from "./_components/ProductFormFields";
 import ImageUploader, {
-    ImageFile,
     ExistingImage,
+    ImageFile,
 } from "./_components/ImageUploader";
+import ProductFormFields from "./_components/ProductFormFields";
+import VariantsPanel, { VariantRow } from "./_components/VariantsPanel";
 
 interface Category {
     id: number;
@@ -21,6 +21,17 @@ interface Unit {
     id: number;
     name: string;
     short_code: string;
+}
+
+interface ExistingVariant {
+    id: number;
+    sku: string;
+    attributes: Record<string, string>;
+    stock_qty: string;
+    price_override: string | null;
+    cost_price_override: string | null;
+    image_id: number | null;
+    is_active: boolean;
 }
 
 interface Product {
@@ -49,6 +60,7 @@ interface Product {
     description: string | null;
     is_active: boolean;
     images: ExistingImage[];
+    variants: ExistingVariant[];
 }
 
 interface Props {
@@ -72,6 +84,7 @@ type FormData = {
     is_taxable: boolean;
     discount_type: string;
     discount_value: string;
+    has_variants: boolean;
     is_featured: boolean;
     sort_order: string;
     weight: string;
@@ -90,12 +103,30 @@ const REQUIRED_FIELDS: (keyof FormData)[] = [
     "low_stock_threshold",
 ];
 
+// Map ExistingVariant → VariantRow for the panel
+function toVariantRow(v: ExistingVariant): VariantRow {
+    return {
+        id: v.id,
+        sku: v.sku,
+        attributes: v.attributes ?? {},
+        stock_qty: v.stock_qty ?? "0",
+        price_override: v.price_override ?? "",
+        cost_price_override: v.cost_price_override ?? "",
+        is_active: v.is_active,
+    };
+}
+
 export default function ProductEdit({ product, categories, units }: Props) {
     const [newImages, setNewImages] = useState<ImageFile[]>([]);
     const [existingImages, setExistingImages] = useState<ExistingImage[]>(
         product.images,
     );
     const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+
+    // Initialise variant rows from existing DB variants
+    const [variantRows, setVariantRows] = useState<VariantRow[]>(
+        product.variants.map(toVariantRow),
+    );
 
     const { data, setData, processing, errors, clearErrors } =
         useForm<FormData>({
@@ -113,6 +144,7 @@ export default function ProductEdit({ product, categories, units }: Props) {
             is_taxable: product.is_taxable,
             discount_type: product.discount_type ?? "",
             discount_value: product.discount_value ?? "",
+            has_variants: product.has_variants,
             is_featured: product.is_featured,
             sort_order: product.sort_order?.toString() ?? "0",
             weight: product.weight ?? "",
@@ -132,6 +164,11 @@ export default function ProductEdit({ product, categories, units }: Props) {
         value: string | boolean,
     ) => {
         setData(key, value as any);
+
+        // When toggling has_variants off, clear variant rows
+        if (key === "has_variants" && value === false) {
+            setVariantRows([]);
+        }
     };
 
     // Mark existing image for deletion
@@ -143,7 +180,6 @@ export default function ProductEdit({ product, categories, units }: Props) {
     // Set existing image as primary
     const handleSetExistingPrimary = (id: number) => {
         if (id === -1) {
-            // Clear all existing primaries (called when a new image is set as primary)
             setExistingImages((prev) =>
                 prev.map((img) => ({ ...img, is_primary: false })),
             );
@@ -152,7 +188,6 @@ export default function ProductEdit({ product, categories, units }: Props) {
         setExistingImages((prev) =>
             prev.map((img) => ({ ...img, is_primary: img.id === id })),
         );
-        // Clear new image primaries
         setNewImages((prev) =>
             prev.map((img) => ({ ...img, isPrimary: false })),
         );
@@ -164,13 +199,19 @@ export default function ProductEdit({ product, categories, units }: Props) {
             return;
         }
 
+        // Validate variants if enabled
+        if (data.has_variants && variantRows.length === 0) {
+            toast.error(
+                "Add at least one variant, or disable the variants toggle.",
+            );
+            return;
+        }
+
         clearErrors();
 
         const formData = new FormData();
         formData.append("_method", "PUT");
 
-        // Text/other fields, converting booleans to 1/0 (Laravel's `boolean`
-        // rule does not accept the strings "true"/"false")
         Object.entries(data).forEach(([key, value]) => {
             if (typeof value === "boolean") {
                 formData.append(key, value ? "1" : "0");
@@ -178,6 +219,11 @@ export default function ProductEdit({ product, categories, units }: Props) {
                 formData.append(key, String(value));
             }
         });
+
+        // Variants — full array as JSON; backend diffs against existing
+        if (data.has_variants && variantRows.length > 0) {
+            formData.append("variants", JSON.stringify(variantRows));
+        }
 
         // Deleted image ids
         deletedImageIds.forEach((id) => {
@@ -268,7 +314,7 @@ export default function ProductEdit({ product, categories, units }: Props) {
                         </div>
                     </div>
 
-                    {/* Right — form fields + submit */}
+                    {/* Right — form fields + variants + submit */}
                     <div className="space-y-5 lg:col-span-2">
                         <ProductFormFields
                             data={data}
@@ -279,7 +325,17 @@ export default function ProductEdit({ product, categories, units }: Props) {
                             isEdit
                         />
 
-                        {/* Submit bar — sits naturally at the end of the form */}
+                        {/* Variants panel — only shown when has_variants = true */}
+                        {data.has_variants && (
+                            <VariantsPanel
+                                rows={variantRows}
+                                onChange={setVariantRows}
+                                baseSalePrice={data.sale_price}
+                                baseCostPrice={data.cost_price}
+                            />
+                        )}
+
+                        {/* Submit bar */}
                         <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-5 py-4">
                             <p className="text-xs text-gray-400">
                                 {isFormValid

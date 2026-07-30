@@ -76,6 +76,9 @@ class UpdateProductRequest extends FormRequest
             'deleted_image_ids.*' => ['integer', 'exists:product_images,id'],
             'primary_image_id'    => ['nullable', 'integer', 'exists:product_images,id'],
             'primary_image_index' => ['nullable', 'integer', 'min:0'],
+
+            // Variants
+            'variants'            => ['nullable', 'string'], // JSON string
         ];
     }
 }

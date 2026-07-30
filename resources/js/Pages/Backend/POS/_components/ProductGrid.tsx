@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { ShoppingCart, AlertTriangle, Check, Info } from "lucide-react";
+import { AlertTriangle, Check, Info, ShoppingCart } from "lucide-react";
+import { useState } from "react";
 import ProductDetailModal from "./ProductDetailModal";
+import { ProductVariant } from "./VariantPickerModal";
 
 export interface Product {
     id: number;
@@ -23,6 +24,8 @@ export interface Product {
     discount_value: number | null;
     image: string | null;
     images: string[];
+    has_variants: boolean;
+    variants: ProductVariant[];
 }
 
 interface Props {
@@ -35,7 +38,7 @@ export default function ProductGrid({ products, onAddToCart }: Props) {
     const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
     const handleAdd = (product: Product) => {
-        if (product.stock_qty <= 0) return;
+        if (product.stock_qty <= 0 && !product.has_variants) return;
         onAddToCart(product);
         setPulseId(product.id);
         window.setTimeout(() => {
@@ -65,9 +68,11 @@ export default function ProductGrid({ products, onAddToCart }: Props) {
             `}</style>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {products.map((product) => {
-                    const outOfStock = product.stock_qty <= 0;
+                    const outOfStock =
+                        product.stock_qty <= 0 && !product.has_variants;
                     const isLowStock =
                         !outOfStock &&
+                        !product.has_variants &&
                         product.low_stock_threshold !== null &&
                         product.stock_qty <= product.low_stock_threshold;
                     const isPulsing = pulseId === product.id;
@@ -146,7 +151,11 @@ export default function ProductGrid({ products, onAddToCart }: Props) {
 
                                 {/* ── Stock Badge ── */}
                                 <div className="mt-1.5">
-                                    {outOfStock ? (
+                                    {product.has_variants ? (
+                                        <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                            {product.variants.length} variants
+                                        </span>
+                                    ) : outOfStock ? (
                                         <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
                                             Out of Stock
                                         </span>
@@ -172,7 +181,7 @@ export default function ProductGrid({ products, onAddToCart }: Props) {
                                 )}
                             </div>
 
-                            {/* ── Added-to-cart Corner Badge (doesn't cover the card) ── */}
+                            {/* ── Added-to-cart Corner Badge ── */}
                             {isPulsing && (
                                 <div
                                     className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center gap-1

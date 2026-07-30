@@ -2,6 +2,30 @@
 
 ---
 
+## [3.3] — Product Variants
+
+### Added
+
+- `product_variants` table: id, product_id (FK cascade), sku (unique), attributes (JSON), stock_qty, price_override, cost_price_override, image_id, is_active, timestamps
+- `variant_id` column added to `sale_items` and `stock_movements` (nullable FK → product_variants nullOnDelete)
+- `ProductVariant` model: attributes cast to array, label/effective_price/effective_cost accessors
+- `Product::variants()` and `Product::activeVariants()` HasMany relations
+- `SaleStockService` — variant-aware stock deduction in applyStock(), reverseStock(), reApplyStock()
+- `ProductController` — variants eager loaded in index/edit; store/update handles variant upsert (diff by id, delete removed)
+- `StoreProductRequest` / `UpdateProductRequest` — variants (nullable string/JSON) validation rule added
+- `VariantsPanel.tsx` — add/remove/edit variant rows with attributes key-value, price/cost override, active toggle
+- `VariantPickerModal.tsx` — POS modal for selecting variant before adding to cart
+- `ProductGrid.tsx` — has_variants + variants fields added to Product interface; variant products show "X variants" badge
+- `POS/Index.tsx` — variant-aware cart: addToCartDirect(), VariantPickerModal integration, variant_id in checkout payload
+- `CartItem.tsx` — variant_id, variant_label optional fields added to CartItemRow interface
+- `ProductFormFields.tsx` — Product Variants section with has_variants toggle added between Shipping and POS & Display
+
+### Known Issue (deferred)
+
+- Min Sale Qty not enforced in POS cart — will fix in Sprint 2 (Item 4.4)
+
+---
+
 ## [v2.23] — 2026-07-29
 
 ### Added — Item 1.5: Super Admin Cascade Delete — Soft Only

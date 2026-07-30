@@ -62,6 +62,10 @@ class StoreProductRequest extends FormRequest
             'images'              => ['nullable', 'array', 'max:8'],
             'images.*'            => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'primary_image_index' => ['nullable', 'integer', 'min:0'],
+
+            // Variants
+            'variants'            => ['nullable', 'string'], // JSON string
+
         ];
     }
 }

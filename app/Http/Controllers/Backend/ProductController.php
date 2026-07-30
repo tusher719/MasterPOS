@@ -27,7 +27,7 @@ class ProductController extends Controller
     {
         $this->authorize('viewAny', Product::class);
 
-        $products = Product::with(['category', 'unit', 'primaryImage'])
+        $products = Product::with(['category', 'unit', 'primaryImage', 'activeVariants'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -56,6 +56,19 @@ class ProductController extends Controller
                     'is_featured'         => $product->is_featured,
                     'is_active'           => $product->is_active,
                     'primary_image'       => $primaryImageUrl,
+                    // products map এ add করো:
+                    'has_variants' => $product->has_variants,
+                    'variants'     => $product->has_variants
+                        ? $product->activeVariants->map(fn($v) => [
+                            'id'             => $v->id,
+                            'sku'            => $v->sku,
+                            'attributes'     => $v->attributes ?? [],
+                            'stock_qty'      => (float) $v->stock_qty,
+                            'price_override' => $v->price_override,
+                            'is_active'      => $v->is_active,
+                            'label'          => $v->label, // accessor
+                        ])->values()
+                        : [],
                 ];
             });
 
@@ -80,6 +93,7 @@ class ProductController extends Controller
         return Inertia::render('Backend/Products/Create', [
             'categories' => $this->categoryOptions(),
             'units'      => $this->unitOptions(),
+            'variants'   => [],   // ← empty for new product
         ]);
     }
 
@@ -112,6 +126,22 @@ class ProductController extends Controller
                     }
                 }
 
+                // Handle variants
+                if ($data['has_variants'] && !empty($data['variants'])) {
+                    $variants = json_decode($data['variants'], true) ?? [];
+                    foreach ($variants as $v) {
+                        \App\Models\ProductVariant::create([
+                            'product_id'          => $product->id,
+                            'sku'                 => $v['sku'],
+                            'attributes'          => $v['attributes'] ?? [],
+                            'stock_qty'           => $v['stock_qty'] ?? 0,
+                            'price_override'      => ($v['price_override'] ?? '') !== '' ? $v['price_override'] : null,
+                            'cost_price_override' => ($v['cost_price_override'] ?? '') !== '' ? $v['cost_price_override'] : null,
+                            'is_active'           => $v['is_active'] ?? true,
+                        ]);
+                    }
+                }
+
                 ActivityLogService::log(
                     'product',
                     'created',
@@ -138,7 +168,7 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
-        $product->load(['category', 'unit', 'images']);
+        $product->load(['category', 'unit', 'images', 'variants']);
 
         return Inertia::render('Backend/Products/Edit', [
             'product'    => [
@@ -173,6 +203,16 @@ class ProductController extends Controller
                         : null,
                     'is_primary' => $img->is_primary,
                     'sort_order' => $img->sort_order,
+                ]),
+                'variants'            => $product->variants->map(fn($v) => [
+                    'id'                  => $v->id,
+                    'sku'                 => $v->sku,
+                    'attributes'          => $v->attributes ?? [],
+                    'stock_qty'           => $v->stock_qty,
+                    'price_override'      => $v->price_override,
+                    'cost_price_override' => $v->cost_price_override,
+                    'image_id'            => $v->image_id,
+                    'is_active'           => $v->is_active,
                 ]),
             ],
             'categories' => $this->categoryOptions(),
@@ -218,7 +258,6 @@ class ProductController extends Controller
                 $existingCount = $product->images()->count();
                 $primaryIndex  = (int) ($data['primary_image_index'] ?? -1);
 
-                // If no existing primary, first new image becomes primary
                 $hasPrimary = $product->images()->where('is_primary', true)->exists();
 
                 foreach ($request->file('images') as $index => $file) {
@@ -239,6 +278,38 @@ class ProductController extends Controller
                         $hasPrimary = true;
                     }
                 }
+            }
+
+            // Handle variants — upsert by id, delete removed
+            if ($data['has_variants'] && !empty($data['variants'])) {
+                $variants    = json_decode($data['variants'], true) ?? [];
+                $incomingIds = collect($variants)->pluck('id')->filter()->values()->toArray();
+
+                // Delete variants not in incoming list
+                $product->variants()->whereNotIn('id', $incomingIds)->delete();
+
+                foreach ($variants as $v) {
+                    $payload = [
+                        'product_id'          => $product->id,
+                        'sku'                 => $v['sku'],
+                        'attributes'          => $v['attributes'] ?? [],
+                        'stock_qty'           => $v['stock_qty'] ?? 0,
+                        'price_override'      => ($v['price_override'] ?? '') !== '' ? $v['price_override'] : null,
+                        'cost_price_override' => ($v['cost_price_override'] ?? '') !== '' ? $v['cost_price_override'] : null,
+                        'is_active'           => $v['is_active'] ?? true,
+                    ];
+
+                    if (!empty($v['id'])) {
+                        \App\Models\ProductVariant::where('id', $v['id'])
+                            ->where('product_id', $product->id)
+                            ->update($payload);
+                    } else {
+                        \App\Models\ProductVariant::create($payload);
+                    }
+                }
+            } else {
+                // has_variants off — delete all variants
+                $product->variants()->delete();
             }
 
             ActivityLogService::log(

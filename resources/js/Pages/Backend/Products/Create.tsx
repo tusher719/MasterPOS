@@ -1,11 +1,11 @@
-import { Head, router, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Link } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
+import { AlertCircle, ChevronLeft, Loader2, PackagePlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, PackagePlus, AlertCircle, Loader2 } from "lucide-react";
-import ProductFormFields from "./_components/ProductFormFields";
 import ImageUploader, { ImageFile } from "./_components/ImageUploader";
+import ProductFormFields from "./_components/ProductFormFields";
+import VariantsPanel, { VariantRow } from "./_components/VariantsPanel";
 
 interface Category {
     id: number;
@@ -23,6 +23,7 @@ interface Unit {
 interface Props {
     categories: Category[];
     units: Unit[];
+    variants: [];
 }
 
 type FormData = {
@@ -40,6 +41,7 @@ type FormData = {
     is_taxable: boolean;
     discount_type: string;
     discount_value: string;
+    has_variants: boolean;
     is_featured: boolean;
     sort_order: string;
     weight: string;
@@ -60,6 +62,7 @@ const REQUIRED_FIELDS: (keyof FormData)[] = [
 
 export default function ProductCreate({ categories, units }: Props) {
     const [newImages, setNewImages] = useState<ImageFile[]>([]);
+    const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
 
     const { data, setData, processing, errors } = useForm<FormData>({
         name: "",
@@ -76,6 +79,7 @@ export default function ProductCreate({ categories, units }: Props) {
         is_taxable: false,
         discount_type: "",
         discount_value: "",
+        has_variants: false,
         is_featured: false,
         sort_order: "0",
         weight: "",
@@ -95,11 +99,24 @@ export default function ProductCreate({ categories, units }: Props) {
         value: string | boolean,
     ) => {
         setData(key, value as any);
+
+        // When toggling has_variants off, clear variant rows
+        if (key === "has_variants" && value === false) {
+            setVariantRows([]);
+        }
     };
 
     const handleSubmit = () => {
         if (!isFormValid) {
             toast.error("Please fill in all required fields.");
+            return;
+        }
+
+        // Validate variants if enabled
+        if (data.has_variants && variantRows.length === 0) {
+            toast.error(
+                "Add at least one variant, or disable the variants toggle.",
+            );
             return;
         }
 
@@ -112,6 +129,11 @@ export default function ProductCreate({ categories, units }: Props) {
                 formData.append(key, String(value));
             }
         });
+
+        // Append variants as JSON string — backend decodes
+        if (data.has_variants && variantRows.length > 0) {
+            formData.append("variants", JSON.stringify(variantRows));
+        }
 
         const primaryIndex = newImages.findIndex((img) => img.isPrimary);
         newImages.forEach((img) => formData.append("images[]", img.file));
@@ -185,7 +207,7 @@ export default function ProductCreate({ categories, units }: Props) {
                         </div>
                     </div>
 
-                    {/* Right — form fields + submit */}
+                    {/* Right — form fields + variants + submit */}
                     <div className="space-y-5 lg:col-span-2">
                         <ProductFormFields
                             data={data}
@@ -195,7 +217,17 @@ export default function ProductCreate({ categories, units }: Props) {
                             units={units}
                         />
 
-                        {/* Submit bar — sits naturally at the end of the form */}
+                        {/* Variants panel — only shown when has_variants = true */}
+                        {data.has_variants && (
+                            <VariantsPanel
+                                rows={variantRows}
+                                onChange={setVariantRows}
+                                baseSalePrice={data.sale_price}
+                                baseCostPrice={data.cost_price}
+                            />
+                        )}
+
+                        {/* Submit bar */}
                         <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-5 py-4">
                             <p className="text-xs text-gray-400">
                                 {isFormValid

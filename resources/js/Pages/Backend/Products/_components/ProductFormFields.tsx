@@ -1,16 +1,16 @@
-import { useState } from "react";
 import {
-    Info,
-    Tags,
-    Coins,
-    Boxes,
-    Truck,
-    LayoutGrid,
-    Search,
-    CheckCircle2,
     AlertCircle,
+    Boxes,
+    CheckCircle2,
+    Coins,
+    Info,
+    LayoutGrid,
     LucideIcon,
+    Search,
+    Tags,
+    Truck,
 } from "lucide-react";
+import { useState } from "react";
 
 interface Category {
     id: number;
@@ -46,6 +46,7 @@ interface FormData {
     weight_unit: string;
     meta_title: string;
     meta_description: string;
+    has_variants: boolean;
     is_active: boolean;
 }
 
@@ -518,6 +519,28 @@ export default function ProductFormFields({
                         <option value="g">g</option>
                         <option value="lb">lb</option>
                     </SelectField>
+                </div>
+            </div>
+
+            {/* ── Variants ── */}
+            <div className={sectionCls}>
+                <SectionHeader
+                    icon={Tags}
+                    title="Product Variants"
+                    hint="Enable if this product has sizes, colors, or other options"
+                />
+                <div className="p-5">
+                    <Toggle
+                        value={data.has_variants}
+                        onChange={(v) => onChange("has_variants", v)}
+                        label="This product has variants (size, color, etc.)"
+                    />
+                    {data.has_variants && (
+                        <p className="mt-2 text-xs text-amber-600">
+                            ⚠ When variants are enabled, stock is tracked per
+                            variant — not on the main product.
+                        </p>
+                    )}
                 </div>
             </div>
 

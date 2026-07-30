@@ -59,7 +59,7 @@
 ## Completed Modules
 
 | Step        | Module                                              | Status |
-| ----------- | --------------------------------------------------- | ------ | --- |
+| ----------- | --------------------------------------------------- | ------ |
 | 00          | Project Standards                                   | ✅     |
 | 01          | Project Foundation                                  | ✅     |
 | 02          | Authentication & Permission                         | ✅     |
@@ -100,8 +100,9 @@
 | 1.3         | Distribution List — Source Type Badge & Filter      | ✅     |
 | 1.4         | Partner Financial Overview page                     | ✅     |
 | 2.3         | Mixed Partner per-type Settlement/Eligibility       | ✅     |
-| 1.1         | Settings Dynamic Fix                                | ✅     | No  |
 | 1.5         | Cascade Soft-Delete Correction                      | ✅     |
+| 1.1         | Settings Dynamic Fix                                | ✅     |
+| 3.3         | Product Variants                                    | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -109,7 +110,6 @@
 
 | #   | Item                                | Priority | Migration? |
 | --- | ----------------------------------- | -------- | ---------- |
-| 3.3 | Product Variants                    | Must Fix | Yes        |
 | 3.4 | Secure Product Slug                 | Must Fix | Yes        |
 | 3.5 | Inventory Sync + Stock Reservation  | Must Fix | Yes        |
 | 5.1 | Payment Method Charge Config        | Must Fix | Yes        |

@@ -97,7 +97,22 @@ class Product extends Model
     }
 
     public function scopeActive($query)
-{
-    return $query->where('is_active', true);
-}
+    {
+        return $query->where('is_active', true);
+    }
+
+    // ─── ADD after the primaryImage() relation ───────────────────────────────────
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class, 'product_id')
+                    ->orderBy('id');
+    }
+
+    public function activeVariants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class, 'product_id')
+                    ->where('is_active', true)
+                    ->orderBy('id');
+    }
 }

@@ -20,21 +20,28 @@ class SaleStockService
     {
         foreach ($sale->items as $item) {
             $product = Product::find($item->product_id);
+            if (!$product) continue;
 
-            if (!$product) {
-                continue;
+            // Variant-aware stock deduction
+            if ($item->variant_id) {
+                $variant = \App\Models\ProductVariant::find($item->variant_id);
+                if ($variant) {
+                    $before = (float) $variant->stock_qty;
+                    $after  = $before - (int) $item->quantity;
+                    $variant->stock_qty = $after;
+                    $variant->save();
+                }
+            } else {
+                $before = (int) $product->stock_qty;
+                $after  = $before - (int) $item->quantity;
+                $product->stock_qty = $after;
+                $product->save();
             }
-
-            $before = (int) $product->stock_qty;
-            $after  = $before - (int) $item->quantity;
-
-            // Deduct stock (allow negative — business decision)
-            $product->stock_qty = $after;
-            $product->save();
 
             // Log stock movement
             StockMovement::create([
                 'product_id'      => $product->id,
+                'variant_id'      => $item->variant_id ?? null,
                 'reference_type'  => Sale::class,
                 'reference_id'    => $sale->id,
                 'type'            => 'sale',
@@ -58,20 +65,27 @@ class SaleStockService
     public function reverseStock(Sale $sale): void
     {
         foreach ($sale->items as $item) {
-            $product = Product::find($item->product_id);
+            $product = Product::find($item->product_id); // ← was missing
+            if (!$product) continue;
 
-            if (!$product) {
-                continue;
+            if ($item->variant_id) {
+                $variant = \App\Models\ProductVariant::find($item->variant_id);
+                if ($variant) {
+                    $before = (float) $variant->stock_qty;
+                    $after  = $before + (int) $item->quantity;
+                    $variant->stock_qty = $after;
+                    $variant->save();
+                }
+            } else {
+                $before = (int) $product->stock_qty;
+                $after  = $before + (int) $item->quantity;
+                $product->stock_qty = $after;
+                $product->save();
             }
-
-            $before = (int) $product->stock_qty;
-            $after  = $before + (int) $item->quantity;
-
-            $product->stock_qty = $after;
-            $product->save();
 
             StockMovement::create([
                 'product_id'      => $product->id,
+                'variant_id'      => $item->variant_id ?? null,
                 'reference_type'  => Sale::class,
                 'reference_id'    => $sale->id,
                 'type'            => 'return',
@@ -93,19 +107,27 @@ class SaleStockService
     {
         foreach ($sale->items as $item) {
             $product = Product::find($item->product_id);
+            if (!$product) continue;
 
-            if (!$product) {
-                continue;
+            // Variant-aware stock deduction (same as applyStock)
+            if ($item->variant_id) {
+                $variant = \App\Models\ProductVariant::find($item->variant_id);
+                if ($variant) {
+                    $before = (float) $variant->stock_qty;
+                    $after  = $before - (int) $item->quantity;
+                    $variant->stock_qty = $after;
+                    $variant->save();
+                }
+            } else {
+                $before = (int) $product->stock_qty;
+                $after  = $before - (int) $item->quantity;
+                $product->stock_qty = $after;
+                $product->save();
             }
-
-            $before = (int) $product->stock_qty;
-            $after  = $before - (int) $item->quantity;
-
-            $product->stock_qty = $after;
-            $product->save();
 
             StockMovement::create([
                 'product_id'      => $product->id,
+                'variant_id'      => $item->variant_id ?? null,
                 'reference_type'  => Sale::class,
                 'reference_id'    => $sale->id,
                 'type'            => 'sale',
@@ -117,7 +139,6 @@ class SaleStockService
                 'created_by'      => Auth::id(),
             ]);
 
-            // Check low stock after re-applying
             $this->checkLowStock($product);
         }
     }

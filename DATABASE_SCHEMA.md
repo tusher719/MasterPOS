@@ -88,6 +88,18 @@ weight(dec10,3 nullable), weight_unit(nullable), is_featured(bool default false)
 sort_order(int default 0), meta_title(nullable), meta_description(nullable),
 description(text nullable), is_active(bool default true), timestamps, deleted_at
 
+### product_variants
+
+id, product_id (FK products cascade), sku (unique),
+attributes (JSON — {"color":"Red","size":"XL"}),
+stock_qty (decimal 10,2 default 0),
+price_override (decimal 10,2 nullable),
+cost_price_override (decimal 10,2 nullable),
+image_id (bigint nullable — ref product_images),
+is_active (bool default true),
+timestamps
+Indexes: product_id, is_active
+
 ### product_images
 
 id, product_id(FK products cascade), image_path, is_primary(bool default false),
@@ -149,6 +161,10 @@ Indexes: (reference_type, reference_id), product_id, type
 
 last_purchase_price(dec10,2 nullable), average_cost(dec10,2 default 0)
 
+### stock_movements additions (Item 3.3 migration)
+
+variant_id (FK product_variants nullable nullOnDelete)
+
 ---
 
 ## Step 08 — Customers
@@ -178,9 +194,15 @@ Reference format: SL-YYYYMMDD-XXXX
 
 ### sale_items
 
-id, sale_id(FK sales cascade), product_id(FK products restrict),
-quantity(int unsigned), unit_price(dec10,2), discount(dec10,2 default 0),
-subtotal(dec10,2), timestamps
+id,
+sale_id(FK sales cascade),
+product_id(FK products restrict),
+variant_id (FK product_variants nullable nullOnDelete),
+quantity(int unsigned),
+unit_price(dec10,2),
+discount(dec10,2 default 0),
+subtotal(dec10,2),
+timestamps
 
 ---
 

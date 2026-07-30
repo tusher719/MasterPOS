@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export interface CartItemRow {
     product_id: number;
@@ -10,6 +10,8 @@ export interface CartItemRow {
     stock_qty: number;
     unit: string | null;
     subtotal: number;
+    variant_id?: number | null;
+    variant_label?: string | null;
 }
 
 interface Props {
