@@ -123,7 +123,7 @@ business_settings additions:
 
 ---
 
-### 5.1 Payment Method Charge Config ✅ (Must Fix)
+### 5.1 Payment Method Charge Config ✅ DONE
 
 Extends existing payment_methods table in Settings.
 

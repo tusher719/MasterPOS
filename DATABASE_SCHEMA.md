@@ -64,6 +64,13 @@ id, name, color(nullable), is_active(bool default true), timestamps
 
 id, name, description(text nullable), is_active(bool default true), timestamps
 
+### payment_methods additions (Item 5.1)
+
+online_charge_type (enum: percent/fixed nullable)
+online_charge_value (decimal 10,2 default 0)
+charge_enabled (bool default false)
+charge_label (varchar nullable)
+
 ---
 
 ## Step 04 — Products

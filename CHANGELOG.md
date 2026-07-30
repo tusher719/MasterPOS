@@ -2,6 +2,22 @@
 
 ---
 
+## [v2.23] — 2026-07-31
+
+### Added
+
+- Item 5.1: Payment Method Charge Config
+    - Migration: added `online_charge_type`, `online_charge_value`, `charge_enabled`,
+      `charge_label` columns to `payment_methods` table
+    - PaymentMethod model: new columns in `$fillable` + `$casts`,
+      `calculateCharge(float $subtotal)` helper method
+    - PaymentMethodController: inline validation with charge guard,
+      `can` array in Inertia props, ActivityLog fix (object instead of id)
+    - PaymentMethods.tsx: charge config section in modal (type toggle, value,
+      label, live preview), Charge column in table, `can`-gated action buttons
+
+---
+
 ## [3.5] — 2026-07-30
 
 ### Added

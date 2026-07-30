@@ -1,22 +1,27 @@
+// resources/js/Pages/Backend/Settings/PaymentMethods.tsx
+
+import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, useForm } from "@inertiajs/react";
+import {
+    ArrowUpDown,
+    Banknote,
+    CreditCard,
+    DollarSign,
+    MoreHorizontal,
+    Pencil,
+    Percent,
+    Plus,
+    Smartphone,
+    Trash2,
+} from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
-import { useState } from "react";
-import {
-    Plus,
-    Pencil,
-    Trash2,
-    CreditCard,
-    Banknote,
-    Smartphone,
-    MoreHorizontal,
-    ArrowUpDown,
-} from "lucide-react";
-import useFlashToast from "@/hooks/useFlashToast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type PaymentType = "cash" | "card" | "mobile_banking" | "other";
+type ChargeType = "percent" | "fixed" | "";
 
 interface PaymentMethod {
     id: number;
@@ -24,21 +29,26 @@ interface PaymentMethod {
     type: PaymentType;
     is_active: boolean;
     sort_order: number;
+    charge_enabled: boolean;
+    online_charge_type: ChargeType;
+    online_charge_value: string; // decimal serialized as string from Laravel
+    charge_label: string | null;
     deleted_at: string | null;
 }
 
 interface Props {
     paymentMethods: PaymentMethod[];
+    can: {
+        create: boolean;
+        edit: boolean;
+        delete: boolean;
+    };
 }
 
 // ─── Type config ──────────────────────────────────────────────────────────────
 const TYPE_CONFIG: Record<
     PaymentType,
-    {
-        label: string;
-        color: string;
-        icon: React.ElementType;
-    }
+    { label: string; color: string; icon: React.ElementType }
 > = {
     cash: {
         label: "Cash",
@@ -67,9 +77,21 @@ const EMPTY_FORM = {
     type: "cash" as PaymentType,
     is_active: true,
     sort_order: 0,
+    charge_enabled: false,
+    online_charge_type: "" as ChargeType,
+    online_charge_value: "0",
+    charge_label: "",
 };
 
-export default function PaymentMethods({ paymentMethods }: Props) {
+// ─── Charge summary helper ────────────────────────────────────────────────────
+function chargeSummary(pm: PaymentMethod): string | null {
+    if (!pm.charge_enabled || !pm.online_charge_type) return null;
+    const val = Number(pm.online_charge_value);
+    if (pm.online_charge_type === "percent") return `${val}%`;
+    return `৳${val.toFixed(2)}`;
+}
+
+export default function PaymentMethods({ paymentMethods, can }: Props) {
     useFlashToast();
 
     const [open, setOpen] = useState(false);
@@ -91,6 +113,10 @@ export default function PaymentMethods({ paymentMethods }: Props) {
             type: pm.type,
             is_active: pm.is_active,
             sort_order: pm.sort_order,
+            charge_enabled: pm.charge_enabled,
+            online_charge_type: pm.online_charge_type ?? "",
+            online_charge_value: pm.online_charge_value ?? "0",
+            charge_label: pm.charge_label ?? "",
         });
         setOpen(true);
     };
@@ -134,6 +160,17 @@ export default function PaymentMethods({ paymentMethods }: Props) {
     const active = visible.filter((pm) => pm.is_active).length;
     const inactive = visible.filter((pm) => !pm.is_active).length;
 
+    // charge_enabled toggle — clear type/value when disabling
+    const toggleCharge = (enabled: boolean) => {
+        form.setData({
+            ...form.data,
+            charge_enabled: enabled,
+            online_charge_type: enabled ? form.data.online_charge_type : "",
+            online_charge_value: enabled ? form.data.online_charge_value : "0",
+            charge_label: enabled ? form.data.charge_label : "",
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Payment Methods" />
@@ -146,15 +183,18 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                             Payment Methods
                         </h1>
                         <p className="text-sm text-gray-500">
-                            Manage accepted payment methods for sales
+                            Manage accepted payment methods and their charge
+                            config
                         </p>
                     </div>
-                    <button
-                        onClick={openCreate}
-                        className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
-                    >
-                        <Plus size={16} /> Add Method
-                    </button>
+                    {can.create && (
+                        <button
+                            onClick={openCreate}
+                            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                        >
+                            <Plus size={16} /> Add Method
+                        </button>
+                    )}
                 </div>
 
                 {/* ── Stats ── */}
@@ -205,6 +245,9 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                                     Type
                                 </th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                    Charge
+                                </th>
+                                <th className="px-4 py-3 text-left font-medium text-gray-500">
                                     Status
                                 </th>
                                 <th className="px-4 py-3 text-right font-medium text-gray-500">
@@ -216,6 +259,7 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                             {visible.map((pm) => {
                                 const cfg = TYPE_CONFIG[pm.type];
                                 const Icon = cfg.icon;
+                                const charge = chargeSummary(pm);
                                 return (
                                     <tr
                                         key={pm.id}
@@ -232,6 +276,11 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                                                 />
                                                 {pm.name}
                                             </span>
+                                            {pm.charge_label && (
+                                                <span className="mt-0.5 block text-xs text-gray-400">
+                                                    {pm.charge_label}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span
@@ -241,12 +290,25 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
+                                            {charge ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                                                    {pm.online_charge_type ===
+                                                    "percent" ? (
+                                                        <Percent size={11} />
+                                                    ) : (
+                                                        <DollarSign size={11} />
+                                                    )}
+                                                    {charge}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3">
                                             <span
-                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                                    pm.is_active
-                                                        ? "bg-green-100 text-green-700"
-                                                        : "bg-gray-100 text-gray-500"
-                                                }`}
+                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${pm.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
                                             >
                                                 {pm.is_active
                                                     ? "Active"
@@ -255,18 +317,26 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button
-                                                    onClick={() => openEdit(pm)}
-                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                                >
-                                                    <Pencil size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => destroy(pm)}
-                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                {can.edit && (
+                                                    <button
+                                                        onClick={() =>
+                                                            openEdit(pm)
+                                                        }
+                                                        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                                    >
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                )}
+                                                {can.delete && (
+                                                    <button
+                                                        onClick={() =>
+                                                            destroy(pm)
+                                                        }
+                                                        className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -275,7 +345,7 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                             {visible.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="py-12 text-center text-gray-400"
                                     >
                                         No payment methods found. Add one to get
@@ -292,7 +362,7 @@ export default function PaymentMethods({ paymentMethods }: Props) {
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-                        {/* Modal header */}
+                        {/* Header */}
                         <div className="border-b border-gray-100 px-5 py-4">
                             <h2 className="text-base font-semibold text-gray-800">
                                 {editing
@@ -301,8 +371,8 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                             </h2>
                         </div>
 
-                        {/* Modal body */}
-                        <div className="space-y-4 px-5 py-4">
+                        {/* Body */}
+                        <div className="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-4">
                             {/* Name */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">
@@ -390,24 +460,195 @@ export default function PaymentMethods({ paymentMethods }: Props) {
                                             !form.data.is_active,
                                         )
                                     }
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                        form.data.is_active
-                                            ? "bg-indigo-600"
-                                            : "bg-gray-200"
-                                    }`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.data.is_active ? "bg-indigo-600" : "bg-gray-200"}`}
                                 >
                                     <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                            form.data.is_active
-                                                ? "translate-x-6"
-                                                : "translate-x-1"
-                                        }`}
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.data.is_active ? "translate-x-6" : "translate-x-1"}`}
                                     />
                                 </button>
                             </div>
+
+                            {/* ── Charge Config Section ── */}
+                            <div className="rounded-lg border border-gray-200">
+                                {/* Charge enable toggle */}
+                                <div className="flex items-center justify-between px-4 py-3">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-700">
+                                            Payment Charge
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Extra charge applied when customer
+                                            uses this method
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            toggleCharge(
+                                                !form.data.charge_enabled,
+                                            )
+                                        }
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.data.charge_enabled ? "bg-indigo-600" : "bg-gray-200"}`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.data.charge_enabled ? "translate-x-6" : "translate-x-1"}`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Charge fields — shown only when enabled */}
+                                {form.data.charge_enabled && (
+                                    <div className="space-y-3 border-t border-gray-100 px-4 pb-4 pt-3">
+                                        {/* Charge Type */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Charge Type{" "}
+                                                <span className="text-red-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <div className="mt-1 flex gap-3">
+                                                {(
+                                                    [
+                                                        "percent",
+                                                        "fixed",
+                                                    ] as const
+                                                ).map((t) => (
+                                                    <button
+                                                        key={t}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            form.setData(
+                                                                "online_charge_type",
+                                                                t,
+                                                            )
+                                                        }
+                                                        className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                                                            form.data
+                                                                .online_charge_type ===
+                                                            t
+                                                                ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                                                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                                        }`}
+                                                    >
+                                                        {t === "percent" ? (
+                                                            <Percent
+                                                                size={13}
+                                                            />
+                                                        ) : (
+                                                            <DollarSign
+                                                                size={13}
+                                                            />
+                                                        )}
+                                                        {t === "percent"
+                                                            ? "Percent (%)"
+                                                            : "Fixed (৳)"}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {form.errors.online_charge_type && (
+                                                <p className="mt-1 text-xs text-red-600">
+                                                    {
+                                                        form.errors
+                                                            .online_charge_type
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Charge Value */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Charge Value{" "}
+                                                <span className="text-red-500">
+                                                    *
+                                                </span>
+                                            </label>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={
+                                                        form.data
+                                                            .online_charge_value
+                                                    }
+                                                    onChange={(e) =>
+                                                        form.setData(
+                                                            "online_charge_value",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="w-36 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-400">
+                                                    {form.data
+                                                        .online_charge_type ===
+                                                    "percent"
+                                                        ? "%"
+                                                        : "৳"}
+                                                </span>
+                                            </div>
+                                            {form.errors
+                                                .online_charge_value && (
+                                                <p className="mt-1 text-xs text-red-600">
+                                                    {
+                                                        form.errors
+                                                            .online_charge_value
+                                                    }
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Charge Label */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Charge Label
+                                                <span className="ml-1 text-xs font-normal text-gray-400">
+                                                    (shown to customer)
+                                                </span>
+                                            </label>
+                                            <input
+                                                value={form.data.charge_label}
+                                                onChange={(e) =>
+                                                    form.setData(
+                                                        "charge_label",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="e.g. bKash Charge (1.5%)"
+                                                className="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            />
+                                            {form.errors.charge_label && (
+                                                <p className="mt-1 text-xs text-red-600">
+                                                    {form.errors.charge_label}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Live preview */}
+                                        {form.data.online_charge_type &&
+                                            Number(
+                                                form.data.online_charge_value,
+                                            ) > 0 && (
+                                                <div className="rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
+                                                    Preview: on ৳1,000 subtotal
+                                                    →{" "}
+                                                    <strong>
+                                                        {form.data
+                                                            .online_charge_type ===
+                                                        "percent"
+                                                            ? `৳${((1000 * Number(form.data.online_charge_value)) / 100).toFixed(2)} charge`
+                                                            : `৳${Number(form.data.online_charge_value).toFixed(2)} charge`}
+                                                    </strong>
+                                                </div>
+                                            )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Modal footer */}
+                        {/* Footer */}
                         <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
                             <button
                                 type="button"
