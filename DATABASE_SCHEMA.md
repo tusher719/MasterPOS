@@ -169,7 +169,18 @@ variant_id (FK product_variants nullable nullOnDelete)
 
 slug (varchar unique — auto-generated: Str::slug(name) + 6 random chars, immutable after creation)
 
----
+### stock_reservations
+
+id, product_id(FK products restrict), variant_id(FK product_variants nullable nullOnDelete),
+sale_id(FK sales nullable nullOnDelete — filled on conversion),
+quantity(decimal 10,2), reserved_until(timestamp),
+status(enum: active/converted/expired/released default:active),
+timestamps
+Indexes: (product_id, status), (variant_id, status), (status, reserved_until)
+
+### business_settings additions (Item 3.5)
+
+## stock_reservation_minutes (int default 30) — group: inventory
 
 ## Step 08 — Customers
 

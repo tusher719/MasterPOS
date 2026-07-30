@@ -2,6 +2,25 @@
 
 ---
 
+## [3.5] — 2026-07-30
+
+### Added
+
+- `stock_reservations` table — tracks storefront stock holds before payment verification
+- `StockReservation` model with scopes: `active()`, `expired()` and status helpers
+- `StockReservationService` — reserve(), convertToSale(), release(), sweepExpired()
+- `SweepExpiredReservations` artisan command (`reservations:sweep-expired`) with `--dry-run` support
+- Schedule entry in `routes/console.php` — sweeps expired reservations every 5 minutes
+- `stock_reservation_minutes` business setting (default: 30) — group: inventory
+
+### Fixed
+
+- `SaleStockService::applyStock()` — wrapped in `DB::transaction()` + `lockForUpdate()` to prevent race conditions on concurrent POS sales
+- `SaleStockService::reverseStock()` — same fix
+- `SaleStockService::reApplyStock()` — same fix
+
+---
+
 ## [3.3] — Product Variants
 
 ### Added

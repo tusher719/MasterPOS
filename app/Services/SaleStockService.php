@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Sale;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use App\Notifications\LowStockNotification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use App\Models\User;
 
@@ -15,46 +17,46 @@ class SaleStockService
     /**
      * Deduct stock for each sale item.
      * Called after a sale is created.
+     * Uses lockForUpdate() to prevent race conditions on concurrent sales.
      */
     public function applyStock(Sale $sale): void
     {
         foreach ($sale->items as $item) {
-            $product = Product::find($item->product_id);
-            if (!$product) continue;
+            DB::transaction(function () use ($item, $sale) {
+                $product = Product::lockForUpdate()->find($item->product_id);
+                if (!$product) return;
 
-            // Variant-aware stock deduction
-            if ($item->variant_id) {
-                $variant = \App\Models\ProductVariant::find($item->variant_id);
-                if ($variant) {
-                    $before = (float) $variant->stock_qty;
-                    $after  = $before - (int) $item->quantity;
-                    $variant->stock_qty = $after;
-                    $variant->save();
+                if ($item->variant_id) {
+                    $variant = ProductVariant::lockForUpdate()->find($item->variant_id);
+                    if ($variant) {
+                        $before = (float) $variant->stock_qty;
+                        $after  = $before - (float) $item->quantity;
+                        $variant->stock_qty = $after;
+                        $variant->save();
+                    }
+                } else {
+                    $before = (float) $product->stock_qty;
+                    $after  = $before - (float) $item->quantity;
+                    $product->stock_qty = $after;
+                    $product->save();
                 }
-            } else {
-                $before = (int) $product->stock_qty;
-                $after  = $before - (int) $item->quantity;
-                $product->stock_qty = $after;
-                $product->save();
-            }
 
-            // Log stock movement
-            StockMovement::create([
-                'product_id'      => $product->id,
-                'variant_id'      => $item->variant_id ?? null,
-                'reference_type'  => Sale::class,
-                'reference_id'    => $sale->id,
-                'type'            => 'sale',
-                'quantity'        => -(int) $item->quantity,
-                'before_quantity' => $before,
-                'after_quantity'  => $after,
-                'unit_cost'       => $item->unit_price,
-                'note'            => 'Sale: ' . $sale->reference_no,
-                'created_by'      => Auth::id(),
-            ]);
+                StockMovement::create([
+                    'product_id'      => $product->id,
+                    'variant_id'      => $item->variant_id ?? null,
+                    'reference_type'  => Sale::class,
+                    'reference_id'    => $sale->id,
+                    'type'            => 'sale',
+                    'quantity'        => -(float) $item->quantity,
+                    'before_quantity' => $before,
+                    'after_quantity'  => $after,
+                    'unit_cost'       => $item->unit_price,
+                    'note'            => 'Sale: ' . $sale->reference_no,
+                    'created_by'      => Auth::id(),
+                ]);
 
-            // Check low stock threshold
-            $this->checkLowStock($product);
+                $this->checkLowStock($product);
+            });
         }
     }
 
@@ -65,37 +67,39 @@ class SaleStockService
     public function reverseStock(Sale $sale): void
     {
         foreach ($sale->items as $item) {
-            $product = Product::find($item->product_id); // ← was missing
-            if (!$product) continue;
+            DB::transaction(function () use ($item, $sale) {
+                $product = Product::lockForUpdate()->find($item->product_id);
+                if (!$product) return;
 
-            if ($item->variant_id) {
-                $variant = \App\Models\ProductVariant::find($item->variant_id);
-                if ($variant) {
-                    $before = (float) $variant->stock_qty;
-                    $after  = $before + (int) $item->quantity;
-                    $variant->stock_qty = $after;
-                    $variant->save();
+                if ($item->variant_id) {
+                    $variant = ProductVariant::lockForUpdate()->find($item->variant_id);
+                    if ($variant) {
+                        $before = (float) $variant->stock_qty;
+                        $after  = $before + (float) $item->quantity;
+                        $variant->stock_qty = $after;
+                        $variant->save();
+                    }
+                } else {
+                    $before = (float) $product->stock_qty;
+                    $after  = $before + (float) $item->quantity;
+                    $product->stock_qty = $after;
+                    $product->save();
                 }
-            } else {
-                $before = (int) $product->stock_qty;
-                $after  = $before + (int) $item->quantity;
-                $product->stock_qty = $after;
-                $product->save();
-            }
 
-            StockMovement::create([
-                'product_id'      => $product->id,
-                'variant_id'      => $item->variant_id ?? null,
-                'reference_type'  => Sale::class,
-                'reference_id'    => $sale->id,
-                'type'            => 'return',
-                'quantity'        => (int) $item->quantity,
-                'before_quantity' => $before,
-                'after_quantity'  => $after,
-                'unit_cost'       => $item->unit_price,
-                'note'            => 'Sale voided: ' . $sale->reference_no,
-                'created_by'      => Auth::id(),
-            ]);
+                StockMovement::create([
+                    'product_id'      => $product->id,
+                    'variant_id'      => $item->variant_id ?? null,
+                    'reference_type'  => Sale::class,
+                    'reference_id'    => $sale->id,
+                    'type'            => 'return',
+                    'quantity'        => (float) $item->quantity,
+                    'before_quantity' => $before,
+                    'after_quantity'  => $after,
+                    'unit_cost'       => $item->unit_price,
+                    'note'            => 'Sale voided: ' . $sale->reference_no,
+                    'created_by'      => Auth::id(),
+                ]);
+            });
         }
     }
 
@@ -106,40 +110,41 @@ class SaleStockService
     public function reApplyStock(Sale $sale): void
     {
         foreach ($sale->items as $item) {
-            $product = Product::find($item->product_id);
-            if (!$product) continue;
+            DB::transaction(function () use ($item, $sale) {
+                $product = Product::lockForUpdate()->find($item->product_id);
+                if (!$product) return;
 
-            // Variant-aware stock deduction (same as applyStock)
-            if ($item->variant_id) {
-                $variant = \App\Models\ProductVariant::find($item->variant_id);
-                if ($variant) {
-                    $before = (float) $variant->stock_qty;
-                    $after  = $before - (int) $item->quantity;
-                    $variant->stock_qty = $after;
-                    $variant->save();
+                if ($item->variant_id) {
+                    $variant = ProductVariant::lockForUpdate()->find($item->variant_id);
+                    if ($variant) {
+                        $before = (float) $variant->stock_qty;
+                        $after  = $before - (float) $item->quantity;
+                        $variant->stock_qty = $after;
+                        $variant->save();
+                    }
+                } else {
+                    $before = (float) $product->stock_qty;
+                    $after  = $before - (float) $item->quantity;
+                    $product->stock_qty = $after;
+                    $product->save();
                 }
-            } else {
-                $before = (int) $product->stock_qty;
-                $after  = $before - (int) $item->quantity;
-                $product->stock_qty = $after;
-                $product->save();
-            }
 
-            StockMovement::create([
-                'product_id'      => $product->id,
-                'variant_id'      => $item->variant_id ?? null,
-                'reference_type'  => Sale::class,
-                'reference_id'    => $sale->id,
-                'type'            => 'sale',
-                'quantity'        => -(int) $item->quantity,
-                'before_quantity' => $before,
-                'after_quantity'  => $after,
-                'unit_cost'       => $item->unit_price,
-                'note'            => 'Sale restored: ' . $sale->reference_no,
-                'created_by'      => Auth::id(),
-            ]);
+                StockMovement::create([
+                    'product_id'      => $product->id,
+                    'variant_id'      => $item->variant_id ?? null,
+                    'reference_type'  => Sale::class,
+                    'reference_id'    => $sale->id,
+                    'type'            => 'sale',
+                    'quantity'        => -(float) $item->quantity,
+                    'before_quantity' => $before,
+                    'after_quantity'  => $after,
+                    'unit_cost'       => $item->unit_price,
+                    'note'            => 'Sale restored: ' . $sale->reference_no,
+                    'created_by'      => Auth::id(),
+                ]);
 
-            $this->checkLowStock($product);
+                $this->checkLowStock($product);
+            });
         }
     }
 

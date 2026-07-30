@@ -97,7 +97,7 @@ products additions: slug (varchar unique)
 
 ---
 
-### 3.5 Inventory Sync Safety + Stock Reservation ✅ (Must Fix — before storefront)
+### 3.5 Inventory Sync Safety + Stock Reservation ✅ DONE
 
 - lockForUpdate() + DB::transaction() around all stock deductions
 

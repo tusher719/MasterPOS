@@ -34,6 +34,9 @@ class BusinessSettingSeeder extends Seeder
             ['key' => 'notify_low_stock',    'value' => 'true', 'group' => 'notification'],
             ['key' => 'notify_on_expense',   'value' => 'false','group' => 'notification'],
             ['key' => 'low_stock_threshold', 'value' => '10',   'group' => 'notification'],
+
+            // Inventory group
+            ['key' => 'stock_reservation_minutes', 'value' => '30', 'group' => 'inventory'],
         ];
 
         foreach ($defaults as $setting) {

@@ -104,6 +104,7 @@
 | 1.1         | Settings Dynamic Fix                                | ✅     |
 | 3.3         | Product Variants                                    | ✅     |
 | 3.4         | Secure Product Slug + POS min_sale_qty fix          | ✅     |
+| 3.5         | Inventory Sync + Stock Reservation                  | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -111,7 +112,6 @@
 
 | #   | Item                                | Priority | Migration? |
 | --- | ----------------------------------- | -------- | ---------- |
-| 3.5 | Inventory Sync + Stock Reservation  | Must Fix | Yes        |
 | 5.1 | Payment Method Charge Config        | Must Fix | Yes        |
 | 5.2 | Individual Bank under Bank Transfer | Must Fix | Yes        |
 

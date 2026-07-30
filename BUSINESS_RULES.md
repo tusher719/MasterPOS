@@ -448,6 +448,11 @@ For product-based partner profit:
 - Average cost updated using weighted average on every purchase
 - Stock reversed when sale is deleted (SaleStockService::reverseStock())
 - Stock reversed when purchase is deleted (PurchaseStockService)
+- Stock reservation window configurable via business_settings.stock_reservation_minutes (default: 30)
+- Storefront orders reserve stock before payment — real deduction happens on payment verification
+- POS sales bypass reservation — deduct stock directly via SaleStockService::applyStock()
+- Expired reservations swept every 5 minutes via scheduler (reservations:sweep-expired)
+- SaleStockService uses lockForUpdate() + DB::transaction() on all stock deductions
 
 ---
 

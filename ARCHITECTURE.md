@@ -390,6 +390,15 @@ Calculates settlement amounts per partner based on their `partner_settlement_con
 
 Business logic involving multiple models (stock update + activity log + notification) belongs in services, not Eloquent models. Models handle single-model concerns; services orchestrate cross-model workflows.
 
+### StockReservationService (New — Item 3.5)
+
+Manages stock reservation lifecycle for storefront orders.
+
+- `reserve()` — locks product/variant row, checks available qty minus active reservations, creates reservation with configurable window (stock_reservation_minutes setting)
+- `convertToSale()` — marks reservation as converted after payment verified; actual stock deduction handled by SaleStockService::applyStock()
+- `release()` — manually releases a reservation (customer cancelled before payment)
+- `sweepExpired()` — bulk-expires active reservations past reserved_until window; processes in chunks of 100 with per-row lockForUpdate() guard
+
 ---
 
 ## 12. Hold Order Architecture
