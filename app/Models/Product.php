@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -37,6 +38,7 @@ class Product extends Model
         'meta_description',
         'description',
         'is_active',
+        // slug is intentionally excluded — auto-generated only, never mass-assigned
     ];
 
     protected $casts = [
@@ -53,6 +55,40 @@ class Product extends Model
         'is_active'           => 'boolean',
         'sort_order'          => 'integer',
     ];
+
+    // --- Boot ---
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Generate slug once at creation — never on update
+        static::creating(function (Product $product): void {
+            $product->slug = static::generateUniqueSlug($product->name);
+        });
+
+        // Guard: prevent slug from being changed after creation
+        static::updating(function (Product $product): void {
+            if ($product->isDirty('slug')) {
+                $product->slug = $product->getOriginal('slug');
+            }
+        });
+    }
+
+    /**
+     * Generate a unique slug: Str::slug($name) + '-' + 6 random alphanumeric chars.
+     * Example: "red-cotton-kurti-xl-4f9a2c"
+     */
+    private static function generateUniqueSlug(string $name): string
+    {
+        $base = Str::slug($name);
+
+        do {
+            $slug = $base . '-' . Str::lower(Str::random(6));
+        } while (static::withTrashed()->where('slug', $slug)->exists());
+
+        return $slug;
+    }
 
     // --- Relationships ---
 
@@ -78,31 +114,6 @@ class Product extends Model
                     ->where('is_primary', true);
     }
 
-    // --- Accessors ---
-
-    /** True if stock is at or below low_stock_threshold */
-    public function getIsLowStockAttribute(): bool
-    {
-        return $this->stock_qty <= $this->low_stock_threshold;
-    }
-
-    public function purchaseItems()
-    {
-        return $this->hasMany(PurchaseItem::class);
-    }
-
-    public function stockMovements()
-    {
-        return $this->hasMany(StockMovement::class);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    // ─── ADD after the primaryImage() relation ───────────────────────────────────
-
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class, 'product_id')
@@ -114,5 +125,30 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class, 'product_id')
                     ->where('is_active', true)
                     ->orderBy('id');
+    }
+
+    public function purchaseItems(): HasMany
+    {
+        return $this->hasMany(PurchaseItem::class);
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    // --- Accessors ---
+
+    /** True if stock is at or below low_stock_threshold */
+    public function getIsLowStockAttribute(): bool
+    {
+        return $this->stock_qty <= $this->low_stock_threshold;
+    }
+
+    // --- Scopes ---
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

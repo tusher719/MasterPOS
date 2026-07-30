@@ -6,6 +6,7 @@ export interface CartItemRow {
     name: string;
     unit_price: number;
     quantity: number;
+    min_sale_qty: number; // ← ADDED: minimum enforced quantity per item
     discount: number;
     stock_qty: number;
     unit: string | null;
@@ -27,9 +28,12 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
     const itemSubtotal = Number(item.subtotal);
     const itemDiscount = Number(item.discount);
 
+    // Minimum quantity this item can go down to
+    const minQty = Math.max(1, Number(item.min_sale_qty) || 1);
+
     const handleQtyChange = (delta: number) => {
         const newQty = item.quantity + delta;
-        if (newQty < 1) return;
+        if (newQty < minQty) return; // ← was: newQty < 1
         if (newQty > item.stock_qty) return;
         const subtotal = unitPrice * newQty - itemDiscount;
         onUpdate({ quantity: newQty, subtotal: Math.max(0, subtotal) });
@@ -70,10 +74,20 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                     <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-medium text-gray-800">
                             {item.name}
+                            {item.variant_label && (
+                                <span className="ml-1 text-xs font-normal text-gray-400">
+                                    ({item.variant_label})
+                                </span>
+                            )}
                         </p>
                         <p className="text-xs text-gray-400">
                             ৳{unitPrice.toFixed(2)}
                             {item.unit ? ` / ${item.unit}` : ""}
+                            {minQty > 1 && (
+                                <span className="ml-1 text-indigo-400">
+                                    min {minQty}
+                                </span>
+                            )}
                         </p>
                     </div>
                     <button
@@ -90,31 +104,33 @@ export default function CartItem({ item, onUpdate, onRemove }: Props) {
                 <div className="mt-2 flex items-center gap-2">
                     <div className="flex items-center rounded-md border border-gray-200 transition-colors hover:border-indigo-300">
                         <button
-                            onClick={() => handleQtyChange(-1)}
-                            disabled={item.quantity <= 1}
+                            onClick={() => handleQtyChange(-minQty)} // ← was: -1
+                            disabled={item.quantity <= minQty} // ← was: <= 1
                             className="flex h-7 w-7 items-center justify-center rounded-l-md text-gray-500 transition-colors hover:bg-gray-100 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             <Minus size={12} />
                         </button>
                         <input
                             type="number"
-                            min={1}
+                            min={minQty} // ← was: 1
                             max={item.stock_qty}
                             value={item.quantity}
                             onChange={(e) => {
-                                const qty = parseInt(e.target.value) || 1;
-                                const capped = Math.min(qty, item.stock_qty);
-                                const subtotal =
-                                    unitPrice * capped - itemDiscount;
+                                const raw = parseInt(e.target.value) || minQty;
+                                const qty = Math.max(
+                                    minQty,
+                                    Math.min(raw, item.stock_qty),
+                                );
+                                const subtotal = unitPrice * qty - itemDiscount;
                                 onUpdate({
-                                    quantity: capped,
+                                    quantity: qty,
                                     subtotal: Math.max(0, subtotal),
                                 });
                             }}
                             className="h-7 w-12 border-x border-gray-200 text-center text-sm focus:outline-none focus:ring-0"
                         />
                         <button
-                            onClick={() => handleQtyChange(1)}
+                            onClick={() => handleQtyChange(+minQty)} // ← was: +1
                             disabled={item.quantity >= item.stock_qty}
                             className="flex h-7 w-7 items-center justify-center rounded-r-md text-gray-500 transition-colors hover:bg-gray-100 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
                         >

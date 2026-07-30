@@ -94,13 +94,19 @@ export default function POSIndex({
         unitPrice: number,
         stockQty: number,
     ) => {
+        // min_sale_qty: respect the product's minimum, default to 1
+        const minQty = Math.max(1, Number(product.min_sale_qty) || 1);
+
         setCartItems((prev) => {
             const existing = prev.find(
                 (i) =>
                     i.product_id === product.id && i.variant_id === variantId,
             );
+
             if (existing) {
-                if (existing.quantity >= stockQty) {
+                // Already in cart — increment by minQty, respect stock ceiling
+                const newQty = existing.quantity + minQty;
+                if (newQty > stockQty) {
                     toast.warning("Maximum stock reached for " + product.name);
                     return prev;
                 }
@@ -108,13 +114,21 @@ export default function POSIndex({
                     i.product_id === product.id && i.variant_id === variantId
                         ? {
                               ...i,
-                              quantity: i.quantity + 1,
-                              subtotal:
-                                  unitPrice * (i.quantity + 1) - i.discount,
+                              quantity: newQty,
+                              subtotal: unitPrice * newQty - i.discount,
                           }
                         : i,
                 );
             }
+
+            // New cart item — start at minQty
+            if (minQty > stockQty) {
+                toast.warning(
+                    `Minimum order quantity (${minQty}) exceeds available stock (${stockQty}) for ${product.name}`,
+                );
+                return prev;
+            }
+
             return [
                 ...prev,
                 {
@@ -123,14 +137,16 @@ export default function POSIndex({
                     variant_label: variantLabel,
                     name: product.name,
                     unit_price: unitPrice,
-                    quantity: 1,
+                    quantity: minQty, // ← was hardcoded 1
+                    min_sale_qty: minQty,
                     discount: 0,
                     stock_qty: stockQty,
                     unit: product.unit,
-                    subtotal: unitPrice,
+                    subtotal: unitPrice * minQty, // ← was unitPrice * 1
                 },
             ];
         });
+
         toast.success(
             product.name +
                 (variantLabel ? ` (${variantLabel})` : "") +
@@ -260,7 +276,6 @@ export default function POSIndex({
             toast.success("Order held successfully.");
             fetchHoldCount();
 
-            // Fresh hold (not a resumed one) — just clear the working cart
             setCartItems([]);
             setCustomerId(null);
             setDiscount(0);
@@ -275,18 +290,8 @@ export default function POSIndex({
     };
 
     const handleResumeHoldOrder = (holdOrder: HoldOrder) => {
-        // Restore cart from the hold order.
-        // NOTE: holdOrder.items comes from the API with Laravel decimal-cast
-        // fields (unit_price, discount, subtotal) serialized as STRINGS.
-        // These must be normalized to Number() here — otherwise the later
-        // `cartItems.reduce((sum, i) => sum + i.subtotal, 0)` in this
-        // component does string concatenation instead of addition, which
-        // breaks subtotal/grandTotal/dueAmount everywhere downstream.
         setCartItems(
             holdOrder.items.map((item) => {
-                // Defensive: if the backend ever sends the raw `unit`
-                // relation object instead of its name string, unwrap it
-                // here so the UI never renders "[object Object]".
                 const rawUnit: any = item.unit;
                 const unitName =
                     rawUnit && typeof rawUnit === "object"
@@ -298,6 +303,9 @@ export default function POSIndex({
                     name: item.name,
                     unit_price: Number(item.unit_price),
                     quantity: Number(item.quantity),
+                    // Resumed hold orders restore as-is — min_sale_qty already
+                    // applied when the order was originally held
+                    min_sale_qty: 1,
                     discount: Number(item.discount),
                     subtotal: Number(item.subtotal),
                     stock_qty: item.stock_qty,
@@ -371,7 +379,6 @@ export default function POSIndex({
 
             toast.success("Sale completed successfully!");
 
-            // After a successful sale — delete the resumed hold order, if any
             if (resumedHoldOrderId) {
                 try {
                     await axios.delete(
@@ -427,7 +434,6 @@ export default function POSIndex({
                             </p>
                         </div>
 
-                        {/* Hold Orders Drawer Trigger */}
                         <button
                             onClick={() => setShowHoldDrawer(true)}
                             className="relative flex items-center gap-1.5 rounded-lg border border-gray-200
@@ -509,7 +515,6 @@ export default function POSIndex({
                 </div>
             </div>
 
-            {/* Variant Picker Modal */}
             {variantPickerProduct && (
                 <VariantPickerModal
                     productName={variantPickerProduct.name}
@@ -540,7 +545,6 @@ export default function POSIndex({
                 />
             )}
 
-            {/* Hold Orders Drawer */}
             <HoldOrdersDrawer
                 open={showHoldDrawer}
                 onClose={() => setShowHoldDrawer(false)}

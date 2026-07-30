@@ -42,6 +42,7 @@ class ProductController extends Controller
                 return [
                     'id'                  => $product->id,
                     'name'                => $product->name,
+                    'slug'                => $product->slug,          // ← ADDED
                     'sku'                 => $product->sku,
                     'barcode'             => $product->barcode,
                     'category_id'         => $product->category_id,
@@ -56,9 +57,8 @@ class ProductController extends Controller
                     'is_featured'         => $product->is_featured,
                     'is_active'           => $product->is_active,
                     'primary_image'       => $primaryImageUrl,
-                    // products map এ add করো:
-                    'has_variants' => $product->has_variants,
-                    'variants'     => $product->has_variants
+                    'has_variants'        => $product->has_variants,
+                    'variants'            => $product->has_variants
                         ? $product->activeVariants->map(fn($v) => [
                             'id'             => $v->id,
                             'sku'            => $v->sku,
@@ -66,13 +66,12 @@ class ProductController extends Controller
                             'stock_qty'      => (float) $v->stock_qty,
                             'price_override' => $v->price_override,
                             'is_active'      => $v->is_active,
-                            'label'          => $v->label, // accessor
+                            'label'          => $v->label,
                         ])->values()
                         : [],
                 ];
             });
 
-        // Stats
         $stats = [
             'total'     => Product::count(),
             'active'    => Product::where('is_active', true)->count(),
@@ -93,7 +92,7 @@ class ProductController extends Controller
         return Inertia::render('Backend/Products/Create', [
             'categories' => $this->categoryOptions(),
             'units'      => $this->unitOptions(),
-            'variants'   => [],   // ← empty for new product
+            'variants'   => [],
         ]);
     }
 
@@ -101,16 +100,17 @@ class ProductController extends Controller
     {
         $data = $request->validated();
 
-        // Cast booleans
         foreach (['is_taxable', 'has_variants', 'is_featured', 'is_active'] as $bool) {
             $data[$bool] = $request->boolean($bool, $bool === 'is_active');
         }
+
+        // Defensive: strip slug if somehow present in request — Model boot handles generation
+        unset($data['slug']);
 
         try {
             DB::transaction(function () use ($data, $request) {
                 $product = Product::create($data);
 
-                // Handle image uploads
                 if ($request->hasFile('images')) {
                     $primaryIndex = (int) ($data['primary_image_index'] ?? 0);
 
@@ -126,7 +126,6 @@ class ProductController extends Controller
                     }
                 }
 
-                // Handle variants
                 if ($data['has_variants'] && !empty($data['variants'])) {
                     $variants = json_decode($data['variants'], true) ?? [];
                     foreach ($variants as $v) {
@@ -153,7 +152,7 @@ class ProductController extends Controller
         } catch (\Throwable $e) {
             Log::error('Product store failed: ' . $e->getMessage(), [
                 'exception' => $e,
-                'data' => $data,
+                'data'      => $data,
             ]);
 
             return back()->withErrors(['error' => 'Something went wrong: ' . $e->getMessage()]);
@@ -174,6 +173,7 @@ class ProductController extends Controller
             'product'    => [
                 'id'                  => $product->id,
                 'name'                => $product->name,
+                'slug'                => $product->slug,              // ← ADDED (read-only display)
                 'sku'                 => $product->sku,
                 'barcode'             => $product->barcode,
                 'category_id'         => $product->category_id,
@@ -228,10 +228,12 @@ class ProductController extends Controller
             $data[$bool] = $request->boolean($bool, $bool === 'is_active');
         }
 
+        // Defensive: strip slug — Model boot guard already blocks it, but belt-and-suspenders
+        unset($data['slug']);
+
         DB::transaction(function () use ($data, $request, $product) {
             $product->update($data);
 
-            // Delete removed images
             if (!empty($data['deleted_image_ids'])) {
                 $toDelete = ProductImage::whereIn('id', $data['deleted_image_ids'])
                     ->where('product_id', $product->id)
@@ -243,7 +245,6 @@ class ProductController extends Controller
                 }
             }
 
-            // Set primary image from existing images
             if (!empty($data['primary_image_id'])) {
                 ProductImage::where('product_id', $product->id)
                     ->update(['is_primary' => false]);
@@ -253,12 +254,10 @@ class ProductController extends Controller
                     ->update(['is_primary' => true]);
             }
 
-            // Upload new images
             if ($request->hasFile('images')) {
                 $existingCount = $product->images()->count();
                 $primaryIndex  = (int) ($data['primary_image_index'] ?? -1);
-
-                $hasPrimary = $product->images()->where('is_primary', true)->exists();
+                $hasPrimary    = $product->images()->where('is_primary', true)->exists();
 
                 foreach ($request->file('images') as $index => $file) {
                     $path = $file->store('products', 'public');
@@ -280,12 +279,10 @@ class ProductController extends Controller
                 }
             }
 
-            // Handle variants — upsert by id, delete removed
             if ($data['has_variants'] && !empty($data['variants'])) {
                 $variants    = json_decode($data['variants'], true) ?? [];
                 $incomingIds = collect($variants)->pluck('id')->filter()->values()->toArray();
 
-                // Delete variants not in incoming list
                 $product->variants()->whereNotIn('id', $incomingIds)->delete();
 
                 foreach ($variants as $v) {
@@ -308,7 +305,6 @@ class ProductController extends Controller
                     }
                 }
             } else {
-                // has_variants off — delete all variants
                 $product->variants()->delete();
             }
 
@@ -331,7 +327,6 @@ class ProductController extends Controller
         $this->authorize('delete', $product);
 
         DB::transaction(function () use ($product) {
-            // Delete all images from storage
             foreach ($product->images as $img) {
                 Storage::disk('public')->delete($img->image_path);
             }
@@ -343,7 +338,7 @@ class ProductController extends Controller
                 $product
             );
 
-            $product->delete(); // soft delete; images cascade
+            $product->delete();
         });
 
         return back()->with('success', 'Product deleted successfully.');
@@ -361,7 +356,6 @@ class ProductController extends Controller
         $wasPrimary = $image->is_primary;
         $image->delete();
 
-        // Promote next image to primary if deleted image was primary
         if ($wasPrimary) {
             $next = $product->images()->orderBy('sort_order')->first();
             $next?->update(['is_primary' => true]);
@@ -390,7 +384,6 @@ class ProductController extends Controller
 
     private function categoryOptions(): \Illuminate\Support\Collection
     {
-        // Returns flat list with parent name for grouping in UI
         return ProductCategory::with('parent')
             ->where('is_active', true)
             ->orderBy('name')

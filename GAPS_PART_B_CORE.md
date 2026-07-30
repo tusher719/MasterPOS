@@ -72,7 +72,17 @@ stock_movements additions: variant_id (FK product_variants nullable nullOnDelete
 
 ---
 
-### 3.4 Product Slug — Secure Non-Guessable Immutable ✅ (Must Fix — before storefront)
+### 3.4 Product Slug — Secure Non-Guessable Immutable ✅ DONE
+
+- Migration: slug (varchar unique) added to products table
+- Existing products backfilled with unique slugs
+- Product model boot: generating hook on creating, immutability guard on updating
+- slug excluded from $fillable — cannot be mass-assigned
+- ProductController: unset($data['slug']) in store() + update() as extra guard
+- slug exposed in index() map + edit() props (read-only display)
+- POS fix: handleAddToCart now uses min_sale_qty as initial quantity (not hardcoded 1)
+- CartItem: decrement/increment step = min_sale_qty, input min = min_sale_qty
+- CartItemRow interface: min_sale_qty field added
 
 ```
 products additions: slug (varchar unique)

@@ -165,6 +165,10 @@ last_purchase_price(dec10,2 nullable), average_cost(dec10,2 default 0)
 
 variant_id (FK product_variants nullable nullOnDelete)
 
+### products additions (Item 3.4 migration)
+
+slug (varchar unique — auto-generated: Str::slug(name) + 6 random chars, immutable after creation)
+
 ---
 
 ## Step 08 — Customers
