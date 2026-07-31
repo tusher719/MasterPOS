@@ -71,6 +71,23 @@ online_charge_value (decimal 10,2 default 0)
 charge_enabled (bool default false)
 charge_label (varchar nullable)
 
+### payment_method_banks
+
+id, payment_method_id (FK payment_methods restrict),
+bank_name (varchar), account_number (varchar nullable),
+account_name (varchar nullable),
+charge_type (enum: percent/fixed nullable),
+charge_value (decimal 10,2 default 0),
+charge_enabled (bool default false),
+charge_label (varchar nullable),
+is_active (bool default true),
+sort_order (int default 0),
+timestamps
+
+### payment_methods additions (Item 5.2)
+
+type enum extended: added `bank_transfer` value
+
 ---
 
 ## Step 04 — Products

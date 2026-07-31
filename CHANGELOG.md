@@ -2,6 +2,32 @@
 
 ---
 
+## [5.2] — Individual Bank under Bank Transfer
+
+**Date:** 2026-07-31
+
+### Added
+
+- `payment_method_banks` table — individual banks under a Bank Transfer payment method
+- `PaymentMethodBank` model with `calculateCharge()` helper
+- `PaymentMethodBankController` — store / update / destroy (permission: `payment_method.edit`)
+- `banks()` HasMany relation on `PaymentMethod` model
+- `isBankTransfer()` helper on `PaymentMethod` model
+- `bank_transfer` added to `payment_methods.type` enum (migration)
+- Nested routes: `backend.payment-methods.banks.store/update/destroy`
+- Banks sub-panel in `PaymentMethods.tsx` — expandable per Bank Transfer row (ChevronRight toggle)
+- Bank modal (z-60) — bank name, account number, account name, charge config, active toggle
+- Bank Transfer type in method modal shows info note instead of charge config
+- Charge column in table shows bank count badge for Bank Transfer methods
+
+### Logic
+
+- bKash / Nagad / Rocket → `mobile_banking` type, method-level charge applies directly
+- Bank Transfer → individual bank selected at checkout, that bank's charge applies
+- Method-level charge config hidden for `bank_transfer` type
+
+---
+
 ## [v2.23] — 2026-07-31
 
 ### Added

@@ -149,7 +149,7 @@ Total:             ৳X
 
 ---
 
-### 5.2 Individual Bank under Bank Transfer ✅ (Must Fix)
+### 5.2 Individual Bank under Bank Transfer ✅ DONE
 
 ```
 payment_method_banks: id,

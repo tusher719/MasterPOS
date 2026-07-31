@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Backend/PaymentMethodController.php
 
 namespace App\Http\Controllers\Backend;
 
@@ -19,6 +18,7 @@ class PaymentMethodController extends Controller
         abort_unless(Gate::allows('payment_method.view'), 403);
 
         $paymentMethods = PaymentMethod::withTrashed()
+            ->with(['banks' => fn ($q) => $q->orderBy('sort_order')->orderBy('bank_name')])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -38,14 +38,14 @@ class PaymentMethodController extends Controller
         abort_unless(Gate::allows('payment_method.create'), 403);
 
         $data = $request->validate([
-            'name'                 => 'required|string|max:100',
-            'type'                 => 'required|in:cash,card,mobile_banking,other',
-            'is_active'            => 'boolean',
-            'sort_order'           => 'integer|min:0',
-            'charge_enabled'       => 'boolean',
-            'online_charge_type'   => 'nullable|in:percent,fixed',
-            'online_charge_value'  => 'nullable|numeric|min:0|max:99999.99',
-            'charge_label'         => 'nullable|string|max:100',
+            'name'                => 'required|string|max:100',
+            'type'                => 'required|in:cash,card,mobile_banking,bank_transfer,other',
+            'is_active'           => 'boolean',
+            'sort_order'          => 'integer|min:0',
+            'charge_enabled'      => 'boolean',
+            'online_charge_type'  => 'nullable|in:percent,fixed',
+            'online_charge_value' => 'nullable|numeric|min:0|max:99999.99',
+            'charge_label'        => 'nullable|string|max:100',
         ]);
 
         // charge_type required when charge is enabled
@@ -73,14 +73,14 @@ class PaymentMethodController extends Controller
         abort_unless(Gate::allows('payment_method.edit'), 403);
 
         $data = $request->validate([
-            'name'                 => 'required|string|max:100',
-            'type'                 => 'required|in:cash,card,mobile_banking,other',
-            'is_active'            => 'boolean',
-            'sort_order'           => 'integer|min:0',
-            'charge_enabled'       => 'boolean',
-            'online_charge_type'   => 'nullable|in:percent,fixed',
-            'online_charge_value'  => 'nullable|numeric|min:0|max:99999.99',
-            'charge_label'         => 'nullable|string|max:100',
+            'name'                => 'required|string|max:100',
+            'type'                => 'required|in:cash,card,mobile_banking,bank_transfer,other',
+            'is_active'           => 'boolean',
+            'sort_order'          => 'integer|min:0',
+            'charge_enabled'      => 'boolean',
+            'online_charge_type'  => 'nullable|in:percent,fixed',
+            'online_charge_value' => 'nullable|numeric|min:0|max:99999.99',
+            'charge_label'        => 'nullable|string|max:100',
         ]);
 
         if (! empty($data['charge_enabled']) && empty($data['online_charge_type'])) {

@@ -106,14 +106,9 @@
 | 3.4         | Secure Product Slug + POS min_sale_qty fix          | ✅     |
 | 3.5         | Inventory Sync + Stock Reservation                  | ✅     |
 | 5.1         | Payment Method Charge Config                        | ✅     |
+| 5.2         | Individual Bank under Bank Transfer                 | ✅     |
 
 ## Pending Work — Sprint Order
-
-### Sprint 1 — Foundation & Safety (Current)
-
-| #   | Item                                | Priority | Migration? |
-| --- | ----------------------------------- | -------- | ---------- |
-| 5.2 | Individual Bank under Bank Transfer | Must Fix | Yes        |
 
 ### Sprint 2 — Sales/Delivery/Payment Core
 

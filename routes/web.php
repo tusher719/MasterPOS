@@ -27,6 +27,7 @@ use App\Http\Controllers\Backend\PartnerEligibilityController;
 use App\Http\Controllers\Backend\PartnerProductAssignmentController;
 use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\PartnerSettlementConfigController;
+use App\Http\Controllers\Backend\PaymentMethodBankController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitCalculationController;
@@ -88,10 +89,22 @@ Route::middleware(['auth', 'verified'])
 
         // Payment Methods
         Route::prefix('payment-methods')->name('payment-methods.')->group(function () {
-            Route::get('/', [PaymentMethodController::class, 'index'])->name('index');
-            Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
-            Route::put('/{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+            // ── Payment Method CRUD ──────────────────────────────────────────────
+            Route::get('/',               [PaymentMethodController::class, 'index'])->name('index');
+            Route::post('/',              [PaymentMethodController::class, 'store'])->name('store');
+            Route::put('/{paymentMethod}',    [PaymentMethodController::class, 'update'])->name('update');
             Route::delete('/{paymentMethod}', [PaymentMethodController::class, 'destroy'])->name('destroy');
+
+            // ── Individual Banks (nested under a payment method) ─────────────────
+            // Declared inside the payment-methods group so route names are:
+            //   backend.payment-methods.banks.store
+            //   backend.payment-methods.banks.update
+            //   backend.payment-methods.banks.destroy
+            Route::prefix('{paymentMethod}/banks')->name('banks.')->group(function () {
+                Route::post('/',        [PaymentMethodBankController::class, 'store'])->name('store');
+                Route::put('/{bank}',   [PaymentMethodBankController::class, 'update'])->name('update');
+                Route::delete('/{bank}',[PaymentMethodBankController::class, 'destroy'])->name('destroy');
+            });
         });
 
         // Expense Categories
