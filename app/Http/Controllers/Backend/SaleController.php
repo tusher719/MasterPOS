@@ -100,9 +100,20 @@ class SaleController extends Controller
                 return $itemSubtotal - $itemDiscount;
             });
 
-            $discount   = (float) ($data['discount'] ?? 0);
-            $tax        = (float) ($data['tax'] ?? 0);
-            $grandTotal = $subtotal - $discount + $tax;
+            $discount = (float) ($data['discount'] ?? 0);
+            $tax      = (float) ($data['tax'] ?? 0);
+
+            // ── Delivery charge ───────────────────────────────────
+            // Free flag or store_pickup → 0, otherwise use submitted value
+            $deliveryChargeFree = (bool) ($data['delivery_charge_free'] ?? false);
+            $deliveryType       = $data['delivery_type'] ?? null;
+            $deliveryCharge     = 0.0;
+
+            if (! $deliveryChargeFree && $deliveryType !== 'store_pickup') {
+                $deliveryCharge = (float) ($data['delivery_charge'] ?? 0);
+            }
+
+            $grandTotal = $subtotal - $discount + $tax + $deliveryCharge;
             $paidAmount = (float) $data['paid_amount'];
             $dueAmount  = max(0, $grandTotal - $paidAmount);
 
@@ -112,23 +123,38 @@ class SaleController extends Controller
                 default                    => 'partial',
             };
 
+            // ── Default delivery_status when delivery is required ─
+            // store_pickup has no delivery_status (stays null)
+            $deliveryStatus = null;
+            if ($deliveryType && $deliveryType !== 'store_pickup') {
+                $deliveryStatus = $data['delivery_status'] ?? 'pending';
+            }
+
             // ── Create sale ───────────────────────────────────────
             $sale = Sale::create([
-                'reference_no'      => Sale::generateReference(),
-                'customer_id'       => $data['customer_id'] ?? null,
-                'sale_date'         => $data['sale_date'],
-                'subtotal'          => $subtotal,
-                'discount'          => $discount,
-                'tax'               => $tax,
-                'grand_total'       => $grandTotal,
-                'paid_amount'       => $paidAmount,
-                'due_amount'        => $dueAmount,
-                'payment_status'    => $paymentStatus,
-                'payment_method_id' => $data['payment_method_id'] ?? null,
-                'order_status'      => 'processing',          // always starts as processing
-                'payment_type'      => $data['payment_type'] ?? null,
-                'note'              => $data['note'] ?? null,
-                'created_by'        => Auth::id(),
+                'reference_no'           => Sale::generateReference(),
+                'customer_id'            => $data['customer_id'] ?? null,
+                'sale_date'              => $data['sale_date'],
+                'subtotal'               => $subtotal,
+                'discount'               => $discount,
+                'tax'                    => $tax,
+                'grand_total'            => $grandTotal,
+                'paid_amount'            => $paidAmount,
+                'due_amount'             => $dueAmount,
+                'payment_status'         => $paymentStatus,
+                'payment_method_id'      => $data['payment_method_id'] ?? null,
+                'order_status'           => 'processing',
+                'payment_type'           => $data['payment_type'] ?? null,
+                // ── Delivery ──────────────────────────────────────
+                'delivery_type'          => $deliveryType,
+                'delivery_charge'        => $deliveryCharge,
+                'delivery_charge_free'   => $deliveryChargeFree,
+                'delivery_address'       => $data['delivery_address'] ?? null,
+                'delivery_contact_phone' => $data['delivery_contact_phone'] ?? null,
+                'delivery_status'        => $deliveryStatus,
+                // ─────────────────────────────────────────────────
+                'note'                   => $data['note'] ?? null,
+                'created_by'             => Auth::id(),
             ]);
 
             // ── Create sale items ─────────────────────────────────
@@ -139,6 +165,7 @@ class SaleController extends Controller
                 SaleItem::create([
                     'sale_id'    => $sale->id,
                     'product_id' => $item['product_id'],
+                    'variant_id' => $item['variant_id'] ?? null,
                     'quantity'   => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'discount'   => $item['discount'] ?? 0,
@@ -159,10 +186,13 @@ class SaleController extends Controller
                 'Sale created: ' . $sale->reference_no,
                 $sale,
                 [
-                    'grand_total'    => $sale->grand_total,
-                    'payment_status' => $sale->payment_status,
-                    'order_status'   => $sale->order_status,
-                    'payment_type'   => $sale->payment_type,
+                    'grand_total'     => $sale->grand_total,
+                    'payment_status'  => $sale->payment_status,
+                    'order_status'    => $sale->order_status,
+                    'payment_type'    => $sale->payment_type,
+                    'delivery_type'   => $sale->delivery_type,
+                    'delivery_charge' => $sale->delivery_charge,
+                    'delivery_status' => $sale->delivery_status,
                 ]
             );
 
@@ -204,6 +234,8 @@ class SaleController extends Controller
             'status',
             'order_status',
             'payment_type',
+            'delivery_type',
+            'delivery_status',
             'trashed',
             'date_from',
             'date_to',
@@ -234,6 +266,16 @@ class SaleController extends Controller
         // Payment type filter
         if (!empty($filters['payment_type'])) {
             $query->where('payment_type', $filters['payment_type']);
+        }
+
+        // Delivery type filter
+        if (!empty($filters['delivery_type'])) {
+            $query->where('delivery_type', $filters['delivery_type']);
+        }
+
+        // Delivery status filter
+        if (!empty($filters['delivery_status'])) {
+            $query->where('delivery_status', $filters['delivery_status']);
         }
 
         // Date range filter

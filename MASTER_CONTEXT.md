@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Sprint 1 — Foundation & Safety (In Progress)
-- **Last Completed:** Item 1.1 — Settings Dynamic Fix ✅
+- **Current Step:** Sprint 2 — Sales/Delivery/Payment Core (In Progress)
+- **Last Completed:** Item 4.2 — Delivery Details ✅
 
 ## Financial Domain Overview
 
@@ -108,6 +108,7 @@
 | 5.1         | Payment Method Charge Config                        | ✅     |
 | 5.2         | Individual Bank under Bank Transfer                 | ✅     |
 | 4.1         | Order Status Workflow                               | ✅     |
+| 4.2         | Delivery Details                                    | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -115,7 +116,6 @@
 
 | #   | Item                              | Priority   |
 | --- | --------------------------------- | ---------- |
-| 4.2 | Delivery Details                  | Must Fix   |
 | 4.3 | Multi-Payment (sale_payments)     | Must Fix   |
 | 4.4 | POS Payment Type Selection        | Must Fix   |
 | 4.5 | COD Delivery + Payment Collection | Must Fix   |

@@ -248,6 +248,24 @@ timestamps
 order_status (enum: processing/confirmed/out_for_delivery/delivered/cancelled/returned default: processing)
 payment_type (enum: full_paid/half_paid/cash_on_delivery nullable)
 
+### sales additions (Item 4.2 migration)
+
+delivery_type (enum: store_pickup/inside_dhaka/outside_dhaka/parallel nullable)
+delivery_charge (decimal 10,2 nullable default 0)
+delivery_charge_free (bool default false)
+delivery_address (text nullable)
+delivery_contact_phone (varchar nullable)
+delivery_status (enum: pending/dispatched/delivered/failed nullable)
+
+---
+
+### Enum Reference additions (Item 4.2)
+
+| Table | Column          | Values                                              |
+| ----- | --------------- | --------------------------------------------------- |
+| sales | delivery_type   | store_pickup, inside_dhaka, outside_dhaka, parallel |
+| sales | delivery_status | pending, dispatched, delivered, failed              |
+
 ---
 
 ## Step 11 — Hold Orders (NO soft delete)

@@ -25,18 +25,28 @@ class Sale extends Model
         'payment_method_id',
         'order_status',
         'payment_type',
+        // ── Item 4.2 — Delivery ───────────────────────────────────
+        'delivery_type',
+        'delivery_charge',
+        'delivery_charge_free',
+        'delivery_address',
+        'delivery_contact_phone',
+        'delivery_status',
+        // ─────────────────────────────────────────────────────────
         'note',
         'created_by',
     ];
 
     protected $casts = [
-        'sale_date'   => 'date',
-        'subtotal'    => 'decimal:2',
-        'discount'    => 'decimal:2',
-        'tax'         => 'decimal:2',
-        'grand_total' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
-        'due_amount'  => 'decimal:2',
+        'sale_date'            => 'date',
+        'subtotal'             => 'decimal:2',
+        'discount'             => 'decimal:2',
+        'tax'                  => 'decimal:2',
+        'grand_total'          => 'decimal:2',
+        'paid_amount'          => 'decimal:2',
+        'due_amount'           => 'decimal:2',
+        'delivery_charge'      => 'decimal:2',
+        'delivery_charge_free' => 'boolean',
     ];
 
     // ─── Relationships ────────────────────────────────────────────
@@ -99,6 +109,26 @@ class Sale extends Model
         return $this->order_status === 'returned';
     }
 
+    // ─── Delivery Helpers ─────────────────────────────────────────
+
+    public function requiresDelivery(): bool
+    {
+        return in_array($this->delivery_type, [
+            'inside_dhaka',
+            'outside_dhaka',
+            'parallel',
+        ]);
+    }
+
+    public function effectiveDeliveryCharge(): float
+    {
+        if ($this->delivery_charge_free || $this->delivery_type === 'store_pickup') {
+            return 0.0;
+        }
+
+        return (float) ($this->delivery_charge ?? 0);
+    }
+
     // ─── Scopes ───────────────────────────────────────────────────
 
     public function scopeActive($query)
@@ -109,5 +139,15 @@ class Sale extends Model
     public function scopeByOrderStatus($query, string $status)
     {
         return $query->where('order_status', $status);
+    }
+
+    public function scopeByDeliveryStatus($query, string $status)
+    {
+        return $query->where('delivery_status', $status);
+    }
+
+    public function scopeByDeliveryType($query, string $type)
+    {
+        return $query->where('delivery_type', $type);
     }
 }

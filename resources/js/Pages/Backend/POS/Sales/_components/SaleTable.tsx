@@ -5,6 +5,8 @@ import { Eye, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
     type Sale,
+    DELIVERY_STATUS_OPTIONS,
+    DELIVERY_TYPE_OPTIONS,
     ORDER_STATUS_OPTIONS,
     PAYMENT_TYPE_OPTIONS,
 } from "../Index";
@@ -39,6 +41,32 @@ function OrderStatusBadge({ status }: { status: Sale["order_status"] }) {
 function PaymentTypeBadge({ type }: { type: Sale["payment_type"] }) {
     if (!type) return <span className="text-gray-400">—</span>;
     const opt = PAYMENT_TYPE_OPTIONS.find((o) => o.value === type);
+    if (!opt) return null;
+    return (
+        <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.classes}`}
+        >
+            {opt.label}
+        </span>
+    );
+}
+
+function DeliveryTypeBadge({ type }: { type: Sale["delivery_type"] }) {
+    if (!type) return <span className="text-gray-400">—</span>;
+    const opt = DELIVERY_TYPE_OPTIONS.find((o) => o.value === type);
+    if (!opt) return null;
+    return (
+        <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.classes}`}
+        >
+            {opt.label}
+        </span>
+    );
+}
+
+function DeliveryStatusBadge({ status }: { status: Sale["delivery_status"] }) {
+    if (!status) return <span className="text-gray-400">—</span>;
+    const opt = DELIVERY_STATUS_OPTIONS.find((o) => o.value === status);
     if (!opt) return null;
     return (
         <span
@@ -91,9 +119,9 @@ export default function SaleTable({ sales, can }: Props) {
     }
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
             <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="border-b border-gray-100 bg-gray-50">
                     <tr>
                         <th className="px-4 py-3 text-left font-medium text-gray-500">
                             Reference
@@ -124,6 +152,12 @@ export default function SaleTable({ sales, can }: Props) {
                         </th>
                         <th className="px-4 py-3 text-left font-medium text-gray-500">
                             Type
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500">
+                            Delivery
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500">
+                            D.Status
                         </th>
                         <th className="px-4 py-3 text-center font-medium text-gray-500">
                             Actions
@@ -210,6 +244,20 @@ export default function SaleTable({ sales, can }: Props) {
                                 <td className="px-4 py-3">
                                     <PaymentTypeBadge
                                         type={sale.payment_type}
+                                    />
+                                </td>
+
+                                {/* Delivery Type */}
+                                <td className="px-4 py-3">
+                                    <DeliveryTypeBadge
+                                        type={sale.delivery_type}
+                                    />
+                                </td>
+
+                                {/* Delivery Status */}
+                                <td className="px-4 py-3">
+                                    <DeliveryStatusBadge
+                                        status={sale.delivery_status}
                                     />
                                 </td>
 

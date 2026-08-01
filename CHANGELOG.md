@@ -2,6 +2,59 @@
 
 ---
 
+## [v2.25 — Item 4.2] — Delivery Details — 2026-08-01
+
+### New Migration (1)
+
+- `add_delivery_columns_to_sales_table`:
+  delivery_type enum(store_pickup/inside_dhaka/outside_dhaka/parallel nullable),
+  delivery_charge decimal(10,2) nullable default 0,
+  delivery_charge_free bool default false,
+  delivery_address text nullable,
+  delivery_contact_phone varchar nullable,
+  delivery_status enum(pending/dispatched/delivered/failed nullable)
+
+### Updated Files (4)
+
+- `Sale.php`: delivery fields added to $fillable; delivery_charge cast decimal:2,
+  delivery_charge_free cast boolean; requiresDelivery() helper — true for non-store_pickup types;
+  effectiveDeliveryCharge() — returns 0 when free flag set or store_pickup, otherwise delivery_charge;
+  scopeByDeliveryStatus() + scopeByDeliveryType() scopes added
+
+- `StoreSaleRequest.php`: delivery_type/charge/charge_free/address/contact_phone/status validation added;
+  delivery_address required_if inside_dhaka/outside_dhaka/parallel; payment_type validation added
+  (was missing from Item 4.1); items.\*.variant_id nullable added (Item 3.3 missing fix)
+
+- `SaleController.php`: store() — delivery_charge computed (free flag + store_pickup both force 0),
+  grand_total now includes delivery_charge, delivery_status defaults to 'pending' for non-store_pickup,
+  null for store_pickup; variant_id persisted in SaleItem (Item 3.3 missing fix);
+  activity log includes delivery fields; salesList() — delivery_type + delivery_status filters added
+
+- `Index.tsx` (Sales/Index): DeliveryType + DeliveryStatus types exported; Sale interface updated
+  with 6 delivery fields; Filters interface updated; DELIVERY_TYPE_OPTIONS +
+  DELIVERY_STATUS_OPTIONS exported; hasFilters includes delivery filters;
+  Row 3 added to filter panel — Delivery Type + Delivery Status button groups
+
+- `SaleTable.tsx`: DELIVERY_TYPE_OPTIONS + DELIVERY_STATUS_OPTIONS imported from Index;
+  DeliveryTypeBadge + DeliveryStatusBadge components added; two new columns in table header + rows;
+  overflow-x-auto added to wrapper for wide-table horizontal scroll
+
+### Business Rules Established
+
+- delivery_charge included in grand_total — not a separate transaction
+- delivery_charge_free flag overrides delivery_charge to 0 at store() time
+- store_pickup → delivery_charge forced 0, delivery_status stays null
+- non-store_pickup → delivery_status defaults to 'pending' if not explicitly passed
+- delivery_address mandatory for inside_dhaka / outside_dhaka / parallel (validated server-side)
+- effectiveDeliveryCharge() is the authoritative method — never read delivery_charge directly
+
+### Also Fixed (from prior items)
+
+- payment_type validation missing from StoreSaleRequest (Item 4.1 oversight) — now added
+- variant_id not persisted in SaleItem on store() (Item 3.3 oversight) — now added
+
+---
+
 ## [v2.24 — Item 4.1] — Order Status Workflow — 2026-08-01
 
 ### Added

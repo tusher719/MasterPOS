@@ -550,3 +550,18 @@ For product-based partner profit:
 - Withdrawal blocked if amount > available_to_withdraw at both frontend and backend.
 - Error shown to admin: "You can currently withdraw up to ৳X BDT — ৳Y BDT is
   still locked (Z% of principal has been recovered through sales)."
+
+## 21. Delivery Rules (Item 4.2)
+
+- Delivery type determines whether physical delivery is required:
+  store_pickup = no delivery needed; inside_dhaka / outside_dhaka / parallel = delivery required
+- delivery_charge is added to grand_total as a separate line item on top of subtotal − discount + tax
+- delivery_charge_free flag forces delivery_charge to 0 regardless of the entered amount
+- store_pickup always has delivery_charge = 0 and delivery_status = null (no tracking needed)
+- delivery_status defaults to 'pending' when delivery_type requires delivery (non-store_pickup)
+- delivery_address is mandatory when delivery_type is inside_dhaka, outside_dhaka, or parallel
+- delivery_address is optional for store_pickup
+- delivery_contact_phone is always optional — falls back to customer phone
+- Delivery charge is never negative — validated at both frontend and backend
+- effectiveDeliveryCharge() on Sale model is the authoritative method for computing the actual charge —
+  always use this instead of reading delivery_charge directly

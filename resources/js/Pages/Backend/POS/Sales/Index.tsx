@@ -17,6 +17,14 @@ export type OrderStatus =
 
 export type PaymentType = "full_paid" | "half_paid" | "cash_on_delivery";
 
+export type DeliveryType =
+    | "store_pickup"
+    | "inside_dhaka"
+    | "outside_dhaka"
+    | "parallel";
+
+export type DeliveryStatus = "pending" | "dispatched" | "delivered" | "failed";
+
 export interface Sale {
     id: number;
     reference_no: string;
@@ -30,6 +38,14 @@ export interface Sale {
     payment_status: "paid" | "partial" | "due";
     order_status: OrderStatus;
     payment_type: PaymentType | null;
+    // ── Item 4.2 — Delivery ───────────────────────────────────────
+    delivery_type: DeliveryType | null;
+    delivery_charge: number | null;
+    delivery_charge_free: boolean;
+    delivery_address: string | null;
+    delivery_contact_phone: string | null;
+    delivery_status: DeliveryStatus | null;
+    // ─────────────────────────────────────────────────────────────
     deleted_at: string | null;
     created_at: string;
 }
@@ -55,6 +71,8 @@ interface Filters {
     status?: string;
     order_status?: string;
     payment_type?: string;
+    delivery_type?: string;
+    delivery_status?: string;
     trashed?: string;
     date_from?: string;
     date_to?: string;
@@ -131,6 +149,60 @@ export const PAYMENT_TYPE_OPTIONS: {
     },
 ];
 
+export const DELIVERY_TYPE_OPTIONS: {
+    value: DeliveryType;
+    label: string;
+    classes: string;
+}[] = [
+    {
+        value: "store_pickup",
+        label: "Store Pickup",
+        classes: "bg-gray-100 text-gray-600",
+    },
+    {
+        value: "inside_dhaka",
+        label: "Inside Dhaka",
+        classes: "bg-blue-100 text-blue-700",
+    },
+    {
+        value: "outside_dhaka",
+        label: "Outside Dhaka",
+        classes: "bg-purple-100 text-purple-700",
+    },
+    {
+        value: "parallel",
+        label: "Parallel",
+        classes: "bg-orange-100 text-orange-700",
+    },
+];
+
+export const DELIVERY_STATUS_OPTIONS: {
+    value: DeliveryStatus;
+    label: string;
+    classes: string;
+}[] = [
+    {
+        value: "pending",
+        label: "Pending",
+        classes: "bg-amber-100 text-amber-700",
+    },
+    {
+        value: "dispatched",
+        label: "Dispatched",
+        classes: "bg-blue-100 text-blue-700",
+    },
+    {
+        value: "delivered",
+        label: "Delivered",
+        classes: "bg-green-100 text-green-700",
+    },
+    {
+        value: "failed",
+        label: "Failed",
+        classes: "bg-red-100 text-red-600",
+    },
+];
+
 const VIEW_STORAGE_KEY = "masterpos_sales_view";
 
 export default function SalesIndex({ sales, stats, filters, can }: Props) {
@@ -171,6 +243,8 @@ export default function SalesIndex({ sales, stats, filters, can }: Props) {
         filters.status ||
         filters.order_status ||
         filters.payment_type ||
+        filters.delivery_type ||
+        filters.delivery_status ||
         filters.trashed ||
         filters.date_from ||
         filters.date_to;
@@ -398,6 +472,95 @@ export default function SalesIndex({ sales, stats, filters, can }: Props) {
                                     className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
                                         ${
                                             filters.payment_type === opt.value
+                                                ? opt.classes +
+                                                  " ring-1 ring-inset ring-current"
+                                                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Row 3 — Delivery Type + Delivery Status button groups */}
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                        {/* Delivery Type segment */}
+                        <div className="flex items-center gap-1">
+                            <span className="mr-1 text-xs font-medium text-gray-500">
+                                Delivery:
+                            </span>
+                            <button
+                                onClick={() =>
+                                    handleFilter("delivery_type", "")
+                                }
+                                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                    ${
+                                        !filters.delivery_type
+                                            ? "bg-gray-700 text-white"
+                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                All
+                            </button>
+                            {DELIVERY_TYPE_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() =>
+                                        handleFilter(
+                                            "delivery_type",
+                                            filters.delivery_type === opt.value
+                                                ? ""
+                                                : opt.value,
+                                        )
+                                    }
+                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                        ${
+                                            filters.delivery_type === opt.value
+                                                ? opt.classes +
+                                                  " ring-1 ring-inset ring-current"
+                                                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Delivery Status segment */}
+                        <div className="flex items-center gap-1">
+                            <span className="mr-1 text-xs font-medium text-gray-500">
+                                D.Status:
+                            </span>
+                            <button
+                                onClick={() =>
+                                    handleFilter("delivery_status", "")
+                                }
+                                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                    ${
+                                        !filters.delivery_status
+                                            ? "bg-gray-700 text-white"
+                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                All
+                            </button>
+                            {DELIVERY_STATUS_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() =>
+                                        handleFilter(
+                                            "delivery_status",
+                                            filters.delivery_status ===
+                                                opt.value
+                                                ? ""
+                                                : opt.value,
+                                        )
+                                    }
+                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                        ${
+                                            filters.delivery_status ===
+                                            opt.value
                                                 ? opt.classes +
                                                   " ring-1 ring-inset ring-current"
                                                 : "border border-gray-300 text-gray-600 hover:bg-gray-50"
