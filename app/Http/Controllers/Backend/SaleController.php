@@ -107,9 +107,9 @@ class SaleController extends Controller
             $dueAmount  = max(0, $grandTotal - $paidAmount);
 
             $paymentStatus = match (true) {
-                $paidAmount <= 0              => 'due',
-                $paidAmount >= $grandTotal    => 'paid',
-                default                       => 'partial',
+                $paidAmount <= 0           => 'due',
+                $paidAmount >= $grandTotal => 'paid',
+                default                    => 'partial',
             };
 
             // ── Create sale ───────────────────────────────────────
@@ -125,6 +125,8 @@ class SaleController extends Controller
                 'due_amount'        => $dueAmount,
                 'payment_status'    => $paymentStatus,
                 'payment_method_id' => $data['payment_method_id'] ?? null,
+                'order_status'      => 'processing',          // always starts as processing
+                'payment_type'      => $data['payment_type'] ?? null,
                 'note'              => $data['note'] ?? null,
                 'created_by'        => Auth::id(),
             ]);
@@ -156,14 +158,19 @@ class SaleController extends Controller
                 'create',
                 'Sale created: ' . $sale->reference_no,
                 $sale,
-                ['grand_total' => $sale->grand_total, 'payment_status' => $sale->payment_status]
+                [
+                    'grand_total'    => $sale->grand_total,
+                    'payment_status' => $sale->payment_status,
+                    'order_status'   => $sale->order_status,
+                    'payment_type'   => $sale->payment_type,
+                ]
             );
 
             // ── Fire NewSaleNotification ──────────────────────────
             $admins = \App\Models\User::role('Admin')->get();
             if ($admins->isNotEmpty()) {
                 $customerName = $sale->customer?->name ?? 'Walk-in Customer';
-                $itemCount = $sale->items->count();
+                $itemCount    = $sale->items->count();
 
                 Notification::send($admins, new NewSaleNotification(
                     $sale->id,
@@ -192,7 +199,15 @@ class SaleController extends Controller
     {
         $this->authorize('viewAny', Sale::class);
 
-        $filters = request()->only(['search', 'status', 'trashed', 'date_from', 'date_to']);
+        $filters = request()->only([
+            'search',
+            'status',
+            'order_status',
+            'payment_type',
+            'trashed',
+            'date_from',
+            'date_to',
+        ]);
 
         $query = Sale::with(['customer', 'paymentMethod', 'creator'])
             ->withCount('items');
@@ -209,6 +224,16 @@ class SaleController extends Controller
         // Payment status filter
         if (!empty($filters['status'])) {
             $query->where('payment_status', $filters['status']);
+        }
+
+        // Order status filter
+        if (!empty($filters['order_status'])) {
+            $query->where('order_status', $filters['order_status']);
+        }
+
+        // Payment type filter
+        if (!empty($filters['payment_type'])) {
+            $query->where('payment_type', $filters['payment_type']);
         }
 
         // Date range filter
@@ -228,10 +253,10 @@ class SaleController extends Controller
 
         // Stats
         $stats = [
-            'total'        => Sale::count(),
-            'today'        => Sale::whereDate('sale_date', today())->count(),
-            'total_revenue'=> (float) Sale::sum('grand_total'),
-            'due_amount'   => (float) Sale::where('payment_status', '!=', 'paid')->sum('due_amount'),
+            'total'         => Sale::count(),
+            'today'         => Sale::whereDate('sale_date', today())->count(),
+            'total_revenue' => (float) Sale::sum('grand_total'),
+            'due_amount'    => (float) Sale::where('payment_status', '!=', 'paid')->sum('due_amount'),
         ];
 
         return Inertia::render('Backend/POS/Sales/Index', [

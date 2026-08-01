@@ -2,6 +2,26 @@
 
 ---
 
+## [v2.24 — Item 4.1] — Order Status Workflow — 2026-08-01
+
+### Added
+
+- Migration: `order_status` enum (processing/confirmed/out_for_delivery/delivered/cancelled/returned, default: processing) + `payment_type` enum (full_paid/half_paid/cash_on_delivery, nullable) added to `sales` table
+- `Sale.php`: `order_status` + `payment_type` added to `$fillable`; `isDelivered()`, `isCancelled()`, `isReturned()` helper methods; `scopeByOrderStatus()` scope added
+- `SaleController.php`: `store()` sets `order_status: 'processing'` by default; `salesList()` filters by `order_status` + `payment_type`
+- `SalesIndex.tsx`: `Sale` interface + `ORDER_STATUS_OPTIONS` + `PAYMENT_TYPE_OPTIONS` exported; second filter row with button-group segmented filters for order status and payment type
+- `SaleTable.tsx`: `OrderStatusBadge` + `PaymentTypeBadge` components; two new columns in table
+- `SaleGrid.tsx`: `OrderStatusBadge` + `PaymentTypeBadge` badges in card status row
+
+### Rules Established
+
+- `order_status` always starts as `processing` on every new sale — never set by request input
+- `payment_type` is nullable — POS sales created before 4.4 will have null value
+- `ORDER_STATUS_OPTIONS` + `PAYMENT_TYPE_OPTIONS` defined once in `Index.tsx`, imported by child components — never duplicated
+- Show.tsx order status display deferred to Item 4.8 (Sale Status History) — timeline UI করা হবে সেখানে
+
+---
+
 ## [5.2] — Individual Bank under Bank Transfer
 
 **Date:** 2026-07-31

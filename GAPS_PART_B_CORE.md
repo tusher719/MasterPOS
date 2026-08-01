@@ -177,7 +177,7 @@ payment_method_banks: id,
 
 ## SPRINT 2 — Sales / Delivery / Payment Core
 
-### 4.1 Order Status Workflow (Must Fix)
+### 4.1 Order Status Workflow ✅ DONE
 
 ```
 sales additions:

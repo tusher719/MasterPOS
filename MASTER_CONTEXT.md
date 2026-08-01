@@ -107,6 +107,7 @@
 | 3.5         | Inventory Sync + Stock Reservation                  | ✅     |
 | 5.1         | Payment Method Charge Config                        | ✅     |
 | 5.2         | Individual Bank under Bank Transfer                 | ✅     |
+| 4.1         | Order Status Workflow                               | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -114,7 +115,6 @@
 
 | #   | Item                              | Priority   |
 | --- | --------------------------------- | ---------- |
-| 4.1 | Order Status Workflow             | Must Fix   |
 | 4.2 | Delivery Details                  | Must Fix   |
 | 4.3 | Multi-Payment (sale_payments)     | Must Fix   |
 | 4.4 | POS Payment Type Selection        | Must Fix   |

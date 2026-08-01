@@ -23,18 +23,20 @@ class Sale extends Model
         'due_amount',
         'payment_status',
         'payment_method_id',
+        'order_status',
+        'payment_type',
         'note',
         'created_by',
     ];
 
     protected $casts = [
-        'sale_date'      => 'date',
-        'subtotal'       => 'decimal:2',
-        'discount'       => 'decimal:2',
-        'tax'            => 'decimal:2',
-        'grand_total'    => 'decimal:2',
-        'paid_amount'    => 'decimal:2',
-        'due_amount'     => 'decimal:2',
+        'sale_date'   => 'date',
+        'subtotal'    => 'decimal:2',
+        'discount'    => 'decimal:2',
+        'tax'         => 'decimal:2',
+        'grand_total' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'due_amount'  => 'decimal:2',
     ];
 
     // ─── Relationships ────────────────────────────────────────────
@@ -80,10 +82,32 @@ class Sale extends Model
         return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
+    // ─── Order Status Helpers ─────────────────────────────────────
+
+    public function isDelivered(): bool
+    {
+        return $this->order_status === 'delivered';
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->order_status === 'cancelled';
+    }
+
+    public function isReturned(): bool
+    {
+        return $this->order_status === 'returned';
+    }
+
     // ─── Scopes ───────────────────────────────────────────────────
 
     public function scopeActive($query)
     {
         return $query->whereNull('deleted_at');
+    }
+
+    public function scopeByOrderStatus($query, string $status)
+    {
+        return $query->where('order_status', $status);
     }
 }

@@ -1,35 +1,13 @@
-import React from "react";
-import { Link } from "@inertiajs/react";
-import { Eye, Trash2, RotateCcw } from "lucide-react";
 import { confirmAction } from "@/lib/confirm";
-import { router } from "@inertiajs/react";
-import { toast } from "sonner";
 import { formatDateTime } from "@/lib/formatDateTime";
-
-interface Customer {
-    id: number;
-    name: string;
-}
-
-interface PaymentMethod {
-    id: number;
-    name: string;
-}
-
-interface Sale {
-    id: number;
-    reference_no: string;
-    sale_date: string;
-    customer: Customer | null;
-    payment_method: PaymentMethod | null;
-    items_count: number;
-    grand_total: number;
-    paid_amount: number;
-    due_amount: number;
-    payment_status: "paid" | "partial" | "due";
-    deleted_at: string | null;
-    created_at: string;
-}
+import { Link, router } from "@inertiajs/react";
+import { Eye, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+    type Sale,
+    ORDER_STATUS_OPTIONS,
+    PAYMENT_TYPE_OPTIONS,
+} from "../Index";
 
 interface Props {
     sales: Sale[];
@@ -45,6 +23,31 @@ const paymentStatusBadge: Record<string, string> = {
     partial: "bg-amber-100 text-amber-700",
     due: "bg-red-100 text-red-600",
 };
+
+function OrderStatusBadge({ status }: { status: Sale["order_status"] }) {
+    const opt = ORDER_STATUS_OPTIONS.find((o) => o.value === status);
+    if (!opt) return null;
+    return (
+        <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.classes}`}
+        >
+            {opt.label}
+        </span>
+    );
+}
+
+function PaymentTypeBadge({ type }: { type: Sale["payment_type"] }) {
+    if (!type) return <span className="text-gray-400">—</span>;
+    const opt = PAYMENT_TYPE_OPTIONS.find((o) => o.value === type);
+    if (!opt) return null;
+    return (
+        <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.classes}`}
+        >
+            {opt.label}
+        </span>
+    );
+}
 
 export default function SaleTable({ sales, can }: Props) {
     const handleVoid = async (sale: Sale) => {
@@ -114,7 +117,13 @@ export default function SaleTable({ sales, can }: Props) {
                             Due
                         </th>
                         <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Status
+                            Payment
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500">
+                            Order Status
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-500">
+                            Type
                         </th>
                         <th className="px-4 py-3 text-center font-medium text-gray-500">
                             Actions
@@ -153,7 +162,7 @@ export default function SaleTable({ sales, can }: Props) {
                                 {/* Customer */}
                                 <td className="px-4 py-3 text-gray-700">
                                     {sale.customer?.name ?? (
-                                        <span className="text-gray-400 italic">
+                                        <span className="italic text-gray-400">
                                             Walk-in
                                         </span>
                                     )}
@@ -170,12 +179,12 @@ export default function SaleTable({ sales, can }: Props) {
                                 </td>
 
                                 {/* Paid */}
-                                <td className="px-4 py-3 text-right text-green-600 font-medium">
+                                <td className="px-4 py-3 text-right font-medium text-green-600">
                                     ৳{Number(sale.paid_amount).toFixed(2)}
                                 </td>
 
                                 {/* Due */}
-                                <td className="px-4 py-3 text-right text-red-500 font-medium">
+                                <td className="px-4 py-3 text-right font-medium text-red-500">
                                     {Number(sale.due_amount) > 0
                                         ? `৳${Number(sale.due_amount).toFixed(2)}`
                                         : "—"}
@@ -190,10 +199,23 @@ export default function SaleTable({ sales, can }: Props) {
                                     </span>
                                 </td>
 
+                                {/* Order Status */}
+                                <td className="px-4 py-3">
+                                    <OrderStatusBadge
+                                        status={sale.order_status}
+                                    />
+                                </td>
+
+                                {/* Payment Type */}
+                                <td className="px-4 py-3">
+                                    <PaymentTypeBadge
+                                        type={sale.payment_type}
+                                    />
+                                </td>
+
                                 {/* Actions */}
                                 <td className="px-4 py-3">
                                     <div className="flex items-center justify-center gap-1">
-                                        {/* View */}
                                         {can.view && !isDeleted && (
                                             <Link
                                                 href={route(
@@ -206,8 +228,6 @@ export default function SaleTable({ sales, can }: Props) {
                                                 <Eye size={15} />
                                             </Link>
                                         )}
-
-                                        {/* Void */}
                                         {can.delete && !isDeleted && (
                                             <button
                                                 onClick={() => handleVoid(sale)}
@@ -217,8 +237,6 @@ export default function SaleTable({ sales, can }: Props) {
                                                 <Trash2 size={15} />
                                             </button>
                                         )}
-
-                                        {/* Restore */}
                                         {can.restore && isDeleted && (
                                             <button
                                                 onClick={() =>

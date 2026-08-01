@@ -243,6 +243,11 @@ discount(dec10,2 default 0),
 subtotal(dec10,2),
 timestamps
 
+### sales additions (Item 4.1 migration)
+
+order_status (enum: processing/confirmed/out_for_delivery/delivered/cancelled/returned default: processing)
+payment_type (enum: full_paid/half_paid/cash_on_delivery nullable)
+
 ---
 
 ## Step 11 — Hold Orders (NO soft delete)
