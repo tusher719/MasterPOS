@@ -2,6 +2,62 @@
 
 ---
 
+## [v2.26 — Item 4.3] — Multi-Payment (sale_payments) — 2026-08-01
+
+### New Migration (1)
+
+- `create_sale_payments_table`:
+  sale_id (FK cascade), payment_method_id (FK nullable nullOnDelete),
+  payment_method_bank_id (FK nullable nullOnDelete), amount decimal(10,2),
+  payment_charge decimal(10,2 default 0), payment_date (date),
+  reference (varchar nullable), note (text nullable),
+  payment_proof_image (varchar nullable),
+  payment_status_manual enum(pending_verification/verified/rejected default: verified),
+  transaction_id (varchar nullable),
+  verified_by (FK nullable nullOnDelete), verified_at (timestamp nullable),
+  created_by (FK restrict), timestamps
+  Indexes: sale_id, payment_date, payment_status_manual
+
+### New Files (1)
+
+- `SalePayment.php`: fillable, casts, relations (sale, paymentMethod, paymentMethodBank,
+  verifiedBy, creator — all withTrashed where applicable), scopeVerified(),
+  scopePendingVerification(), isVerified(), isPendingVerification(), isRejected(),
+  totalWithCharge() helpers
+
+### Updated Files (3)
+
+- `Sale.php`: salePayments() HasMany relation added (ordered by payment_date, id);
+  recalculatePaymentStatus() method added — sums verified payments, updates
+  paid_amount/due_amount/payment_status via forceFill()->save()
+
+- `SaleController.php`:
+    - store(): SalePayment import added; initial payment entry created when paid_amount > 0
+      (payment_status_manual = 'verified', verified_by = Auth::id(), verified_at = now());
+      recalculatePaymentStatus() called after insert; payment_charge logged in activity log;
+      paymentMethods now loaded with banks() relation for POS bank_transfer support
+    - show(): salePayments.paymentMethod, salePayments.paymentMethodBank,
+      salePayments.verifiedBy eager loaded
+    - payment_charge, payment_method_bank_id, payment_reference, transaction_id
+      fields passed through from request to SalePayment::create()
+
+- `StoreSaleRequest.php`: 4 new payment fields added —
+  payment_method_bank_id (nullable, exists:payment_method_banks),
+  payment_charge (nullable, numeric, min:0),
+  payment_reference (nullable, string, max:100),
+  transaction_id (nullable, string, max:100)
+
+### Business Rules Established
+
+- sale_payments is authoritative — sales.paid_amount derived from verified payments only
+- recalculatePaymentStatus() is the single authority for payment sync — never bypass
+- POS payments verified immediately; storefront payments pending_verification (Item 10.6)
+- payment_charge stored per payment entry on sale_payments, not on sales table
+- COD sales: no payment row at creation, paid_amount = 0
+- payment_method_bank_id set only when method type = bank_transfer
+
+---
+
 ## [v2.25 — Item 4.2] — Delivery Details — 2026-08-01
 
 ### New Migration (1)

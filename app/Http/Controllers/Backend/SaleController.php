@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SalePayment;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
 use App\Services\SaleStockService;
@@ -68,9 +69,11 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'phone', 'email']);
 
-        $paymentMethods = PaymentMethod::where('is_active', true)
+        $paymentMethods = PaymentMethod::with('banks')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get();
 
         return Inertia::render('Backend/POS/Index', [
             'products'       => $products,
@@ -104,7 +107,6 @@ class SaleController extends Controller
             $tax      = (float) ($data['tax'] ?? 0);
 
             // ── Delivery charge ───────────────────────────────────
-            // Free flag or store_pickup → 0, otherwise use submitted value
             $deliveryChargeFree = (bool) ($data['delivery_charge_free'] ?? false);
             $deliveryType       = $data['delivery_type'] ?? null;
             $deliveryCharge     = 0.0;
@@ -114,17 +116,27 @@ class SaleController extends Controller
             }
 
             $grandTotal = $subtotal - $discount + $tax + $deliveryCharge;
-            $paidAmount = (float) $data['paid_amount'];
-            $dueAmount  = max(0, $grandTotal - $paidAmount);
+
+            // ── Payment charge (method or bank level) ─────────────
+            // payment_charge is calculated at POS checkout and passed in.
+            // We store it on the sale_payment record, not on the sale itself.
+            $paymentCharge = (float) ($data['payment_charge'] ?? 0);
+
+            // ── Initial paid amount from first payment entry ──────
+            // paid_amount on sales = sum of verified sale_payments (set via
+            // recalculatePaymentStatus after inserting the first payment).
+            // We bootstrap with the submitted paid_amount for grand_total /
+            // due_amount calc, then overwrite via recalculate.
+            $initialPaidAmount = (float) ($data['paid_amount'] ?? 0);
+            $dueAmount         = max(0, $grandTotal - $initialPaidAmount);
 
             $paymentStatus = match (true) {
-                $paidAmount <= 0           => 'due',
-                $paidAmount >= $grandTotal => 'paid',
-                default                    => 'partial',
+                $initialPaidAmount <= 0           => 'due',
+                $initialPaidAmount >= $grandTotal => 'paid',
+                default                           => 'partial',
             };
 
-            // ── Default delivery_status when delivery is required ─
-            // store_pickup has no delivery_status (stays null)
+            // ── Delivery status ───────────────────────────────────
             $deliveryStatus = null;
             if ($deliveryType && $deliveryType !== 'store_pickup') {
                 $deliveryStatus = $data['delivery_status'] ?? 'pending';
@@ -139,20 +151,18 @@ class SaleController extends Controller
                 'discount'               => $discount,
                 'tax'                    => $tax,
                 'grand_total'            => $grandTotal,
-                'paid_amount'            => $paidAmount,
+                'paid_amount'            => $initialPaidAmount,
                 'due_amount'             => $dueAmount,
                 'payment_status'         => $paymentStatus,
                 'payment_method_id'      => $data['payment_method_id'] ?? null,
                 'order_status'           => 'processing',
                 'payment_type'           => $data['payment_type'] ?? null,
-                // ── Delivery ──────────────────────────────────────
                 'delivery_type'          => $deliveryType,
                 'delivery_charge'        => $deliveryCharge,
                 'delivery_charge_free'   => $deliveryChargeFree,
                 'delivery_address'       => $data['delivery_address'] ?? null,
                 'delivery_contact_phone' => $data['delivery_contact_phone'] ?? null,
                 'delivery_status'        => $deliveryStatus,
-                // ─────────────────────────────────────────────────
                 'note'                   => $data['note'] ?? null,
                 'created_by'             => Auth::id(),
             ]);
@@ -173,6 +183,32 @@ class SaleController extends Controller
                 ]);
             }
 
+            // ── Create initial sale_payment entry if amount > 0 ───
+            // COD / due sales have paid_amount = 0, so no payment row yet.
+            if ($initialPaidAmount > 0) {
+                $now = Auth::id();
+
+                SalePayment::create([
+                    'sale_id'                => $sale->id,
+                    'payment_method_id'      => $data['payment_method_id'] ?? null,
+                    'payment_method_bank_id' => $data['payment_method_bank_id'] ?? null,
+                    'amount'                 => $initialPaidAmount,
+                    'payment_charge'         => $paymentCharge,
+                    'payment_date'           => $data['sale_date'],
+                    'reference'              => $data['payment_reference'] ?? null,
+                    'note'                   => null,
+                    'payment_proof_image'    => null,
+                    'payment_status_manual'  => 'verified', // POS payment is immediately verified
+                    'transaction_id'         => $data['transaction_id'] ?? null,
+                    'verified_by'            => $now,
+                    'verified_at'            => now(),
+                    'created_by'             => $now,
+                ]);
+
+                // Recalculate paid/due/status from actual payment rows
+                $sale->recalculatePaymentStatus();
+            }
+
             // ── Reload items for stock service ────────────────────
             $sale->load('items');
 
@@ -186,13 +222,15 @@ class SaleController extends Controller
                 'Sale created: ' . $sale->reference_no,
                 $sale,
                 [
-                    'grand_total'     => $sale->grand_total,
-                    'payment_status'  => $sale->payment_status,
-                    'order_status'    => $sale->order_status,
-                    'payment_type'    => $sale->payment_type,
-                    'delivery_type'   => $sale->delivery_type,
-                    'delivery_charge' => $sale->delivery_charge,
-                    'delivery_status' => $sale->delivery_status,
+                    'grand_total'      => $sale->grand_total,
+                    'paid_amount'      => $sale->paid_amount,
+                    'payment_status'   => $sale->payment_status,
+                    'order_status'     => $sale->order_status,
+                    'payment_type'     => $sale->payment_type,
+                    'payment_charge'   => $paymentCharge,
+                    'delivery_type'    => $sale->delivery_type,
+                    'delivery_charge'  => $sale->delivery_charge,
+                    'delivery_status'  => $sale->delivery_status,
                 ]
             );
 
@@ -244,7 +282,6 @@ class SaleController extends Controller
         $query = Sale::with(['customer', 'paymentMethod', 'creator'])
             ->withCount('items');
 
-        // Search
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
@@ -253,32 +290,26 @@ class SaleController extends Controller
             });
         }
 
-        // Payment status filter
         if (!empty($filters['status'])) {
             $query->where('payment_status', $filters['status']);
         }
 
-        // Order status filter
         if (!empty($filters['order_status'])) {
             $query->where('order_status', $filters['order_status']);
         }
 
-        // Payment type filter
         if (!empty($filters['payment_type'])) {
             $query->where('payment_type', $filters['payment_type']);
         }
 
-        // Delivery type filter
         if (!empty($filters['delivery_type'])) {
             $query->where('delivery_type', $filters['delivery_type']);
         }
 
-        // Delivery status filter
         if (!empty($filters['delivery_status'])) {
             $query->where('delivery_status', $filters['delivery_status']);
         }
 
-        // Date range filter
         if (!empty($filters['date_from'])) {
             $query->whereDate('sale_date', '>=', $filters['date_from']);
         }
@@ -286,14 +317,12 @@ class SaleController extends Controller
             $query->whereDate('sale_date', '<=', $filters['date_to']);
         }
 
-        // Trashed filter
         if (!empty($filters['trashed'])) {
             $query->onlyTrashed();
         }
 
         $sales = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
-        // Stats
         $stats = [
             'total'         => Sale::count(),
             'today'         => Sale::whereDate('sale_date', today())->count(),
@@ -325,6 +354,9 @@ class SaleController extends Controller
             'paymentMethod',
             'creator',
             'items.product',
+            'salePayments.paymentMethod',
+            'salePayments.paymentMethodBank',
+            'salePayments.verifiedBy',
         ]);
 
         return Inertia::render('Backend/POS/Sales/Show', [
@@ -345,10 +377,7 @@ class SaleController extends Controller
         DB::transaction(function () use ($sale) {
             $sale->load('items');
 
-            // Reverse stock
             $this->stockService->reverseStock($sale);
-
-            // Soft delete
             $sale->delete();
 
             ActivityLogService::log(
@@ -374,10 +403,7 @@ class SaleController extends Controller
 
         DB::transaction(function () use ($sale) {
             $sale->restore();
-
             $sale->load('items');
-
-            // Re-apply stock
             $this->stockService->reApplyStock($sale);
 
             ActivityLogService::log(

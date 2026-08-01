@@ -257,6 +257,30 @@ delivery_address (text nullable)
 delivery_contact_phone (varchar nullable)
 delivery_status (enum: pending/dispatched/delivered/failed nullable)
 
+### sale_payments
+
+id, sale_id (FK sales cascade),
+payment_method_id (FK payment_methods nullable nullOnDelete),
+payment_method_bank_id (FK payment_method_banks nullable nullOnDelete),
+amount (decimal 10,2),
+payment_charge (decimal 10,2 default 0),
+payment_date (date),
+reference (varchar nullable),
+note (text nullable),
+payment_proof_image (varchar nullable),
+payment_status_manual (enum: pending_verification/verified/rejected default: verified),
+transaction_id (varchar nullable),
+verified_by (FK users nullable nullOnDelete),
+verified_at (timestamp nullable),
+created_by (FK users restrict),
+timestamps
+Indexes: sale_id, payment_date, payment_status_manual
+
+Note: POS payments created with payment_status_manual = 'verified' immediately.
+Note: Storefront manual payments created with payment_status_manual = 'pending_verification'.
+Note: sales.paid_amount is always derived from SUM(sale_payments WHERE payment_status_manual = 'verified').
+Note: recalculatePaymentStatus() on Sale model is the single authority for syncing paid_amount/due_amount/payment_status.
+
 ---
 
 ### Enum Reference additions (Item 4.2)
@@ -568,31 +592,32 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 
 ## Enum Reference
 
-| Table                             | Column             | Values                                                            |
-| --------------------------------- | ------------------ | ----------------------------------------------------------------- |
-| users                             | status             | active, inactive                                                  |
-| purchases                         | purchase_status    | draft, ordered, received, partial_received, cancelled             |
-| purchases                         | payment_status     | paid, partial, due                                                |
-| sales                             | payment_status     | paid, partial, due                                                |
-| hold_orders                       | status             | active, processing                                                |
-| investments                       | status             | active, withdrawn                                                 |
-| profit_distributions              | status             | draft, approved, distributed                                      |
-| profit_distributions              | source_type        | investment_based, partner_based                                   |
-| profit_distribution_items         | payment_status     | pending, partial, paid, deferred, reinvested, cancelled, reopened |
-| profit_distribution_items         | settlement_type    | profit_only, cost_plus_profit, custom                             |
-| profit_distribution_item_payments | payment_status     | pending, partial, paid, deferred, reinvested, cancelled, reopened |
-| stock_movements                   | type               | purchase, sale, return, adjustment, transfer                      |
-| capital_ledger_entries            | transaction_type   | deposit, withdrawal, reinvestment, adjustment                     |
-| capital_ledger_entries            | direction          | credit, debit                                                     |
-| capital_ledger_entries            | status             | completed, pending, approved, rejected, cancelled                 |
-| partner_profit_rules              | rule_type          | fixed_percent, product_based, capital_based, mixed                |
-| partner_profit_rules              | profit_source      | capital_share, working_share, product_share, custom               |
-| partner_profit_eligibilities      | status             | active, paused, ended                                             |
-| partner_settlement_configs        | settlement_type    | profit_only, cost_plus_profit, custom                             |
-| partner_settlement_configs        | payment_preference | cash, bank_transfer, adjustment, reinvestment                     |
-| partner_profit_rule_history       | change_type        | created, updated, approved, deactivated                           |
-| partner_settlement_configs        | applies_to         | capital, working, product, all                                    |
-| partner_profit_eligibilities      | applies_to         | capital, working, product, all                                    |
+| Table                             | Column                | Values                                                            |
+| --------------------------------- | --------------------- | ----------------------------------------------------------------- |
+| users                             | status                | active, inactive                                                  |
+| purchases                         | purchase_status       | draft, ordered, received, partial_received, cancelled             |
+| purchases                         | payment_status        | paid, partial, due                                                |
+| sales                             | payment_status        | paid, partial, due                                                |
+| hold_orders                       | status                | active, processing                                                |
+| investments                       | status                | active, withdrawn                                                 |
+| profit_distributions              | status                | draft, approved, distributed                                      |
+| profit_distributions              | source_type           | investment_based, partner_based                                   |
+| profit_distribution_items         | payment_status        | pending, partial, paid, deferred, reinvested, cancelled, reopened |
+| profit_distribution_items         | settlement_type       | profit_only, cost_plus_profit, custom                             |
+| profit_distribution_item_payments | payment_status        | pending, partial, paid, deferred, reinvested, cancelled, reopened |
+| stock_movements                   | type                  | purchase, sale, return, adjustment, transfer                      |
+| capital_ledger_entries            | transaction_type      | deposit, withdrawal, reinvestment, adjustment                     |
+| capital_ledger_entries            | direction             | credit, debit                                                     |
+| capital_ledger_entries            | status                | completed, pending, approved, rejected, cancelled                 |
+| partner_profit_rules              | rule_type             | fixed_percent, product_based, capital_based, mixed                |
+| partner_profit_rules              | profit_source         | capital_share, working_share, product_share, custom               |
+| partner_profit_eligibilities      | status                | active, paused, ended                                             |
+| partner_settlement_configs        | settlement_type       | profit_only, cost_plus_profit, custom                             |
+| partner_settlement_configs        | payment_preference    | cash, bank_transfer, adjustment, reinvestment                     |
+| partner_profit_rule_history       | change_type           | created, updated, approved, deactivated                           |
+| partner_settlement_configs        | applies_to            | capital, working, product, all                                    |
+| partner_profit_eligibilities      | applies_to            | capital, working, product, all                                    |
+| sale_payments                     | payment_status_manual | pending_verification, verified, rejected                          |
 
 ---
 

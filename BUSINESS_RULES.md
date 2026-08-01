@@ -409,6 +409,19 @@ For product-based partner profit:
 - Only sales of products assigned to that partner during the assignment effective period are counted
 - Sale date must fall within assignment effective_from → effective_to range
 
+## 22. Sale Payment Rules (Item 4.3)
+
+- sale_payments is the authoritative source for all payment tracking — sales.paid_amount is derived, never set directly after creation
+- recalculatePaymentStatus() on Sale model must be called after every payment insert, update, or delete — never update paid_amount manually
+- Only verified payments (payment_status_manual = 'verified') count toward paid_amount
+- pending_verification and rejected payments do not affect paid_amount or payment_status
+- POS payments are immediately verified (payment_status_manual = 'verified', verified_by = current user, verified_at = now())
+- Storefront manual payments start as pending_verification — verified by admin in Item 10.6
+- payment_charge is stored on sale_payments, not on the sales table — charge is per payment entry
+- COD sales have paid_amount = 0 at creation — no payment row is created until Item 4.5 (delivery + collection)
+- One sale can have multiple payment entries (partial payments, additional payments collected later)
+- payment_method_bank_id is only set when payment_method.type = 'bank_transfer'
+
 ---
 
 ## 13. Audit Trail Rules

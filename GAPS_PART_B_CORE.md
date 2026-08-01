@@ -205,7 +205,7 @@ sales additions:
 
 ---
 
-### 4.3 Multi-Payment History — sale_payments (Must Fix)
+### 4.3 Multi-Payment History — sale_payments ✅ DONE
 
 Mirrors existing purchase_payments pattern.
 

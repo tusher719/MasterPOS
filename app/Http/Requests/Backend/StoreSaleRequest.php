@@ -24,7 +24,34 @@ class StoreSaleRequest extends FormRequest
             'note'              => ['nullable', 'string', 'max:1000'],
 
             // ─── Payment Type (Item 4.1) ──────────────────────────
-            'payment_type'      => ['nullable', 'string', 'in:full_paid,half_paid,cash_on_delivery'],
+            'payment_type' => ['nullable', 'string', 'in:full_paid,half_paid,cash_on_delivery'],
+
+            // ─── Multi-Payment Fields (Item 4.3) ──────────────────
+            // Bank under Bank Transfer — nullable, only set when
+            // payment method type = bank_transfer
+            'payment_method_bank_id' => [
+                'nullable',
+                'integer',
+                'exists:payment_method_banks,id',
+            ],
+            // Charge calculated at POS for the selected method/bank
+            'payment_charge' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            // Optional reference number (cheque no, slip no, etc.)
+            'payment_reference' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            // bKash/Nagad/bank TrxID
+            'transaction_id' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
 
             // ─── Delivery Fields (Item 4.2) ───────────────────────
             'delivery_type' => [
@@ -45,7 +72,6 @@ class StoreSaleRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:1000',
-                // required when delivery_type is not store_pickup
                 'required_if:delivery_type,inside_dhaka',
                 'required_if:delivery_type,outside_dhaka',
                 'required_if:delivery_type,parallel',
@@ -86,14 +112,20 @@ class StoreSaleRequest extends FormRequest
             'paid_amount.min'             => 'Paid amount cannot be negative.',
             'sale_date.required'          => 'Sale date is required.',
 
+            // Payment
+            'payment_method_bank_id.exists' => 'Selected bank is invalid.',
+            'payment_charge.min'            => 'Payment charge cannot be negative.',
+            'payment_reference.max'         => 'Reference must not exceed 100 characters.',
+            'transaction_id.max'            => 'Transaction ID must not exceed 100 characters.',
+
             // Delivery
-            'delivery_type.in'                   => 'Invalid delivery type selected.',
-            'delivery_status.in'                 => 'Invalid delivery status.',
-            'delivery_charge.min'                => 'Delivery charge cannot be negative.',
-            'delivery_address.required_if'       => 'Delivery address is required for this delivery type.',
-            'delivery_address.max'               => 'Delivery address must not exceed 1000 characters.',
-            'delivery_contact_phone.max'         => 'Contact phone must not exceed 20 characters.',
-            'payment_type.in'                    => 'Invalid payment type selected.',
+            'delivery_type.in'             => 'Invalid delivery type selected.',
+            'delivery_status.in'           => 'Invalid delivery status.',
+            'delivery_charge.min'          => 'Delivery charge cannot be negative.',
+            'delivery_address.required_if' => 'Delivery address is required for this delivery type.',
+            'delivery_address.max'         => 'Delivery address must not exceed 1000 characters.',
+            'delivery_contact_phone.max'   => 'Contact phone must not exceed 20 characters.',
+            'payment_type.in'              => 'Invalid payment type selected.',
         ];
     }
 }

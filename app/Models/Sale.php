@@ -71,6 +71,13 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    // ── Item 4.3 — Multi-Payment ──────────────────────────────────
+
+    public function salePayments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class)->orderBy('payment_date')->orderBy('id');
+    }
+
     // ─── Reference Number Generator ───────────────────────────────
 
     /**
@@ -90,6 +97,37 @@ class Sale extends Model
             : 1;
 
         return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
+    }
+
+    // ─── Payment Status Helpers ───────────────────────────────────
+
+    /**
+     * Recompute paid_amount, due_amount, payment_status from
+     * verified sale_payments and save.
+     *
+     * Called after any payment is added, updated, or removed.
+     * Only verified payments count toward paid_amount.
+     */
+    public function recalculatePaymentStatus(): void
+    {
+        $paidAmount = (float) $this->salePayments()
+            ->verified()
+            ->sum('amount');
+
+        $grandTotal = (float) $this->grand_total;
+        $dueAmount  = max(0, $grandTotal - $paidAmount);
+
+        $paymentStatus = match (true) {
+            $paidAmount <= 0           => 'due',
+            $paidAmount >= $grandTotal => 'paid',
+            default                    => 'partial',
+        };
+
+        $this->forceFill([
+            'paid_amount'    => $paidAmount,
+            'due_amount'     => $dueAmount,
+            'payment_status' => $paymentStatus,
+        ])->save();
     }
 
     // ─── Order Status Helpers ─────────────────────────────────────
