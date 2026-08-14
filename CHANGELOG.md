@@ -2,6 +2,62 @@
 
 ---
 
+## [v2.27 — Item 4.4] — POS Payment Type Selection — 2026-08-14
+
+### Updated Files (3)
+
+- `SaleController.php`:
+    - index(): paymentMethods now mapped explicitly — type, charge_enabled,
+      online_charge_type, online_charge_value, charge_label, banks[] (active only)
+      all included; previously raw Eloquent model passed, frontend missing type field
+    - store(): return type changed JsonResponse (was RedirectResponse) —
+      POS uses axios.post(), must return response()->json([id, reference_no]);
+      COD guard added — $isCOD forces paid_amount=0, skips SalePayment row creation;
+      payment_type persisted from request; payment_method_id forced null for COD
+
+- `Pages/Backend/POS/Index.tsx`:
+    - PaymentMethodBank interface added (id, bank_name, account_number, account_name,
+      charge_type, charge_value, charge_enabled, charge_label, is_active)
+    - PaymentMethod interface extended with type, charge_enabled, online_charge_type,
+      online_charge_value, charge_label, banks: PaymentMethodBank[]
+    - PaymentType type alias exported: 'full_paid' | 'half_paid' | 'cash_on_delivery'
+    - calcMethodCharge() + calcBankCharge() helper functions — mirror backend calculateCharge()
+    - New state: paymentType, paymentMethodBankId, paymentCharge, transactionId, paymentReference
+    - handlePaymentMethodChange(): bank reset + charge recalc on method change
+    - handleBankChange(): bank-level charge applied on bank select
+    - useEffect: charge auto-recalculates when subtotal/discount/tax change
+    - handlePaymentTypeChange(): COD → paid=0/method reset; full_paid → grandTotal auto-fill
+    - useEffect: full_paid keeps paidAmount synced to grandTotal on cart changes
+    - resetCheckoutState() helper extracted — used in clearCart, holdOrder, newSale
+    - handleCheckout(): paymentType required guard, COD guard, full payload including
+      payment_method_bank_id, payment_charge, transaction_id, payment_reference
+
+- `Pages/Backend/POS/_components/CheckoutPanel.tsx`:
+    - Payment Type 3-button segmented selector (Full Paid / Half Paid / COD)
+      color-coded: green=full, amber=half, indigo=COD
+    - Payment Method select hidden when COD selected
+    - Bank sub-list shown when bank_transfer method selected — active banks only,
+      per-bank charge badge shown inline
+    - Transaction ID field shown for mobile_banking type methods
+    - Payment Reference field shown for bank_transfer type methods
+    - Totals breakdown: Payment Charge line added (amber, shows charge label)
+    - Paid Amount section + Due Amount hidden for COD
+    - COD notice banner shown instead (indigo-50 bg)
+    - Payment Status badge shows "COD" for cash_on_delivery
+    - Checkout button disabled when paymentType is null
+
+### Business Rules Established
+
+- payment_type is required before checkout — frontend blocks submit, backend validates
+- COD: paid_amount = 0, no SalePayment row at creation — row added in Item 4.5 on delivery
+- payment_charge base = subtotal − discount + tax (before charge) — consistent with backend
+- bank_transfer charge applied at bank level, not method level
+- mobile_banking → transaction_id field; bank_transfer → payment_reference field
+- SaleController store() always returns JSON — never redirect() from POS endpoint
+- paymentMethods must be explicitly mapped in index() — never pass raw Eloquent collection
+
+---
+
 ## [v2.26 — Item 4.3] — Multi-Payment (sale_payments) — 2026-08-01
 
 ### New Migration (1)

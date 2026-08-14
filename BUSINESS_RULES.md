@@ -424,6 +424,21 @@ For product-based partner profit:
 
 ---
 
+## 23. POS Payment Type Rules (Item 4.4)
+
+- payment_type is required at POS checkout — one of: full_paid / half_paid / cash_on_delivery
+- COD sales: paid_amount = 0 at creation, no SalePayment row created — payment collected at delivery (Item 4.5)
+- full_paid: paidAmount auto-fills to grandTotal (including payment charge)
+- half_paid: paidAmount auto-fills to grandTotal / 2
+- payment_charge base = subtotal − discount + tax (before charge is added)
+- bank_transfer: charge applied at bank level (payment_method_banks.charge_value) — not at method level
+- mobile_banking methods: transaction_id field shown at checkout
+- bank_transfer methods: payment_reference field shown; bank sub-list shown for bank selection
+- payment_charge stored on sale_payments row — not on sales table
+- grandTotal on sales does NOT include payment_charge — charge is a pass-through cost tracked on the payment row
+
+---
+
 ## 13. Audit Trail Rules
 
 - Every financial configuration change writes to `partner_profit_rule_history`

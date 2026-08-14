@@ -19,10 +19,30 @@ export interface Customer {
     email: string | null;
 }
 
+export interface PaymentMethodBank {
+    id: number;
+    bank_name: string;
+    account_number: string | null;
+    account_name: string | null;
+    charge_type: "percent" | "fixed" | null;
+    charge_value: number;
+    charge_enabled: boolean;
+    charge_label: string | null;
+    is_active: boolean;
+}
+
 export interface PaymentMethod {
     id: number;
     name: string;
+    type: string | null; // 'cash' | 'mobile_banking' | 'bank_transfer' | etc.
+    charge_enabled: boolean;
+    online_charge_type: "percent" | "fixed" | null;
+    online_charge_value: number;
+    charge_label: string | null;
+    banks: PaymentMethodBank[];
 }
+
+export type PaymentType = "full_paid" | "half_paid" | "cash_on_delivery";
 
 interface Props {
     products: Product[];
@@ -34,6 +54,48 @@ interface Props {
         restore: boolean;
     };
 }
+
+// ── Charge helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Calculate charge for a payment method (non-bank-transfer).
+ * Mirrors PaymentMethod::calculateCharge() on the backend.
+ */
+export function calcMethodCharge(
+    method: PaymentMethod,
+    subtotal: number,
+): number {
+    if (!method.charge_enabled) return 0;
+    if (method.online_charge_type === "percent") {
+        return parseFloat(
+            ((subtotal * method.online_charge_value) / 100).toFixed(2),
+        );
+    }
+    if (method.online_charge_type === "fixed") {
+        return Number(method.online_charge_value);
+    }
+    return 0;
+}
+
+/**
+ * Calculate charge for a specific bank under bank_transfer.
+ * Mirrors PaymentMethodBank::calculateCharge() on the backend.
+ */
+export function calcBankCharge(
+    bank: PaymentMethodBank,
+    subtotal: number,
+): number {
+    if (!bank.charge_enabled) return 0;
+    if (bank.charge_type === "percent") {
+        return parseFloat(((subtotal * bank.charge_value) / 100).toFixed(2));
+    }
+    if (bank.charge_type === "fixed") {
+        return Number(bank.charge_value);
+    }
+    return 0;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 export default function POSIndex({
     products,
@@ -69,7 +131,6 @@ export default function POSIndex({
     const [cartItems, setCartItems] = useState<CartItemRow[]>([]);
 
     const handleAddToCart = (product: Product) => {
-        // If product has variants → open picker modal first
         if (
             product.has_variants &&
             product.variants &&
@@ -94,7 +155,6 @@ export default function POSIndex({
         unitPrice: number,
         stockQty: number,
     ) => {
-        // min_sale_qty: respect the product's minimum, default to 1
         const minQty = Math.max(1, Number(product.min_sale_qty) || 1);
 
         setCartItems((prev) => {
@@ -104,7 +164,6 @@ export default function POSIndex({
             );
 
             if (existing) {
-                // Already in cart — increment by minQty, respect stock ceiling
                 const newQty = existing.quantity + minQty;
                 if (newQty > stockQty) {
                     toast.warning("Maximum stock reached for " + product.name);
@@ -121,7 +180,6 @@ export default function POSIndex({
                 );
             }
 
-            // New cart item — start at minQty
             if (minQty > stockQty) {
                 toast.warning(
                     `Minimum order quantity (${minQty}) exceeds available stock (${stockQty}) for ${product.name}`,
@@ -137,12 +195,12 @@ export default function POSIndex({
                     variant_label: variantLabel,
                     name: product.name,
                     unit_price: unitPrice,
-                    quantity: minQty, // ← was hardcoded 1
+                    quantity: minQty,
                     min_sale_qty: minQty,
                     discount: 0,
                     stock_qty: stockQty,
                     unit: product.unit,
-                    subtotal: unitPrice * minQty, // ← was unitPrice * 1
+                    subtotal: unitPrice * minQty,
                 },
             ];
         });
@@ -177,16 +235,25 @@ export default function POSIndex({
     // ── Checkout state ───────────────────────────────────────────────
     const [customerId, setCustomerId] = useState<number | null>(null);
     const [paymentMethodId, setPaymentMethodId] = useState<number | null>(null);
+    const [paymentMethodBankId, setPaymentMethodBankId] = useState<
+        number | null
+    >(null);
+    const [paymentType, setPaymentType] = useState<PaymentType | null>(null);
+    const [paymentCharge, setPaymentCharge] = useState(0);
+    const [transactionId, setTransactionId] = useState("");
+    const [paymentReference, setPaymentReference] = useState("");
     const [discount, setDiscount] = useState(0);
     const [tax, setTax] = useState(0);
     const [paidAmount, setPaidAmount] = useState(0);
     const [note, setNote] = useState("");
     const [processing, setProcessing] = useState(false);
 
+    // grandTotal includes paymentCharge
     const grandTotal = useMemo(
-        () => Math.max(0, subtotal - discount + tax),
-        [subtotal, discount, tax],
+        () => Math.max(0, subtotal - discount + tax + paymentCharge),
+        [subtotal, discount, tax, paymentCharge],
     );
+
     const dueAmount = useMemo(
         () => Math.max(0, grandTotal - paidAmount),
         [grandTotal, paidAmount],
@@ -198,9 +265,93 @@ export default function POSIndex({
         return "partial";
     }, [paidAmount, grandTotal]);
 
+    // ── Auto-recalculate charge when method / bank changes ───────────
+    const handlePaymentMethodChange = (id: number | null) => {
+        setPaymentMethodId(id);
+        setPaymentMethodBankId(null); // reset bank on method change
+        setTransactionId("");
+        setPaymentReference("");
+
+        if (!id) {
+            setPaymentCharge(0);
+            return;
+        }
+        const method = paymentMethods.find((m) => m.id === id);
+        if (!method) {
+            setPaymentCharge(0);
+            return;
+        }
+        // bank_transfer charge is applied at bank level — reset here, set on bank select
+        if (method.type === "bank_transfer") {
+            setPaymentCharge(0);
+        } else {
+            // subtotal for charge base = subtotal - discount + tax (before charge)
+            const base = Math.max(0, subtotal - discount + tax);
+            setPaymentCharge(calcMethodCharge(method, base));
+        }
+    };
+
+    const handleBankChange = (bankId: number | null) => {
+        setPaymentMethodBankId(bankId);
+        if (!bankId || !paymentMethodId) {
+            setPaymentCharge(0);
+            return;
+        }
+        const method = paymentMethods.find((m) => m.id === paymentMethodId);
+        const bank = method?.banks.find((b) => b.id === bankId);
+        if (!bank) {
+            setPaymentCharge(0);
+            return;
+        }
+        const base = Math.max(0, subtotal - discount + tax);
+        setPaymentCharge(calcBankCharge(bank, base));
+    };
+
+    // Re-calc charge whenever subtotal / discount / tax change
+    // (keeps charge in sync if cart items are modified after method selected)
+    useEffect(() => {
+        if (!paymentMethodId) return;
+        const method = paymentMethods.find((m) => m.id === paymentMethodId);
+        if (!method) return;
+        const base = Math.max(0, subtotal - discount + tax);
+
+        if (method.type === "bank_transfer" && paymentMethodBankId) {
+            const bank = method.banks.find((b) => b.id === paymentMethodBankId);
+            if (bank) setPaymentCharge(calcBankCharge(bank, base));
+        } else if (method.type !== "bank_transfer") {
+            setPaymentCharge(calcMethodCharge(method, base));
+        }
+    }, [subtotal, discount, tax]);
+
+    // ── Payment type selection ────────────────────────────────────────
+    const handlePaymentTypeChange = (type: PaymentType) => {
+        setPaymentType(type);
+        if (type === "cash_on_delivery") {
+            // COD: no upfront payment
+            setPaidAmount(0);
+            setPaymentMethodId(null);
+            setPaymentMethodBankId(null);
+            setPaymentCharge(0);
+            setTransactionId("");
+            setPaymentReference("");
+        } else if (type === "full_paid") {
+            // Auto-fill full amount (charge included via grandTotal)
+            setPaidAmount(grandTotal);
+        } else if (type === "half_paid") {
+            setPaidAmount(parseFloat((grandTotal / 2).toFixed(2)));
+        }
+    };
+
+    // Keep full_paid amount in sync if grandTotal changes after selection
+    useEffect(() => {
+        if (paymentType === "full_paid") {
+            setPaidAmount(grandTotal);
+        }
+    }, [grandTotal, paymentType]);
+
     const [receiptSale, setReceiptSale] = useState<any>(null);
 
-    // ── Hold Orders state ────────────────────────────────────────────
+    // ── Hold Orders state ─────────────────────────────────────────────
     const [showHoldDrawer, setShowHoldDrawer] = useState(false);
     const [resumedHoldOrderId, setResumedHoldOrderId] = useState<number | null>(
         null,
@@ -222,7 +373,7 @@ export default function POSIndex({
             );
             setHoldCount(res.data.total ?? 0);
         } catch {
-            // silent fail — not critical
+            // silent fail
         }
     };
 
@@ -233,21 +384,32 @@ export default function POSIndex({
                 route("backend.pos.hold-orders.release", resumedHoldOrderId),
             );
         } catch {
-            // silent — best effort
+            // silent
         } finally {
             setResumedHoldOrderId(null);
         }
     };
 
-    // Clear cart manually — release the resumed hold order first, if any
+    const resetCheckoutState = () => {
+        setCartItems([]);
+        setCustomerId(null);
+        setPaymentMethodId(null);
+        setPaymentMethodBankId(null);
+        setPaymentType(null);
+        setPaymentCharge(0);
+        setTransactionId("");
+        setPaymentReference("");
+        setDiscount(0);
+        setTax(0);
+        setPaidAmount(0);
+        setNote("");
+    };
+
     const handleClearCart = async () => {
         if (resumedHoldOrderId) {
             await handleReleaseHoldOrder();
         }
-        setCartItems([]);
-        setCustomerId(null);
-        setDiscount(0);
-        setTax(0);
+        resetCheckoutState();
     };
 
     const handleHoldOrder = async () => {
@@ -272,15 +434,9 @@ export default function POSIndex({
             };
 
             await axios.post(route("backend.pos.hold-orders.store"), payload);
-
             toast.success("Order held successfully.");
             fetchHoldCount();
-
-            setCartItems([]);
-            setCustomerId(null);
-            setDiscount(0);
-            setTax(0);
-            setNote("");
+            resetCheckoutState();
         } catch (err: any) {
             const msg = err?.response?.data?.message ?? "Failed to hold order.";
             toast.error(msg);
@@ -297,14 +453,11 @@ export default function POSIndex({
                     rawUnit && typeof rawUnit === "object"
                         ? (rawUnit.name ?? null)
                         : rawUnit;
-
                 return {
                     product_id: item.product_id,
                     name: item.name,
                     unit_price: Number(item.unit_price),
                     quantity: Number(item.quantity),
-                    // Resumed hold orders restore as-is — min_sale_qty already
-                    // applied when the order was originally held
                     min_sale_qty: 1,
                     discount: Number(item.discount),
                     subtotal: Number(item.subtotal),
@@ -319,12 +472,20 @@ export default function POSIndex({
         setTax(Number(holdOrder.tax));
         setNote(holdOrder.note ?? "");
         setResumedHoldOrderId(holdOrder.id);
+        // Reset payment selections — staff chooses fresh on checkout
+        setPaymentType(null);
+        setPaymentMethodId(null);
+        setPaymentMethodBankId(null);
+        setPaymentCharge(0);
+        setPaidAmount(0);
+        setTransactionId("");
+        setPaymentReference("");
 
         setShowHoldDrawer(false);
         toast.success("Hold order resumed. Complete checkout to convert.");
     };
 
-    // ── Checkout submit ──────────────────────────────────────────────
+    // ── Checkout submit ───────────────────────────────────────────────
     const handleCheckout = async () => {
         if (!can.create) {
             toast.error("You do not have permission to create sales.");
@@ -334,19 +495,40 @@ export default function POSIndex({
             toast.error("Cart is empty.");
             return;
         }
+        if (!paymentType) {
+            toast.error("Please select a payment type (Full / Half / COD).");
+            return;
+        }
+        if (paymentType !== "cash_on_delivery" && !paymentMethodId) {
+            toast.error("Please select a payment method.");
+            return;
+        }
 
         setProcessing(true);
         try {
+            const isCOD = paymentType === "cash_on_delivery";
+            const selectedMethod = paymentMethods.find(
+                (m) => m.id === paymentMethodId,
+            );
+
             const payload = {
                 customer_id: customerId,
                 sale_date: new Date().toISOString().split("T")[0],
-                payment_method_id: paymentMethodId,
+                payment_type: paymentType,
+                payment_method_id: isCOD ? null : paymentMethodId,
+                payment_method_bank_id: isCOD
+                    ? null
+                    : (paymentMethodBankId ?? null),
+                payment_charge: isCOD ? 0 : paymentCharge,
+                payment_reference: isCOD ? null : paymentReference || null,
+                transaction_id: isCOD ? null : transactionId || null,
                 discount,
                 tax,
-                paid_amount: paidAmount,
+                paid_amount: isCOD ? 0 : paidAmount,
                 note,
                 items: cartItems.map((i) => ({
                     product_id: i.product_id,
+                    variant_id: i.variant_id ?? null,
                     quantity: i.quantity,
                     unit_price: i.unit_price,
                     discount: i.discount,
@@ -357,20 +539,24 @@ export default function POSIndex({
                 route("backend.pos.sales.store"),
                 payload,
             );
+
             const customer = customers.find((c) => c.id === customerId);
-            const method = paymentMethods.find((m) => m.id === paymentMethodId);
 
             setReceiptSale({
                 id: response.data?.id ?? 0,
                 reference_no: response.data?.reference_no ?? "",
                 sale_date: payload.sale_date,
                 customer_name: customer?.name ?? null,
-                payment_method: method?.name ?? null,
+                payment_method: isCOD
+                    ? "Cash on Delivery"
+                    : (selectedMethod?.name ?? null),
+                payment_type: paymentType,
                 subtotal,
                 discount,
                 tax,
+                payment_charge: isCOD ? 0 : paymentCharge,
                 grand_total: grandTotal,
-                paid_amount: paidAmount,
+                paid_amount: isCOD ? 0 : paidAmount,
                 due_amount: dueAmount,
                 payment_status: paymentStatus,
                 items: cartItems,
@@ -390,7 +576,7 @@ export default function POSIndex({
                     setResumedHoldOrderId(null);
                     fetchHoldCount();
                 } catch {
-                    // silent — hold order cleanup is non-critical
+                    // silent
                 }
             }
         } catch (error: any) {
@@ -408,13 +594,7 @@ export default function POSIndex({
 
     const handleNewSale = () => {
         setReceiptSale(null);
-        setCartItems([]);
-        setCustomerId(null);
-        setPaymentMethodId(null);
-        setDiscount(0);
-        setTax(0);
-        setPaidAmount(0);
-        setNote("");
+        resetCheckoutState();
         setResumedHoldOrderId(null);
         router.reload({ only: ["products"] });
     };
@@ -423,6 +603,7 @@ export default function POSIndex({
         <AuthenticatedLayout>
             <Head title="POS Terminal" />
             <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+                {/* ── Left: Product browser ── */}
                 <div className="flex flex-1 flex-col overflow-hidden border-r border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
                         <div>
@@ -433,7 +614,6 @@ export default function POSIndex({
                                 {filteredProducts.length} products available
                             </p>
                         </div>
-
                         <button
                             onClick={() => setShowHoldDrawer(true)}
                             className="relative flex items-center gap-1.5 rounded-lg border border-gray-200
@@ -468,6 +648,7 @@ export default function POSIndex({
                     </div>
                 </div>
 
+                {/* ── Middle: Cart ── */}
                 <div className="flex w-72 flex-col border-r border-gray-200 bg-white xl:w-80">
                     <CartSidebar
                         items={cartItems}
@@ -481,6 +662,7 @@ export default function POSIndex({
                     />
                 </div>
 
+                {/* ── Right: Checkout ── */}
                 <div className="flex w-72 flex-col border-l border-gray-200 bg-white xl:w-80">
                     <div className="border-b border-gray-100 px-4 py-3">
                         <h2 className="font-semibold text-gray-800">
@@ -493,6 +675,11 @@ export default function POSIndex({
                             paymentMethods={paymentMethods}
                             customerId={customerId}
                             paymentMethodId={paymentMethodId}
+                            paymentMethodBankId={paymentMethodBankId}
+                            paymentType={paymentType}
+                            paymentCharge={paymentCharge}
+                            transactionId={transactionId}
+                            paymentReference={paymentReference}
                             discount={discount}
                             tax={tax}
                             paidAmount={paidAmount}
@@ -504,7 +691,11 @@ export default function POSIndex({
                             processing={processing}
                             cartEmpty={cartItems.length === 0}
                             onCustomerChange={setCustomerId}
-                            onPaymentMethodChange={setPaymentMethodId}
+                            onPaymentMethodChange={handlePaymentMethodChange}
+                            onPaymentMethodBankChange={handleBankChange}
+                            onPaymentTypeChange={handlePaymentTypeChange}
+                            onTransactionIdChange={setTransactionId}
+                            onPaymentReferenceChange={setPaymentReference}
                             onDiscountChange={setDiscount}
                             onTaxChange={setTax}
                             onPaidAmountChange={setPaidAmount}

@@ -13,6 +13,7 @@ use App\Models\SalePayment;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
 use App\Services\SaleStockService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ class SaleController extends Controller
     {
         $this->authorize('viewAny', Sale::class);
 
-        $products = Product::with('category', 'unit', 'images')
+        $products = Product::with(['category', 'unit', 'images', 'variants'])
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
@@ -62,6 +63,20 @@ class SaleController extends Controller
                     'discount_value'      => $p->discount_value !== null ? (float) $p->discount_value : null,
                     'image'               => $sortedImages->first()?->image_path,
                     'images'              => $sortedImages->pluck('image_path')->filter()->values()->all(),
+                    'has_variants'        => (bool) $p->has_variants,
+                    'variants'            => $p->variants
+                        ->where('is_active', true)
+                        ->map(fn($v) => [
+                            'id'                  => $v->id,
+                            'sku'                 => $v->sku,
+                            'attributes'          => $v->attributes,
+                            'stock_qty'           => (float) $v->stock_qty,
+                            'price_override'      => $v->price_override !== null ? (float) $v->price_override : null,
+                            'cost_price_override' => $v->cost_price_override !== null ? (float) $v->cost_price_override : null,
+                            'is_active'           => (bool) $v->is_active,
+                            'label'               => $v->label,
+                        ])
+                        ->values(),
                 ];
             });
 
@@ -69,11 +84,35 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'phone', 'email']);
 
+        // Map payment methods with all charge fields + active banks
         $paymentMethods = PaymentMethod::with('banks')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn($pm) => [
+                'id'                  => $pm->id,
+                'name'                => $pm->name,
+                'type'                => $pm->type,
+                'charge_enabled'      => (bool) $pm->charge_enabled,
+                'online_charge_type'  => $pm->online_charge_type,
+                'online_charge_value' => (float) $pm->online_charge_value,
+                'charge_label'        => $pm->charge_label,
+                'banks'               => $pm->banks
+                    ->where('is_active', true)
+                    ->map(fn($b) => [
+                        'id'             => $b->id,
+                        'bank_name'      => $b->bank_name,
+                        'account_number' => $b->account_number,
+                        'account_name'   => $b->account_name,
+                        'charge_type'    => $b->charge_type,
+                        'charge_value'   => (float) $b->charge_value,
+                        'charge_enabled' => (bool) $b->charge_enabled,
+                        'charge_label'   => $b->charge_label,
+                        'is_active'      => (bool) $b->is_active,
+                    ])
+                    ->values(),
+            ]);
 
         return Inertia::render('Backend/POS/Index', [
             'products'       => $products,
@@ -89,18 +128,22 @@ class SaleController extends Controller
 
     // ─── Process Sale ─────────────────────────────────────────────
 
-    public function store(StoreSaleRequest $request): RedirectResponse
+    /**
+     * POS checkout — returns JSON {id, reference_no}.
+     * Frontend uses axios.post() not Inertia form submission.
+     */
+    public function store(StoreSaleRequest $request): JsonResponse
     {
         $this->authorize('create', Sale::class);
 
         $data = $request->validated();
 
-        DB::transaction(function () use ($data) {
-            // ── Calculate totals ──────────────────────────────────
+        $saleId = null;
+
+        DB::transaction(function () use ($data, &$saleId) {
+            // ── Calculate item subtotal ───────────────────────────
             $subtotal = collect($data['items'])->sum(function ($item) {
-                $itemSubtotal = $item['unit_price'] * $item['quantity'];
-                $itemDiscount = $item['discount'] ?? 0;
-                return $itemSubtotal - $itemDiscount;
+                return ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0);
             });
 
             $discount = (float) ($data['discount'] ?? 0);
@@ -117,17 +160,16 @@ class SaleController extends Controller
 
             $grandTotal = $subtotal - $discount + $tax + $deliveryCharge;
 
-            // ── Payment charge (method or bank level) ─────────────
-            // payment_charge is calculated at POS checkout and passed in.
-            // We store it on the sale_payment record, not on the sale itself.
+            // ── Payment charge ────────────────────────────────────
+            // Calculated at POS and passed in — stored on sale_payments row,
+            // not on the sales table. Grand total does NOT include charge
+            // (charge is a pass-through cost to the customer, tracked separately).
             $paymentCharge = (float) ($data['payment_charge'] ?? 0);
 
-            // ── Initial paid amount from first payment entry ──────
-            // paid_amount on sales = sum of verified sale_payments (set via
-            // recalculatePaymentStatus after inserting the first payment).
-            // We bootstrap with the submitted paid_amount for grand_total /
-            // due_amount calc, then overwrite via recalculate.
-            $initialPaidAmount = (float) ($data['paid_amount'] ?? 0);
+            // ── COD guard — no upfront payment ───────────────────
+            $paymentType       = $data['payment_type'] ?? null;
+            $isCOD             = $paymentType === 'cash_on_delivery';
+            $initialPaidAmount = $isCOD ? 0.0 : (float) ($data['paid_amount'] ?? 0);
             $dueAmount         = max(0, $grandTotal - $initialPaidAmount);
 
             $paymentStatus = match (true) {
@@ -154,9 +196,9 @@ class SaleController extends Controller
                 'paid_amount'            => $initialPaidAmount,
                 'due_amount'             => $dueAmount,
                 'payment_status'         => $paymentStatus,
-                'payment_method_id'      => $data['payment_method_id'] ?? null,
+                'payment_method_id'      => $isCOD ? null : ($data['payment_method_id'] ?? null),
                 'order_status'           => 'processing',
-                'payment_type'           => $data['payment_type'] ?? null,
+                'payment_type'           => $paymentType,
                 'delivery_type'          => $deliveryType,
                 'delivery_charge'        => $deliveryCharge,
                 'delivery_charge_free'   => $deliveryChargeFree,
@@ -169,9 +211,6 @@ class SaleController extends Controller
 
             // ── Create sale items ─────────────────────────────────
             foreach ($data['items'] as $item) {
-                $itemSubtotal = ($item['unit_price'] * $item['quantity'])
-                    - ($item['discount'] ?? 0);
-
                 SaleItem::create([
                     'sale_id'    => $sale->id,
                     'product_id' => $item['product_id'],
@@ -179,15 +218,12 @@ class SaleController extends Controller
                     'quantity'   => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'discount'   => $item['discount'] ?? 0,
-                    'subtotal'   => $itemSubtotal,
+                    'subtotal'   => ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0),
                 ]);
             }
 
-            // ── Create initial sale_payment entry if amount > 0 ───
-            // COD / due sales have paid_amount = 0, so no payment row yet.
-            if ($initialPaidAmount > 0) {
-                $now = Auth::id();
-
+            // ── Create initial sale_payment row (non-COD, paid > 0) ──
+            if (! $isCOD && $initialPaidAmount > 0) {
                 SalePayment::create([
                     'sale_id'                => $sale->id,
                     'payment_method_id'      => $data['payment_method_id'] ?? null,
@@ -198,21 +234,19 @@ class SaleController extends Controller
                     'reference'              => $data['payment_reference'] ?? null,
                     'note'                   => null,
                     'payment_proof_image'    => null,
-                    'payment_status_manual'  => 'verified', // POS payment is immediately verified
+                    'payment_status_manual'  => 'verified', // POS: immediate verification
                     'transaction_id'         => $data['transaction_id'] ?? null,
-                    'verified_by'            => $now,
+                    'verified_by'            => Auth::id(),
                     'verified_at'            => now(),
-                    'created_by'             => $now,
+                    'created_by'             => Auth::id(),
                 ]);
 
-                // Recalculate paid/due/status from actual payment rows
+                // Sync paid_amount / due_amount / payment_status from actual rows
                 $sale->recalculatePaymentStatus();
             }
 
-            // ── Reload items for stock service ────────────────────
+            // ── Stock deduction ───────────────────────────────────
             $sale->load('items');
-
-            // ── Deduct stock ──────────────────────────────────────
             $this->stockService->applyStock($sale);
 
             // ── Activity log ──────────────────────────────────────
@@ -222,40 +256,35 @@ class SaleController extends Controller
                 'Sale created: ' . $sale->reference_no,
                 $sale,
                 [
-                    'grand_total'      => $sale->grand_total,
-                    'paid_amount'      => $sale->paid_amount,
-                    'payment_status'   => $sale->payment_status,
-                    'order_status'     => $sale->order_status,
-                    'payment_type'     => $sale->payment_type,
-                    'payment_charge'   => $paymentCharge,
-                    'delivery_type'    => $sale->delivery_type,
-                    'delivery_charge'  => $sale->delivery_charge,
-                    'delivery_status'  => $sale->delivery_status,
+                    'grand_total'     => $sale->grand_total,
+                    'paid_amount'     => $sale->paid_amount,
+                    'payment_status'  => $sale->payment_status,
+                    'order_status'    => $sale->order_status,
+                    'payment_type'    => $sale->payment_type,
+                    'payment_charge'  => $paymentCharge,
+                    'delivery_type'   => $sale->delivery_type,
+                    'delivery_charge' => $sale->delivery_charge,
+                    'delivery_status' => $sale->delivery_status,
                 ]
             );
 
-            // ── Fire NewSaleNotification ──────────────────────────
+            // ── Notification ──────────────────────────────────────
             $admins = \App\Models\User::role('Admin')->get();
             if ($admins->isNotEmpty()) {
-                $customerName = $sale->customer?->name ?? 'Walk-in Customer';
-                $itemCount    = $sale->items->count();
-
                 Notification::send($admins, new NewSaleNotification(
                     $sale->id,
                     (float) $sale->grand_total,
-                    $customerName,
-                    $itemCount
+                    $sale->customer?->name ?? 'Walk-in Customer',
+                    $sale->items->count()
                 ));
             }
 
-            // ── Store sale id in session for receipt ──────────────
-            session(['last_sale_id' => $sale->id]);
+            $saleId = $sale->id;
         });
 
-        $saleId = session('last_sale_id');
-        $sale   = Sale::find($saleId);
+        $sale = Sale::find($saleId);
 
-        return redirect()->back()->with([
+        return response()->json([
             'id'           => $sale?->id,
             'reference_no' => $sale?->reference_no,
         ]);
@@ -343,7 +372,7 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Sale Receipt / Detail ────────────────────────────────────
+    // ─── Sale Detail ──────────────────────────────────────────────
 
     public function show(Sale $sale): Response
     {
@@ -368,7 +397,7 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Void Sale (Soft Delete) ──────────────────────────────────
+    // ─── Void Sale ────────────────────────────────────────────────
 
     public function destroy(Sale $sale): RedirectResponse
     {
@@ -376,7 +405,6 @@ class SaleController extends Controller
 
         DB::transaction(function () use ($sale) {
             $sale->load('items');
-
             $this->stockService->reverseStock($sale);
             $sale->delete();
 

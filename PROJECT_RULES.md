@@ -49,6 +49,10 @@
 
 - `calculatePreview()` must detect `source_type` (investment_based vs partner_based) and dispatch to correct engine
 - Never mix investment-based and partner-based calculations in a single query
+- `index()` must map paymentMethods explicitly — never pass raw Eloquent collection.
+  Required fields: id, name, type, charge_enabled, online_charge_type,
+  online_charge_value, charge_label, banks[] (active banks only with all charge fields).
+  Without mapping, `type` field is missing and frontend charge calculation breaks.
 
 ---
 
