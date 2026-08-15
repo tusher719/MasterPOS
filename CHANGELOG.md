@@ -2,6 +2,55 @@
 
 ---
 
+## [v2.28 — Item 4.5] — COD Delivery + Payment Collection — 2026-08-14
+
+### Updated Files (3)
+
+- `SaleController.php`: collectCodPayment() method added — guards (COD check,
+  already-delivered check), validates amount/method/date, creates verified
+  SalePayment entry, forceFill delivery_status+order_status = delivered,
+  calls recalculatePaymentStatus(), activity log; salesList() now passes
+  paymentMethods prop to Inertia render; getPaymentMethods() unused method
+  removed
+
+- `Pages/Backend/POS/Sales/_components/SaleTable.tsx`: CollectCodPaymentModal
+  import added; PaymentMethod/PaymentMethodBank interfaces added; isCodCollectable()
+  helper (payment_type=COD AND delivery_status≠delivered AND not voided);
+  "Collect" button shown for eligible rows (can.create gated); paymentMethods
+  prop added to Props
+
+- `Pages/Backend/POS/Sales/_components/CollectCodPaymentModal.tsx`: new file —
+  amount (pre-filled with due_amount), payment method select, bank sub-list
+  for bank_transfer, charge display (method-level + bank-level), transaction_id
+  for mobile_banking, payment_reference for bank_transfer, collection_date,
+  note; partial collection allowed with remaining-due hint; router.post to
+  backend.pos.sales.collect-cod-payment
+
+- `Pages/Backend/POS/Sales/Index.tsx`: PaymentMethodBank + PaymentMethod
+  interfaces added (before Props); paymentMethods: PaymentMethod[] added to
+  Props; paymentMethods destructured in component; passed to SaleTable
+
+### Route Fix
+
+- `routes/web.php`: collect-cod-payment route name corrected from
+  `sales.collect-cod-payment` to `pos.sales.collect-cod-payment` —
+  full Ziggy name: backend.pos.sales.collect-cod-payment
+- Required: php artisan route:cache && php artisan ziggy:generate after fix
+
+### Business Rules Established
+
+- COD payment collection = single combined action: delivery_status → delivered,
+  order_status → delivered, SalePayment created (verified immediately),
+  recalculatePaymentStatus() syncs paid_amount/due_amount/payment_status
+- Partial collection allowed — customer can pay less than due_amount
+- "Collect" button visible only when: payment_type=COD AND
+  delivery_status≠delivered AND not voided AND can.create=true
+- Already-delivered guard on backend prevents duplicate collection (idempotency)
+- payment_charge stored on SalePayment row — not on sales table
+- bank_transfer: charge at bank level; mobile_banking: charge at method level
+
+---
+
 ## [v2.27 — Item 4.4] — POS Payment Type Selection — 2026-08-14
 
 ### Updated Files (3)

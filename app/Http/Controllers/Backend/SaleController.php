@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -359,11 +360,39 @@ class SaleController extends Controller
             'due_amount'    => (float) Sale::where('payment_status', '!=', 'paid')->sum('due_amount'),
         ];
 
+        $paymentMethods = PaymentMethod::with('banks')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($pm) => [
+                'id'                  => $pm->id,
+                'name'                => $pm->name,
+                'type'                => $pm->type,
+                'charge_enabled'      => (bool) $pm->charge_enabled,
+                'online_charge_type'  => $pm->online_charge_type,
+                'online_charge_value' => (float) $pm->online_charge_value,
+                'charge_label'        => $pm->charge_label,
+                'banks'               => $pm->banks
+                    ->where('is_active', true)
+                    ->map(fn($b) => [
+                        'id'             => $b->id,
+                        'bank_name'      => $b->bank_name,
+                        'charge_type'    => $b->charge_type,
+                        'charge_value'   => (float) $b->charge_value,
+                        'charge_enabled' => (bool) $b->charge_enabled,
+                        'charge_label'   => $b->charge_label,
+                        'is_active'      => (bool) $b->is_active,
+                    ])
+                    ->values(),
+            ]);
+
         return Inertia::render('Backend/POS/Sales/Index', [
-            'sales'   => $sales,
-            'stats'   => $stats,
-            'filters' => $filters,
-            'can'     => [
+            'sales'          => $sales,
+            'stats'          => $stats,
+            'filters'        => $filters,
+            'paymentMethods' => $paymentMethods,
+            'can'            => [
                 'view'    => Gate::allows('viewAny', Sale::class),
                 'create'  => Gate::allows('create', Sale::class),
                 'delete'  => Gate::allows('delete', Sale::class),
@@ -446,4 +475,113 @@ class SaleController extends Controller
         return redirect()->route('backend.pos.sales.index')
             ->with('success', 'Sale restored successfully.');
     }
+
+    // ── COD Payment Collection ────────────────────────────────────────────
+    /**
+     * Collect payment for a COD sale at delivery.
+     * Sets delivery_status = delivered, order_status = delivered,
+     * creates a SalePayment entry, recalculates payment totals.
+     */
+    public function collectCodPayment(Request $request, Sale $sale): RedirectResponse
+    {
+        $this->authorize('create', Sale::class);
+
+        if ($sale->payment_type !== 'cash_on_delivery') {
+            return back()->withErrors(['error' => 'This sale is not a COD order.']);
+        }
+
+        if ($sale->delivery_status === 'delivered') {
+            return back()->withErrors(['error' => 'Payment already collected for this order.']);
+        }
+
+        $request->validate([
+            'amount'                 => ['required', 'numeric', 'min:0.01'],
+            'payment_method_id'      => ['required', 'exists:payment_methods,id'],
+            'payment_method_bank_id' => ['nullable', 'exists:payment_method_banks,id'],
+            'payment_charge'         => ['nullable', 'numeric', 'min:0'],
+            'transaction_id'         => ['nullable', 'string', 'max:100'],
+            'payment_reference'      => ['nullable', 'string', 'max:100'],
+            'collection_date'        => ['required', 'date'],
+            'note'                   => ['nullable', 'string', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($request, $sale) {
+            // ── Create payment entry ──────────────────────────────────
+            SalePayment::create([
+                'sale_id'                => $sale->id,
+                'payment_method_id'      => $request->payment_method_id,
+                'payment_method_bank_id' => $request->payment_method_bank_id,
+                'amount'                 => $request->amount,
+                'payment_charge'         => (float) ($request->payment_charge ?? 0),
+                'payment_date'           => $request->collection_date,
+                'reference'              => $request->payment_reference ?? null,
+                'transaction_id'         => $request->transaction_id ?? null,
+                'note'                   => $request->note ?? null,
+                'payment_proof_image'    => null,
+                'payment_status_manual'  => 'verified',
+                'verified_by'            => Auth::id(),
+                'verified_at'            => now(),
+                'created_by'             => Auth::id(),
+            ]);
+
+            // ── Mark delivered ────────────────────────────────────────
+            $sale->forceFill([
+                'delivery_status' => 'delivered',
+                'order_status'    => 'delivered',
+            ])->save();
+
+            // ── Recalculate paid_amount / due_amount / payment_status ─
+            $sale->recalculatePaymentStatus();
+
+            // ── Activity log ──────────────────────────────────────────
+            ActivityLogService::log(
+                'sales',
+                'cod_payment_collected',
+                'COD payment collected: ' . $sale->reference_no,
+                $sale,
+                [
+                    'amount'           => $request->amount,
+                    'collection_date'  => $request->collection_date,
+                    'delivery_status'  => 'delivered',
+                    'order_status'     => 'delivered',
+                ]
+            );
+        });
+
+        return back()->with('success', 'Payment collected and order marked as delivered.');
+    }
+
+    public function getPaymentMethods()
+    {
+        $paymentMethods = PaymentMethod::with('banks')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($pm) => [
+                'id'                  => $pm->id,
+                'name'                => $pm->name,
+                'type'                => $pm->type,
+                'charge_enabled'      => (bool) $pm->charge_enabled,
+                'online_charge_type'  => $pm->online_charge_type,
+                'online_charge_value' => (float) $pm->online_charge_value,
+                'charge_label'        => $pm->charge_label,
+                'banks'               => $pm->banks
+                    ->where('is_active', true)
+                    ->map(fn($b) => [
+                        'id'             => $b->id,
+                        'bank_name'      => $b->bank_name,
+                        'charge_type'    => $b->charge_type,
+                        'charge_value'   => (float) $b->charge_value,
+                        'charge_enabled' => (bool) $b->charge_enabled,
+                        'charge_label'   => $b->charge_label,
+                        'is_active'      => (bool) $b->is_active,
+                    ])
+                    ->values(),
+            ]);
+
+        return $paymentMethods;
+    }
+
+
 }

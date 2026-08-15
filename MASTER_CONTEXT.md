@@ -111,18 +111,18 @@
 | 4.2         | Delivery Details                                    | ✅     |
 | 4.3         | Multi-Payment (sale_payments)                       | ✅     |
 | 4.4         | POS Payment Type Selection                          | ✅     |
+| 4.5         | COD Delivery + Payment Collection                   | ✅     |
 
 ## Pending Work — Sprint Order
 
 ### Sprint 2 — Sales/Delivery/Payment Core
 
-| #   | Item                              | Priority   |
-| --- | --------------------------------- | ---------- |
-| 4.5 | COD Delivery + Payment Collection | Must Fix   |
-| 4.6 | Courier Manual Fields             | Must Fix   |
-| 4.7 | Sales History Page                | Must Fix   |
-| 4.8 | Sale Status History               | Must Fix   |
-| 4.9 | Order Confirmation Email          | Should Fix |
+| #   | Item                     | Priority   |
+| --- | ------------------------ | ---------- |
+| 4.6 | Courier Manual Fields    | Must Fix   |
+| 4.7 | Sales History Page       | Must Fix   |
+| 4.8 | Sale Status History      | Must Fix   |
+| 4.9 | Order Confirmation Email | Should Fix |
 
 ### Sprint 3 — Fraud Protection
 

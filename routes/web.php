@@ -266,6 +266,8 @@ Route::middleware(['auth', 'verified'])
 
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])
                 ->name('pos.sales.destroy');
+
+            Route::post('sales/{sale}/collect-cod-payment', [SaleController::class, 'collectCodPayment'])->name('pos.sales.collect-cod-payment');
         });
 
         // ─── Step 10: Invoices ────────────────────────────────────────────────────

@@ -78,10 +78,33 @@ interface Filters {
     date_to?: string;
 }
 
+// ── PaymentMethod types (Props interface এর আগে add করো) ────────────────────
+interface PaymentMethodBank {
+    id: number;
+    bank_name: string;
+    charge_type: "percent" | "fixed" | null;
+    charge_value: number;
+    charge_enabled: boolean;
+    charge_label: string | null;
+    is_active: boolean;
+}
+
+interface PaymentMethod {
+    id: number;
+    name: string;
+    type: string | null;
+    charge_enabled: boolean;
+    online_charge_type: "percent" | "fixed" | null;
+    online_charge_value: number;
+    charge_label: string | null;
+    banks: PaymentMethodBank[];
+}
+
 interface Props {
     sales: PaginatedSales;
     stats: Stats;
     filters: Filters;
+    paymentMethods: PaymentMethod[];
     can: {
         view: boolean;
         create: boolean;
@@ -205,7 +228,13 @@ export const DELIVERY_STATUS_OPTIONS: {
 
 const VIEW_STORAGE_KEY = "masterpos_sales_view";
 
-export default function SalesIndex({ sales, stats, filters, can }: Props) {
+export default function SalesIndex({
+    sales,
+    stats,
+    filters,
+    paymentMethods,
+    can,
+}: Props) {
     useFlashToast();
 
     const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
@@ -585,7 +614,11 @@ export default function SalesIndex({ sales, stats, filters, can }: Props) {
                         }
                     `}</style>
                     {viewMode === "list" ? (
-                        <SaleTable sales={sales.data} can={can} />
+                        <SaleTable
+                            sales={sales.data}
+                            paymentMethods={paymentMethods}
+                            can={can}
+                        />
                     ) : (
                         <SaleGrid sales={sales.data} can={can} />
                     )}

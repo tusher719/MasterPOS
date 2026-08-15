@@ -409,6 +409,8 @@ For product-based partner profit:
 - Only sales of products assigned to that partner during the assignment effective period are counted
 - Sale date must fall within assignment effective_from → effective_to range
 
+---
+
 ## 22. Sale Payment Rules (Item 4.3)
 
 - sale_payments is the authoritative source for all payment tracking — sales.paid_amount is derived, never set directly after creation
@@ -421,6 +423,19 @@ For product-based partner profit:
 - COD sales have paid_amount = 0 at creation — no payment row is created until Item 4.5 (delivery + collection)
 - One sale can have multiple payment entries (partial payments, additional payments collected later)
 - payment_method_bank_id is only set when payment_method.type = 'bank_transfer'
+
+---
+
+## 24. COD Payment Collection Rules (Item 4.5)
+
+- COD payment collection is a single combined action — delivery_status → delivered,
+  order_status → delivered, SalePayment created in one DB::transaction()
+- Partial collection allowed — customer can pay less than grand_total/due_amount
+- Already-delivered guard prevents duplicate collection (idempotency check on backend)
+- "Collect" button shown only when: payment_type=cash_on_delivery AND
+  delivery_status≠delivered AND deleted_at IS NULL AND can.create=true
+- Collection creates a verified SalePayment immediately (payment_status_manual='verified')
+- recalculatePaymentStatus() called after every collection — single source of truth
 
 ---
 

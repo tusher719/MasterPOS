@@ -1,7 +1,10 @@
+// resources/js/Pages/Backend/POS/Sales/_components/SaleTable.tsx
+
 import { confirmAction } from "@/lib/confirm";
 import { formatDateTime } from "@/lib/formatDateTime";
 import { Link, router } from "@inertiajs/react";
-import { Eye, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, PackageCheck, RotateCcw, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
     type Sale,
@@ -10,15 +13,41 @@ import {
     ORDER_STATUS_OPTIONS,
     PAYMENT_TYPE_OPTIONS,
 } from "../Index";
+import CollectCodPaymentModal from "./CollectCodPaymentModal";
+
+// ── PaymentMethod type (mirrors what salesList() passes down) ─────────────────
+interface PaymentMethodBank {
+    id: number;
+    bank_name: string;
+    charge_type: "percent" | "fixed" | null;
+    charge_value: number;
+    charge_enabled: boolean;
+    charge_label: string | null;
+    is_active: boolean;
+}
+
+interface PaymentMethod {
+    id: number;
+    name: string;
+    type: string | null;
+    charge_enabled: boolean;
+    online_charge_type: "percent" | "fixed" | null;
+    online_charge_value: number;
+    charge_label: string | null;
+    banks: PaymentMethodBank[];
+}
 
 interface Props {
     sales: Sale[];
+    paymentMethods: PaymentMethod[];
     can: {
         view: boolean;
         delete: boolean;
         restore: boolean;
     };
 }
+
+// ── Badge helpers (unchanged) ─────────────────────────────────────────────────
 
 const paymentStatusBadge: Record<string, string> = {
     paid: "bg-green-100 text-green-700",
@@ -77,7 +106,12 @@ function DeliveryStatusBadge({ status }: { status: Sale["delivery_status"] }) {
     );
 }
 
-export default function SaleTable({ sales, can }: Props) {
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function SaleTable({ sales, paymentMethods, can }: Props) {
+    // COD modal state — which sale is being collected
+    const [codSale, setCodSale] = useState<Sale | null>(null);
+
     const handleVoid = async (sale: Sale) => {
         const ok = await confirmAction({
             title: "Void Sale?",
@@ -118,191 +152,245 @@ export default function SaleTable({ sales, can }: Props) {
         );
     }
 
+    // A sale is COD-collectable when:
+    //   payment_type = cash_on_delivery AND delivery_status ≠ delivered AND not voided
+    const isCodCollectable = (sale: Sale) =>
+        sale.payment_type === "cash_on_delivery" &&
+        sale.delivery_status !== "delivered" &&
+        !sale.deleted_at;
+
     return (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table className="w-full text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50">
-                    <tr>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Reference
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Date
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Customer
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Items
-                        </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
-                            Grand Total
-                        </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
-                            Paid
-                        </th>
-                        <th className="px-4 py-3 text-right font-medium text-gray-500">
-                            Due
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Payment
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Order Status
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Type
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            Delivery
-                        </th>
-                        <th className="px-4 py-3 text-left font-medium text-gray-500">
-                            D.Status
-                        </th>
-                        <th className="px-4 py-3 text-center font-medium text-gray-500">
-                            Actions
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                    {sales.map((sale) => {
-                        const isDeleted = !!sale.deleted_at;
-                        return (
-                            <tr
-                                key={sale.id}
-                                className={
-                                    isDeleted
-                                        ? "bg-red-50 opacity-70"
-                                        : "hover:bg-gray-50"
-                                }
-                            >
-                                {/* Reference */}
-                                <td className="px-4 py-3">
-                                    <span className="font-medium text-indigo-600">
-                                        {sale.reference_no}
-                                    </span>
-                                    {isDeleted && (
-                                        <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
-                                            Voided
+        <>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                <table className="w-full text-sm">
+                    <thead className="border-b border-gray-100 bg-gray-50">
+                        <tr>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Reference
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Date
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Customer
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Items
+                            </th>
+                            <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                Grand Total
+                            </th>
+                            <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                Paid
+                            </th>
+                            <th className="px-4 py-3 text-right font-medium text-gray-500">
+                                Due
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Payment
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Order Status
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Type
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Delivery
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                D.Status
+                            </th>
+                            <th className="px-4 py-3 text-center font-medium text-gray-500">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {sales.map((sale) => {
+                            const isDeleted = !!sale.deleted_at;
+                            const showCollect =
+                                can.create && isCodCollectable(sale);
+
+                            return (
+                                <tr
+                                    key={sale.id}
+                                    className={
+                                        isDeleted
+                                            ? "bg-red-50 opacity-70"
+                                            : "hover:bg-gray-50"
+                                    }
+                                >
+                                    {/* Reference */}
+                                    <td className="px-4 py-3">
+                                        <span className="font-medium text-indigo-600">
+                                            {sale.reference_no}
                                         </span>
-                                    )}
-                                </td>
+                                        {isDeleted && (
+                                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
+                                                Voided
+                                            </span>
+                                        )}
+                                    </td>
 
-                                {/* Date */}
-                                <td className="px-4 py-3 text-gray-600">
-                                    {formatDateTime(sale.sale_date)}
-                                </td>
+                                    {/* Date */}
+                                    <td className="px-4 py-3 text-gray-600">
+                                        {formatDateTime(sale.sale_date)}
+                                    </td>
 
-                                {/* Customer */}
-                                <td className="px-4 py-3 text-gray-700">
-                                    {sale.customer?.name ?? (
-                                        <span className="italic text-gray-400">
-                                            Walk-in
+                                    {/* Customer */}
+                                    <td className="px-4 py-3 text-gray-700">
+                                        {sale.customer?.name ?? (
+                                            <span className="italic text-gray-400">
+                                                Walk-in
+                                            </span>
+                                        )}
+                                    </td>
+
+                                    {/* Items */}
+                                    <td className="px-4 py-3 text-gray-600">
+                                        {sale.items_count}
+                                    </td>
+
+                                    {/* Grand Total */}
+                                    <td className="px-4 py-3 text-right font-medium text-gray-800">
+                                        ৳{Number(sale.grand_total).toFixed(2)}
+                                    </td>
+
+                                    {/* Paid */}
+                                    <td className="px-4 py-3 text-right font-medium text-green-600">
+                                        ৳{Number(sale.paid_amount).toFixed(2)}
+                                    </td>
+
+                                    {/* Due */}
+                                    <td className="px-4 py-3 text-right font-medium text-red-500">
+                                        {Number(sale.due_amount) > 0
+                                            ? `৳${Number(sale.due_amount).toFixed(2)}`
+                                            : "—"}
+                                    </td>
+
+                                    {/* Payment Status */}
+                                    <td className="px-4 py-3">
+                                        <span
+                                            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${paymentStatusBadge[sale.payment_status]}`}
+                                        >
+                                            {sale.payment_status}
                                         </span>
-                                    )}
-                                </td>
+                                    </td>
 
-                                {/* Items Count */}
-                                <td className="px-4 py-3 text-gray-600">
-                                    {sale.items_count}
-                                </td>
+                                    {/* Order Status */}
+                                    <td className="px-4 py-3">
+                                        <OrderStatusBadge
+                                            status={sale.order_status}
+                                        />
+                                    </td>
 
-                                {/* Grand Total */}
-                                <td className="px-4 py-3 text-right font-medium text-gray-800">
-                                    ৳{Number(sale.grand_total).toFixed(2)}
-                                </td>
+                                    {/* Payment Type */}
+                                    <td className="px-4 py-3">
+                                        <PaymentTypeBadge
+                                            type={sale.payment_type}
+                                        />
+                                    </td>
 
-                                {/* Paid */}
-                                <td className="px-4 py-3 text-right font-medium text-green-600">
-                                    ৳{Number(sale.paid_amount).toFixed(2)}
-                                </td>
+                                    {/* Delivery Type */}
+                                    <td className="px-4 py-3">
+                                        <DeliveryTypeBadge
+                                            type={sale.delivery_type}
+                                        />
+                                    </td>
 
-                                {/* Due */}
-                                <td className="px-4 py-3 text-right font-medium text-red-500">
-                                    {Number(sale.due_amount) > 0
-                                        ? `৳${Number(sale.due_amount).toFixed(2)}`
-                                        : "—"}
-                                </td>
+                                    {/* Delivery Status */}
+                                    <td className="px-4 py-3">
+                                        <DeliveryStatusBadge
+                                            status={sale.delivery_status}
+                                        />
+                                    </td>
 
-                                {/* Payment Status */}
-                                <td className="px-4 py-3">
-                                    <span
-                                        className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${paymentStatusBadge[sale.payment_status]}`}
-                                    >
-                                        {sale.payment_status}
-                                    </span>
-                                </td>
+                                    {/* Actions */}
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center justify-center gap-1">
+                                            {/* View */}
+                                            {can.view && !isDeleted && (
+                                                <Link
+                                                    href={route(
+                                                        "backend.pos.sales.show",
+                                                        sale.id,
+                                                    )}
+                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+                                                    title="View Receipt"
+                                                >
+                                                    <Eye size={15} />
+                                                </Link>
+                                            )}
 
-                                {/* Order Status */}
-                                <td className="px-4 py-3">
-                                    <OrderStatusBadge
-                                        status={sale.order_status}
-                                    />
-                                </td>
+                                            {/* ── Collect COD Payment ── */}
+                                            {showCollect && (
+                                                <button
+                                                    onClick={() =>
+                                                        setCodSale(sale)
+                                                    }
+                                                    className="flex items-center gap-1 rounded-md px-2 py-1
+                                                               text-xs font-medium text-green-700
+                                                               bg-green-50 hover:bg-green-100
+                                                               border border-green-200 transition-colors"
+                                                    title="Collect COD Payment & Mark Delivered"
+                                                >
+                                                    <PackageCheck size={13} />
+                                                    Collect
+                                                </button>
+                                            )}
 
-                                {/* Payment Type */}
-                                <td className="px-4 py-3">
-                                    <PaymentTypeBadge
-                                        type={sale.payment_type}
-                                    />
-                                </td>
+                                            {/* Void */}
+                                            {can.delete && !isDeleted && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleVoid(sale)
+                                                    }
+                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                    title="Void Sale"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            )}
 
-                                {/* Delivery Type */}
-                                <td className="px-4 py-3">
-                                    <DeliveryTypeBadge
-                                        type={sale.delivery_type}
-                                    />
-                                </td>
+                                            {/* Restore */}
+                                            {can.restore && isDeleted && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleRestore(sale)
+                                                    }
+                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600"
+                                                    title="Restore Sale"
+                                                >
+                                                    <RotateCcw size={15} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
 
-                                {/* Delivery Status */}
-                                <td className="px-4 py-3">
-                                    <DeliveryStatusBadge
-                                        status={sale.delivery_status}
-                                    />
-                                </td>
-
-                                {/* Actions */}
-                                <td className="px-4 py-3">
-                                    <div className="flex items-center justify-center gap-1">
-                                        {can.view && !isDeleted && (
-                                            <Link
-                                                href={route(
-                                                    "backend.pos.sales.show",
-                                                    sale.id,
-                                                )}
-                                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
-                                                title="View Receipt"
-                                            >
-                                                <Eye size={15} />
-                                            </Link>
-                                        )}
-                                        {can.delete && !isDeleted && (
-                                            <button
-                                                onClick={() => handleVoid(sale)}
-                                                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                                                title="Void Sale"
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
-                                        )}
-                                        {can.restore && isDeleted && (
-                                            <button
-                                                onClick={() =>
-                                                    handleRestore(sale)
-                                                }
-                                                className="rounded-md p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600"
-                                                title="Restore Sale"
-                                            >
-                                                <RotateCcw size={15} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
+            {/* COD Payment Collection Modal */}
+            {codSale && (
+                <CollectCodPaymentModal
+                    sale={{
+                        id: codSale.id,
+                        reference_no: codSale.reference_no,
+                        grand_total: Number(codSale.grand_total),
+                        paid_amount: Number(codSale.paid_amount),
+                        due_amount: Number(codSale.due_amount),
+                        customer: codSale.customer
+                            ? { name: codSale.customer.name }
+                            : null,
+                    }}
+                    paymentMethods={paymentMethods}
+                    onClose={() => setCodSale(null)}
+                />
+            )}
+        </>
     );
 }
