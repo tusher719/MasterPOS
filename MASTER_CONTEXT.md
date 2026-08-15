@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Sprint 2 — Sales/Delivery/Payment Core (In Progress)
-- **Last Completed:** Item 4.4 — POS Payment Type Selection ✅
+- **Current Step:** Item 4.7 — Sales History Page (In Progress)
+- **Last Completed:** Item 4.6 — Courier Manual Fields ✅
 
 ## Financial Domain Overview
 
@@ -112,6 +112,7 @@
 | 4.3         | Multi-Payment (sale_payments)                       | ✅     |
 | 4.4         | POS Payment Type Selection                          | ✅     |
 | 4.5         | COD Delivery + Payment Collection                   | ✅     |
+| 4.6         | Courier Manual Fields                               | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -119,7 +120,6 @@
 
 | #   | Item                     | Priority   |
 | --- | ------------------------ | ---------- |
-| 4.6 | Courier Manual Fields    | Must Fix   |
 | 4.7 | Sales History Page       | Must Fix   |
 | 4.8 | Sale Status History      | Must Fix   |
 | 4.9 | Order Confirmation Email | Should Fix |

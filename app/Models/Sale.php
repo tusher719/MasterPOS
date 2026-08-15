@@ -32,6 +32,10 @@ class Sale extends Model
         'delivery_address',
         'delivery_contact_phone',
         'delivery_status',
+        'courier_provider',
+        'courier_tracking_id',
+        'courier_status',
+        'courier_note',
         // ─────────────────────────────────────────────────────────
         'note',
         'created_by',
@@ -167,6 +171,24 @@ class Sale extends Model
         return (float) ($this->delivery_charge ?? 0);
     }
 
+    // ─── Courier Helpers ──────────────────────────────────────────
+    /**
+     * Returns true when courier tracking has been assigned.
+     */
+    public function hasCourierInfo(): bool
+    {
+        return ! empty($this->courier_provider) || ! empty($this->courier_tracking_id);
+    }
+
+    /**
+     * Returns true when courier info can be set or edited.
+     * store_pickup orders never need courier tracking.
+     */
+    public function courierEditable(): bool
+    {
+        return $this->delivery_type !== 'store_pickup' && ! $this->trashed();
+    }
+
     // ─── Scopes ───────────────────────────────────────────────────
 
     public function scopeActive($query)
@@ -187,5 +209,10 @@ class Sale extends Model
     public function scopeByDeliveryType($query, string $type)
     {
         return $query->where('delivery_type', $type);
+    }
+
+    public function scopeByCourierStatus($query, string $status)
+    {
+        return $query->where('courier_status', $status);
     }
 }

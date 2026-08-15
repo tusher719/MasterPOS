@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Http\Requests\Backend\UpdateCourierRequest;
 use Inertia\Response;
 
 class SaleController extends Controller
@@ -307,6 +308,7 @@ class SaleController extends Controller
             'trashed',
             'date_from',
             'date_to',
+            'courier_status',
         ]);
 
         $query = Sale::with(['customer', 'paymentMethod', 'creator'])
@@ -349,6 +351,9 @@ class SaleController extends Controller
 
         if (!empty($filters['trashed'])) {
             $query->onlyTrashed();
+        }
+        if (!empty($filters['courier_status'])) {
+            $query->where('courier_status', $filters['courier_status']);
         }
 
         $sales = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
@@ -581,6 +586,45 @@ class SaleController extends Controller
             ]);
 
         return $paymentMethods;
+    }
+
+    // ── Courier Info Update ───────────────────────────────────────────────
+    /**
+     * Update courier provider, tracking ID, status, and note for a sale.
+     * Works for both initial assignment and subsequent edits.
+     * store_pickup sales: courier_provider + courier_status are optional.
+     * inside_dhaka / outside_dhaka / parallel: both are required.
+     */
+    public function updateCourier(UpdateCourierRequest $request, Sale $sale): RedirectResponse
+    {
+        abort_unless(Gate::allows('create', Sale::class), 403);
+
+        if ($sale->trashed()) {
+            return back()->withErrors(['error' => 'Cannot update courier info for a voided sale.']);
+        }
+
+        $data = $request->validated();
+
+        $sale->forceFill([
+            'courier_provider'    => $data['courier_provider'] ?? null,
+            'courier_tracking_id' => $data['courier_tracking_id'] ?? null,
+            'courier_status'      => $data['courier_status'] ?? null,
+            'courier_note'        => $data['courier_note'] ?? null,
+        ])->save();
+
+        ActivityLogService::log(
+            'sales',
+            'courier_updated',
+            'Courier info updated: ' . $sale->reference_no,
+            $sale,
+            [
+                'courier_provider'    => $sale->courier_provider,
+                'courier_tracking_id' => $sale->courier_tracking_id,
+                'courier_status'      => $sale->courier_status,
+            ]
+        );
+
+        return back()->with('success', 'Courier info updated successfully.');
     }
 
 

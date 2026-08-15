@@ -257,6 +257,13 @@ delivery_address (text nullable)
 delivery_contact_phone (varchar nullable)
 delivery_status (enum: pending/dispatched/delivered/failed nullable)
 
+### sales additions (Item 4.6 migration)
+
+courier_provider (varchar nullable)
+courier_tracking_id (varchar nullable)
+courier_status (enum: pending/picked_up/in_transit/delivered/returned/walk_in nullable)
+courier_note (varchar nullable)
+
 ### sale_payments
 
 id, sale_id (FK sales cascade),
@@ -618,6 +625,7 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 | partner_settlement_configs        | applies_to            | capital, working, product, all                                    |
 | partner_profit_eligibilities      | applies_to            | capital, working, product, all                                    |
 | sale_payments                     | payment_status_manual | pending_verification, verified, rejected                          |
+| sales                             | courier_status        | pending, picked_up, in_transit, delivered, returned, walk_in      |
 
 ---
 

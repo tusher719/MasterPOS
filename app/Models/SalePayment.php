@@ -25,10 +25,10 @@ class SalePayment extends Model
     ];
 
     protected $casts = [
-        'amount'          => 'decimal:2',
-        'payment_charge'  => 'decimal:2',
-        'payment_date'    => 'date',
-        'verified_at'     => 'datetime',
+        'amount'         => 'decimal:2',
+        'payment_charge' => 'decimal:2',
+        'payment_date'   => 'date',
+        'verified_at'    => 'datetime',
     ];
 
     // ─── Relationships ────────────────────────────────────────────
@@ -43,9 +43,12 @@ class SalePayment extends Model
         return $this->belongsTo(PaymentMethod::class)->withTrashed();
     }
 
+    /**
+     * PaymentMethodBank has no SoftDeletes — withTrashed() must NOT be called here.
+     */
     public function paymentMethodBank(): BelongsTo
     {
-        return $this->belongsTo(PaymentMethodBank::class)->withTrashed();
+        return $this->belongsTo(PaymentMethodBank::class);
     }
 
     public function verifiedBy(): BelongsTo
@@ -88,7 +91,7 @@ class SalePayment extends Model
     }
 
     /**
-     * Total amount including charge.
+     * Total amount including payment charge.
      */
     public function totalWithCharge(): float
     {

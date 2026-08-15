@@ -2,6 +2,70 @@
 
 ---
 
+## [v2.29 — Item 4.6] — Courier Manual Fields — 2026-08-15
+
+### New Migration (1)
+
+- `add_courier_fields_to_sales_table`:
+  courier_provider (varchar nullable),
+  courier_tracking_id (varchar nullable),
+  courier_status (enum: pending/picked_up/in_transit/delivered/returned/walk_in nullable),
+  courier_note (varchar nullable) — all after delivery_status column
+
+### New Files (2)
+
+- `UpdateCourierRequest.php`: courier_provider + courier_status required when
+  delivery_type is inside_dhaka/outside_dhaka/parallel; courier_tracking_id
+    - courier_note always optional; store_pickup makes all fields optional
+
+- `CourierModal.tsx`: add/edit modal — courier_provider input, tracking_id input,
+  courier_status select (6 options), courier_note textarea; isRequired computed
+  from delivery_type; isEdit detected from existing courier_provider/status;
+  walk_in auto-selected for store_pickup when no status set; backdrop click closes;
+  client-side guard before submit; router.post to backend.pos.sales.update-courier
+
+### Updated Files (5)
+
+- `Sale.php`: courier_provider/tracking_id/status/note added to $fillable;
+  hasCourierInfo() helper; courierEditable() helper; scopeByCourierStatus() scope
+
+- `SaleController.php`: UpdateCourierRequest import added; updateCourier() method
+  added — trashed guard, forceFill courier fields, activity log;
+  salesList() filters array + query block updated with courier_status filter
+
+- `routes/web.php`: POST sales/{sale}/update-courier route added after
+  collect-cod-payment route — name: pos.sales.update-courier
+
+- `Sales/Index.tsx`: CourierStatus type exported; courier fields added to Sale
+  interface; courier_status added to Filters interface; COURIER_STATUS_OPTIONS
+  const exported (6 options); courier_status added to hasFilters; Row 4 filter
+  panel added for courier status button group
+
+- `SaleTable.tsx`: Truck icon imported; CourierModal import added;
+  courierSale state added; CourierStatusBadge component added; Courier th/td
+  added to table; Truck button in actions cell (non-store_pickup, non-voided only);
+  CourierModal rendered at bottom of fragment
+
+### Bug Fix (1)
+
+- `SalePayment.php`: paymentMethodBank() relation — withTrashed() removed;
+  PaymentMethodBank has no SoftDeletes, calling withTrashed() caused
+  RelationNotFoundException on Sale show page
+
+### Business Rules Established
+
+- courier_provider + courier_status required when delivery_type is
+  inside_dhaka/outside_dhaka/parallel; always optional for store_pickup
+- courier_tracking_id always optional regardless of delivery type
+- walk_in status auto-suggested for store_pickup orders
+- Courier info editable any time while sale is not voided
+- Truck icon button shown for all non-store_pickup, non-voided sales
+- courier_status filter added to Sales History — independent of other filters
+- COD "Collect" button intentionally COD-only — Half Paid due collection
+  handled in Item 4.7 via Payment History modal
+
+---
+
 ## [v2.28 — Item 4.5] — COD Delivery + Payment Collection — 2026-08-14
 
 ### Updated Files (3)

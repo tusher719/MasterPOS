@@ -25,6 +25,14 @@ export type DeliveryType =
 
 export type DeliveryStatus = "pending" | "dispatched" | "delivered" | "failed";
 
+export type CourierStatus =
+    | "pending"
+    | "picked_up"
+    | "in_transit"
+    | "delivered"
+    | "returned"
+    | "walk_in";
+
 export interface Sale {
     id: number;
     reference_no: string;
@@ -45,6 +53,11 @@ export interface Sale {
     delivery_address: string | null;
     delivery_contact_phone: string | null;
     delivery_status: DeliveryStatus | null;
+    // ── Item 4.6 — Courier ───────────────────────────────────────
+    courier_provider: string | null;
+    courier_tracking_id: string | null;
+    courier_status: CourierStatus | null;
+    courier_note: string | null;
     // ─────────────────────────────────────────────────────────────
     deleted_at: string | null;
     created_at: string;
@@ -73,6 +86,7 @@ interface Filters {
     payment_type?: string;
     delivery_type?: string;
     delivery_status?: string;
+    courier_status?: string;
     trashed?: string;
     date_from?: string;
     date_to?: string;
@@ -226,6 +240,43 @@ export const DELIVERY_STATUS_OPTIONS: {
     },
 ];
 
+export const COURIER_STATUS_OPTIONS: {
+    value: CourierStatus;
+    label: string;
+    classes: string;
+}[] = [
+    {
+        value: "pending",
+        label: "Pending",
+        classes: "bg-amber-100 text-amber-700",
+    },
+    {
+        value: "picked_up",
+        label: "Picked Up",
+        classes: "bg-blue-100 text-blue-700",
+    },
+    {
+        value: "in_transit",
+        label: "In Transit",
+        classes: "bg-indigo-100 text-indigo-700",
+    },
+    {
+        value: "delivered",
+        label: "Delivered",
+        classes: "bg-green-100 text-green-700",
+    },
+    {
+        value: "returned",
+        label: "Returned",
+        classes: "bg-red-100 text-red-600",
+    },
+    {
+        value: "walk_in",
+        label: "Walk-in",
+        classes: "bg-gray-100 text-gray-600",
+    },
+];
+
 const VIEW_STORAGE_KEY = "masterpos_sales_view";
 
 export default function SalesIndex({
@@ -274,6 +325,7 @@ export default function SalesIndex({
         filters.payment_type ||
         filters.delivery_type ||
         filters.delivery_status ||
+        filters.courier_status ||
         filters.trashed ||
         filters.date_from ||
         filters.date_to;
@@ -590,6 +642,50 @@ export default function SalesIndex({
                                         ${
                                             filters.delivery_status ===
                                             opt.value
+                                                ? opt.classes +
+                                                  " ring-1 ring-inset ring-current"
+                                                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Row 4 — Courier Status */}
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1">
+                            <span className="mr-1 text-xs font-medium text-gray-500">
+                                Courier:
+                            </span>
+                            <button
+                                onClick={() =>
+                                    handleFilter("courier_status", "")
+                                }
+                                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                    ${
+                                        !filters.courier_status
+                                            ? "bg-gray-700 text-white"
+                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                All
+                            </button>
+                            {COURIER_STATUS_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() =>
+                                        handleFilter(
+                                            "courier_status",
+                                            filters.courier_status === opt.value
+                                                ? ""
+                                                : opt.value,
+                                        )
+                                    }
+                                    className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
+                                        ${
+                                            filters.courier_status === opt.value
                                                 ? opt.classes +
                                                   " ring-1 ring-inset ring-current"
                                                 : "border border-gray-300 text-gray-600 hover:bg-gray-50"

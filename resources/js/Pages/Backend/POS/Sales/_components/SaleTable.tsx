@@ -3,17 +3,19 @@
 import { confirmAction } from "@/lib/confirm";
 import { formatDateTime } from "@/lib/formatDateTime";
 import { Link, router } from "@inertiajs/react";
-import { Eye, PackageCheck, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, PackageCheck, RotateCcw, Trash2, Truck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
     type Sale,
+    COURIER_STATUS_OPTIONS,
     DELIVERY_STATUS_OPTIONS,
     DELIVERY_TYPE_OPTIONS,
     ORDER_STATUS_OPTIONS,
     PAYMENT_TYPE_OPTIONS,
 } from "../Index";
 import CollectCodPaymentModal from "./CollectCodPaymentModal";
+import CourierModal from "./CourierModal";
 
 // ── PaymentMethod type (mirrors what salesList() passes down) ─────────────────
 interface PaymentMethodBank {
@@ -47,7 +49,7 @@ interface Props {
     };
 }
 
-// ── Badge helpers (unchanged) ─────────────────────────────────────────────────
+// ── Badge helpers ─────────────────────────────────────────────────────────────
 
 const paymentStatusBadge: Record<string, string> = {
     paid: "bg-green-100 text-green-700",
@@ -106,11 +108,24 @@ function DeliveryStatusBadge({ status }: { status: Sale["delivery_status"] }) {
     );
 }
 
+function CourierStatusBadge({ status }: { status: Sale["courier_status"] }) {
+    if (!status) return <span className="text-gray-400">—</span>;
+    const opt = COURIER_STATUS_OPTIONS.find((o) => o.value === status);
+    if (!opt) return null;
+    return (
+        <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${opt.classes}`}
+        >
+            {opt.label}
+        </span>
+    );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SaleTable({ sales, paymentMethods, can }: Props) {
-    // COD modal state — which sale is being collected
     const [codSale, setCodSale] = useState<Sale | null>(null);
+    const [courierSale, setCourierSale] = useState<Sale | null>(null);
 
     const handleVoid = async (sale: Sale) => {
         const ok = await confirmAction({
@@ -152,8 +167,6 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
         );
     }
 
-    // A sale is COD-collectable when:
-    //   payment_type = cash_on_delivery AND delivery_status ≠ delivered AND not voided
     const isCodCollectable = (sale: Sale) =>
         sale.payment_type === "cash_on_delivery" &&
         sale.delivery_status !== "delivered" &&
@@ -200,6 +213,9 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                             </th>
                             <th className="px-4 py-3 text-left font-medium text-gray-500">
                                 D.Status
+                            </th>
+                            <th className="px-4 py-3 text-left font-medium text-gray-500">
+                                Courier
                             </th>
                             <th className="px-4 py-3 text-center font-medium text-gray-500">
                                 Actions
@@ -306,6 +322,13 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                         />
                                     </td>
 
+                                    {/* Courier Status */}
+                                    <td className="px-4 py-3">
+                                        <CourierStatusBadge
+                                            status={sale.courier_status}
+                                        />
+                                    </td>
+
                                     {/* Actions */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-1">
@@ -339,6 +362,26 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                                     Collect
                                                 </button>
                                             )}
+
+                                            {/* Courier info */}
+                                            {can.create &&
+                                                !isDeleted &&
+                                                sale.delivery_type !==
+                                                    "store_pickup" && (
+                                                    <button
+                                                        onClick={() =>
+                                                            setCourierSale(sale)
+                                                        }
+                                                        className="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
+                                                        title={
+                                                            sale.courier_provider
+                                                                ? "Edit Courier Info"
+                                                                : "Add Courier Info"
+                                                        }
+                                                    >
+                                                        <Truck size={15} />
+                                                    </button>
+                                                )}
 
                                             {/* Void */}
                                             {can.delete && !isDeleted && (
@@ -389,6 +432,14 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                     }}
                     paymentMethods={paymentMethods}
                     onClose={() => setCodSale(null)}
+                />
+            )}
+
+            {/* Courier Modal */}
+            {courierSale && (
+                <CourierModal
+                    sale={courierSale}
+                    onClose={() => setCourierSale(null)}
                 />
             )}
         </>

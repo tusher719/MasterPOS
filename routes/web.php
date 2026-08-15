@@ -268,6 +268,9 @@ Route::middleware(['auth', 'verified'])
                 ->name('pos.sales.destroy');
 
             Route::post('sales/{sale}/collect-cod-payment', [SaleController::class, 'collectCodPayment'])->name('pos.sales.collect-cod-payment');
+
+            // ── Item 4.6 — Courier info update ───────────────────────────
+            Route::post('sales/{sale}/update-courier', [SaleController::class, 'updateCourier'])->name('pos.sales.update-courier');
         });
 
         // ─── Step 10: Invoices ────────────────────────────────────────────────────
