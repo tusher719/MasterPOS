@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Item 4.7 — Sales History Page (In Progress)
-- **Last Completed:** Item 4.6 — Courier Manual Fields ✅
+- **Current Step:** Item 4.8 — Sale Status History (In Progress)
+- **Last Completed:** Item 4.7 — Sales History Page ✅
 
 ## Financial Domain Overview
 
@@ -113,6 +113,7 @@
 | 4.4         | POS Payment Type Selection                          | ✅     |
 | 4.5         | COD Delivery + Payment Collection                   | ✅     |
 | 4.6         | Courier Manual Fields                               | ✅     |
+| 4.7         | Sales History Page                                  | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -120,7 +121,6 @@
 
 | #   | Item                     | Priority   |
 | --- | ------------------------ | ---------- |
-| 4.7 | Sales History Page       | Must Fix   |
 | 4.8 | Sale Status History      | Must Fix   |
 | 4.9 | Order Confirmation Email | Should Fix |
 

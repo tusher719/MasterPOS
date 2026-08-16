@@ -4,25 +4,29 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\StoreSaleRequest;
+use App\Http\Requests\Backend\StoreAdditionalPaymentRequest;
+use App\Http\Requests\Backend\UpdateCourierRequest;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
+use App\Models\SaleStatusHistory;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
 use App\Services\SaleStockService;
+use App\Services\SettingsService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Http\Requests\Backend\UpdateCourierRequest;
 use Inertia\Response;
 
 class SaleController extends Controller
@@ -31,7 +35,7 @@ class SaleController extends Controller
 
     public function __construct(private SaleStockService $stockService) {}
 
-    // ─── POS Terminal ─────────────────────────────────────────────
+    // ─── POS Terminal ─────────────────────────────────────────────────────────
 
     public function index(): Response
     {
@@ -86,35 +90,7 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'phone', 'email']);
 
-        // Map payment methods with all charge fields + active banks
-        $paymentMethods = PaymentMethod::with('banks')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn($pm) => [
-                'id'                  => $pm->id,
-                'name'                => $pm->name,
-                'type'                => $pm->type,
-                'charge_enabled'      => (bool) $pm->charge_enabled,
-                'online_charge_type'  => $pm->online_charge_type,
-                'online_charge_value' => (float) $pm->online_charge_value,
-                'charge_label'        => $pm->charge_label,
-                'banks'               => $pm->banks
-                    ->where('is_active', true)
-                    ->map(fn($b) => [
-                        'id'             => $b->id,
-                        'bank_name'      => $b->bank_name,
-                        'account_number' => $b->account_number,
-                        'account_name'   => $b->account_name,
-                        'charge_type'    => $b->charge_type,
-                        'charge_value'   => (float) $b->charge_value,
-                        'charge_enabled' => (bool) $b->charge_enabled,
-                        'charge_label'   => $b->charge_label,
-                        'is_active'      => (bool) $b->is_active,
-                    ])
-                    ->values(),
-            ]);
+        $paymentMethods = $this->mapPaymentMethods();
 
         return Inertia::render('Backend/POS/Index', [
             'products'       => $products,
@@ -128,7 +104,7 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Process Sale ─────────────────────────────────────────────
+    // ─── Process Sale ──────────────────────────────────────────────────────────
 
     /**
      * POS checkout — returns JSON {id, reference_no}.
@@ -138,12 +114,10 @@ class SaleController extends Controller
     {
         $this->authorize('create', Sale::class);
 
-        $data = $request->validated();
-
+        $data   = $request->validated();
         $saleId = null;
 
         DB::transaction(function () use ($data, &$saleId) {
-            // ── Calculate item subtotal ───────────────────────────
             $subtotal = collect($data['items'])->sum(function ($item) {
                 return ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0);
             });
@@ -151,7 +125,6 @@ class SaleController extends Controller
             $discount = (float) ($data['discount'] ?? 0);
             $tax      = (float) ($data['tax'] ?? 0);
 
-            // ── Delivery charge ───────────────────────────────────
             $deliveryChargeFree = (bool) ($data['delivery_charge_free'] ?? false);
             $deliveryType       = $data['delivery_type'] ?? null;
             $deliveryCharge     = 0.0;
@@ -160,15 +133,9 @@ class SaleController extends Controller
                 $deliveryCharge = (float) ($data['delivery_charge'] ?? 0);
             }
 
-            $grandTotal = $subtotal - $discount + $tax + $deliveryCharge;
-
-            // ── Payment charge ────────────────────────────────────
-            // Calculated at POS and passed in — stored on sale_payments row,
-            // not on the sales table. Grand total does NOT include charge
-            // (charge is a pass-through cost to the customer, tracked separately).
+            $grandTotal    = $subtotal - $discount + $tax + $deliveryCharge;
             $paymentCharge = (float) ($data['payment_charge'] ?? 0);
 
-            // ── COD guard — no upfront payment ───────────────────
             $paymentType       = $data['payment_type'] ?? null;
             $isCOD             = $paymentType === 'cash_on_delivery';
             $initialPaidAmount = $isCOD ? 0.0 : (float) ($data['paid_amount'] ?? 0);
@@ -180,13 +147,11 @@ class SaleController extends Controller
                 default                           => 'partial',
             };
 
-            // ── Delivery status ───────────────────────────────────
             $deliveryStatus = null;
             if ($deliveryType && $deliveryType !== 'store_pickup') {
                 $deliveryStatus = $data['delivery_status'] ?? 'pending';
             }
 
-            // ── Create sale ───────────────────────────────────────
             $sale = Sale::create([
                 'reference_no'           => Sale::generateReference(),
                 'customer_id'            => $data['customer_id'] ?? null,
@@ -211,7 +176,6 @@ class SaleController extends Controller
                 'created_by'             => Auth::id(),
             ]);
 
-            // ── Create sale items ─────────────────────────────────
             foreach ($data['items'] as $item) {
                 SaleItem::create([
                     'sale_id'    => $sale->id,
@@ -224,7 +188,6 @@ class SaleController extends Controller
                 ]);
             }
 
-            // ── Create initial sale_payment row (non-COD, paid > 0) ──
             if (! $isCOD && $initialPaidAmount > 0) {
                 SalePayment::create([
                     'sale_id'                => $sale->id,
@@ -236,25 +199,29 @@ class SaleController extends Controller
                     'reference'              => $data['payment_reference'] ?? null,
                     'note'                   => null,
                     'payment_proof_image'    => null,
-                    'payment_status_manual'  => 'verified', // POS: immediate verification
+                    'payment_status_manual'  => 'verified',
                     'transaction_id'         => $data['transaction_id'] ?? null,
                     'verified_by'            => Auth::id(),
                     'verified_at'            => now(),
                     'created_by'             => Auth::id(),
                 ]);
 
-                // Sync paid_amount / due_amount / payment_status from actual rows
                 $sale->recalculatePaymentStatus();
             }
 
-            // ── Stock deduction ───────────────────────────────────
+            // Initial status history entry
+            SaleStatusHistory::create([
+                'sale_id'    => $sale->id,
+                'status'     => 'processing',
+                'note'       => 'Sale created.',
+                'changed_by' => Auth::id(),
+            ]);
+
             $sale->load('items');
             $this->stockService->applyStock($sale);
 
-            // ── Activity log ──────────────────────────────────────
             ActivityLogService::log(
-                'sales',
-                'create',
+                'sales', 'create',
                 'Sale created: ' . $sale->reference_no,
                 $sale,
                 [
@@ -270,7 +237,6 @@ class SaleController extends Controller
                 ]
             );
 
-            // ── Notification ──────────────────────────────────────
             $admins = \App\Models\User::role('Admin')->get();
             if ($admins->isNotEmpty()) {
                 Notification::send($admins, new NewSaleNotification(
@@ -292,29 +258,29 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Sales History List ───────────────────────────────────────
+    // ─── Sales History List ────────────────────────────────────────────────────
 
     public function salesList(): Response
     {
         $this->authorize('viewAny', Sale::class);
 
         $filters = request()->only([
-            'search',
-            'status',
-            'order_status',
-            'payment_type',
-            'delivery_type',
-            'delivery_status',
-            'trashed',
-            'date_from',
-            'date_to',
-            'courier_status',
+            'search', 'status', 'order_status', 'payment_type',
+            'delivery_type', 'delivery_status', 'trashed',
+            'date_from', 'date_to', 'courier_status',
         ]);
 
-        $query = Sale::with(['customer', 'paymentMethod', 'creator'])
-            ->withCount('items');
+        $query = Sale::with([
+            'customer',
+            'paymentMethod',
+            'creator',
+            'salePayments.paymentMethod',
+            'salePayments.paymentMethodBank',
+            'salePayments.verifiedBy',
+        ])
+        ->withCount('items');
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('reference_no', 'like', "%{$search}%")
@@ -322,39 +288,15 @@ class SaleController extends Controller
             });
         }
 
-        if (!empty($filters['status'])) {
-            $query->where('payment_status', $filters['status']);
-        }
-
-        if (!empty($filters['order_status'])) {
-            $query->where('order_status', $filters['order_status']);
-        }
-
-        if (!empty($filters['payment_type'])) {
-            $query->where('payment_type', $filters['payment_type']);
-        }
-
-        if (!empty($filters['delivery_type'])) {
-            $query->where('delivery_type', $filters['delivery_type']);
-        }
-
-        if (!empty($filters['delivery_status'])) {
-            $query->where('delivery_status', $filters['delivery_status']);
-        }
-
-        if (!empty($filters['date_from'])) {
-            $query->whereDate('sale_date', '>=', $filters['date_from']);
-        }
-        if (!empty($filters['date_to'])) {
-            $query->whereDate('sale_date', '<=', $filters['date_to']);
-        }
-
-        if (!empty($filters['trashed'])) {
-            $query->onlyTrashed();
-        }
-        if (!empty($filters['courier_status'])) {
-            $query->where('courier_status', $filters['courier_status']);
-        }
+        if (! empty($filters['status']))          $query->where('payment_status', $filters['status']);
+        if (! empty($filters['order_status']))    $query->where('order_status', $filters['order_status']);
+        if (! empty($filters['payment_type']))    $query->where('payment_type', $filters['payment_type']);
+        if (! empty($filters['delivery_type']))   $query->where('delivery_type', $filters['delivery_type']);
+        if (! empty($filters['delivery_status'])) $query->where('delivery_status', $filters['delivery_status']);
+        if (! empty($filters['courier_status']))  $query->where('courier_status', $filters['courier_status']);
+        if (! empty($filters['date_from']))       $query->whereDate('sale_date', '>=', $filters['date_from']);
+        if (! empty($filters['date_to']))         $query->whereDate('sale_date', '<=', $filters['date_to']);
+        if (! empty($filters['trashed']))         $query->onlyTrashed();
 
         $sales = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
 
@@ -365,38 +307,11 @@ class SaleController extends Controller
             'due_amount'    => (float) Sale::where('payment_status', '!=', 'paid')->sum('due_amount'),
         ];
 
-        $paymentMethods = PaymentMethod::with('banks')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn($pm) => [
-                'id'                  => $pm->id,
-                'name'                => $pm->name,
-                'type'                => $pm->type,
-                'charge_enabled'      => (bool) $pm->charge_enabled,
-                'online_charge_type'  => $pm->online_charge_type,
-                'online_charge_value' => (float) $pm->online_charge_value,
-                'charge_label'        => $pm->charge_label,
-                'banks'               => $pm->banks
-                    ->where('is_active', true)
-                    ->map(fn($b) => [
-                        'id'             => $b->id,
-                        'bank_name'      => $b->bank_name,
-                        'charge_type'    => $b->charge_type,
-                        'charge_value'   => (float) $b->charge_value,
-                        'charge_enabled' => (bool) $b->charge_enabled,
-                        'charge_label'   => $b->charge_label,
-                        'is_active'      => (bool) $b->is_active,
-                    ])
-                    ->values(),
-            ]);
-
         return Inertia::render('Backend/POS/Sales/Index', [
             'sales'          => $sales,
             'stats'          => $stats,
             'filters'        => $filters,
-            'paymentMethods' => $paymentMethods,
+            'paymentMethods' => $this->mapPaymentMethods(),
             'can'            => [
                 'view'    => Gate::allows('viewAny', Sale::class),
                 'create'  => Gate::allows('create', Sale::class),
@@ -406,7 +321,7 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Sale Detail ──────────────────────────────────────────────
+    // ─── Sale Detail ───────────────────────────────────────────────────────────
 
     public function show(Sale $sale): Response
     {
@@ -431,7 +346,7 @@ class SaleController extends Controller
         ]);
     }
 
-    // ─── Void Sale ────────────────────────────────────────────────
+    // ─── Void Sale ─────────────────────────────────────────────────────────────
 
     public function destroy(Sale $sale): RedirectResponse
     {
@@ -443,8 +358,7 @@ class SaleController extends Controller
             $sale->delete();
 
             ActivityLogService::log(
-                'sales',
-                'delete',
+                'sales', 'delete',
                 'Sale voided: ' . $sale->reference_no,
                 $sale,
                 ['grand_total' => $sale->grand_total]
@@ -455,7 +369,7 @@ class SaleController extends Controller
             ->with('success', 'Sale voided successfully.');
     }
 
-    // ─── Restore Voided Sale ──────────────────────────────────────
+    // ─── Restore Voided Sale ───────────────────────────────────────────────────
 
     public function restore(int $id): RedirectResponse
     {
@@ -469,8 +383,7 @@ class SaleController extends Controller
             $this->stockService->reApplyStock($sale);
 
             ActivityLogService::log(
-                'sales',
-                'restore',
+                'sales', 'restore',
                 'Sale restored: ' . $sale->reference_no,
                 $sale,
                 ['grand_total' => $sale->grand_total]
@@ -481,12 +394,8 @@ class SaleController extends Controller
             ->with('success', 'Sale restored successfully.');
     }
 
-    // ── COD Payment Collection ────────────────────────────────────────────
-    /**
-     * Collect payment for a COD sale at delivery.
-     * Sets delivery_status = delivered, order_status = delivered,
-     * creates a SalePayment entry, recalculates payment totals.
-     */
+    // ─── COD Payment Collection ────────────────────────────────────────────────
+
     public function collectCodPayment(Request $request, Sale $sale): RedirectResponse
     {
         $this->authorize('create', Sale::class);
@@ -511,7 +420,6 @@ class SaleController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $sale) {
-            // ── Create payment entry ──────────────────────────────────
             SalePayment::create([
                 'sale_id'                => $sale->id,
                 'payment_method_id'      => $request->payment_method_id,
@@ -529,26 +437,29 @@ class SaleController extends Controller
                 'created_by'             => Auth::id(),
             ]);
 
-            // ── Mark delivered ────────────────────────────────────────
             $sale->forceFill([
                 'delivery_status' => 'delivered',
                 'order_status'    => 'delivered',
             ])->save();
 
-            // ── Recalculate paid_amount / due_amount / payment_status ─
             $sale->recalculatePaymentStatus();
 
-            // ── Activity log ──────────────────────────────────────────
+            SaleStatusHistory::create([
+                'sale_id'    => $sale->id,
+                'status'     => 'delivered',
+                'note'       => 'COD payment collected. Marked as delivered.',
+                'changed_by' => Auth::id(),
+            ]);
+
             ActivityLogService::log(
-                'sales',
-                'cod_payment_collected',
+                'sales', 'cod_payment_collected',
                 'COD payment collected: ' . $sale->reference_no,
                 $sale,
                 [
-                    'amount'           => $request->amount,
-                    'collection_date'  => $request->collection_date,
-                    'delivery_status'  => 'delivered',
-                    'order_status'     => 'delivered',
+                    'amount'          => $request->amount,
+                    'collection_date' => $request->collection_date,
+                    'delivery_status' => 'delivered',
+                    'order_status'    => 'delivered',
                 ]
             );
         });
@@ -556,45 +467,114 @@ class SaleController extends Controller
         return back()->with('success', 'Payment collected and order marked as delivered.');
     }
 
-    public function getPaymentMethods()
+    // ─── Add Additional Payment ────────────────────────────────────────────────
+
+    /**
+     * Add an additional payment entry to any existing sale.
+     * Used by PaymentHistoryModal for Half Paid / partial due collection.
+     * Always creates as verified immediately (POS / admin action).
+     */
+    public function addPayment(StoreAdditionalPaymentRequest $request, Sale $sale): RedirectResponse
     {
-        $paymentMethods = PaymentMethod::with('banks')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn($pm) => [
-                'id'                  => $pm->id,
-                'name'                => $pm->name,
-                'type'                => $pm->type,
-                'charge_enabled'      => (bool) $pm->charge_enabled,
-                'online_charge_type'  => $pm->online_charge_type,
-                'online_charge_value' => (float) $pm->online_charge_value,
-                'charge_label'        => $pm->charge_label,
-                'banks'               => $pm->banks
-                    ->where('is_active', true)
-                    ->map(fn($b) => [
-                        'id'             => $b->id,
-                        'bank_name'      => $b->bank_name,
-                        'charge_type'    => $b->charge_type,
-                        'charge_value'   => (float) $b->charge_value,
-                        'charge_enabled' => (bool) $b->charge_enabled,
-                        'charge_label'   => $b->charge_label,
-                        'is_active'      => (bool) $b->is_active,
-                    ])
-                    ->values(),
+        $this->authorize('create', Sale::class);
+
+        if ($sale->trashed()) {
+            return back()->withErrors(['error' => 'Cannot add payment to a voided sale.']);
+        }
+
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $sale) {
+            SalePayment::create([
+                'sale_id'                => $sale->id,
+                'payment_method_id'      => $data['payment_method_id'],
+                'payment_method_bank_id' => $data['payment_method_bank_id'] ?? null,
+                'amount'                 => $data['amount'],
+                'payment_charge'         => (float) ($data['payment_charge'] ?? 0),
+                'payment_date'           => $data['payment_date'],
+                'reference'              => $data['payment_reference'] ?? null,
+                'transaction_id'         => $data['transaction_id'] ?? null,
+                'note'                   => $data['note'] ?? null,
+                'payment_proof_image'    => null,
+                'payment_status_manual'  => 'verified',
+                'verified_by'            => Auth::id(),
+                'verified_at'            => now(),
+                'created_by'             => Auth::id(),
             ]);
 
-        return $paymentMethods;
+            $sale->recalculatePaymentStatus();
+
+            ActivityLogService::log(
+                'sales', 'payment_added',
+                'Additional payment added: ' . $sale->reference_no,
+                $sale,
+                [
+                    'amount'       => $data['amount'],
+                    'payment_date' => $data['payment_date'],
+                ]
+            );
+        });
+
+        return back()->with('success', 'Payment recorded successfully.');
     }
 
-    // ── Courier Info Update ───────────────────────────────────────────────
+    // ─── Bulk Status Update ────────────────────────────────────────────────────
+
     /**
-     * Update courier provider, tracking ID, status, and note for a sale.
-     * Works for both initial assignment and subsequent edits.
-     * store_pickup sales: courier_provider + courier_status are optional.
-     * inside_dhaka / outside_dhaka / parallel: both are required.
+     * Bulk update order_status for selected sales.
+     * Only safe statuses allowed in bulk: confirmed, out_for_delivery.
+     * cancelled / returned / delivered require individual action (stock reverse, audit).
      */
+    public function bulkStatusUpdate(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Sale::class);
+
+        $request->validate([
+            'ids'    => ['required', 'array', 'min:1'],
+            'ids.*'  => ['integer', 'exists:sales,id'],
+            'status' => ['required', 'in:confirmed,out_for_delivery'],
+        ]);
+
+        $ids    = $request->ids;
+        $status = $request->status;
+
+        $sales = Sale::whereIn('id', $ids)
+            ->whereNull('deleted_at')
+            ->get();
+
+        if ($sales->isEmpty()) {
+            return back()->withErrors(['error' => 'No valid sales found for bulk update.']);
+        }
+
+        DB::transaction(function () use ($sales, $status) {
+            foreach ($sales as $sale) {
+                $previousStatus = $sale->order_status;
+
+                $sale->forceFill(['order_status' => $status])->save();
+
+                SaleStatusHistory::create([
+                    'sale_id'    => $sale->id,
+                    'status'     => $status,
+                    'note'       => "Bulk status update from {$previousStatus}.",
+                    'changed_by' => Auth::id(),
+                ]);
+            }
+
+            ActivityLogService::log(
+                'sales', 'bulk_status_update',
+                "Bulk order status updated to {$status} for " . $sales->count() . ' sales.',
+                null,
+                ['ids' => $sales->pluck('id'), 'status' => $status]
+            );
+        });
+
+        $label = $status === 'confirmed' ? 'Confirmed' : 'Out for Delivery';
+
+        return back()->with('success', $sales->count() . " sale(s) marked as {$label}.");
+    }
+
+    // ─── Courier Info Update ───────────────────────────────────────────────────
+
     public function updateCourier(UpdateCourierRequest $request, Sale $sale): RedirectResponse
     {
         abort_unless(Gate::allows('create', Sale::class), 403);
@@ -613,8 +593,7 @@ class SaleController extends Controller
         ])->save();
 
         ActivityLogService::log(
-            'sales',
-            'courier_updated',
+            'sales', 'courier_updated',
             'Courier info updated: ' . $sale->reference_no,
             $sale,
             [
@@ -627,5 +606,92 @@ class SaleController extends Controller
         return back()->with('success', 'Courier info updated successfully.');
     }
 
+    // ─── Delivery Slip PDF ─────────────────────────────────────────────────────
 
+    /**
+     * Generate a courier-friendly delivery slip PDF.
+     * Shows: customer name/phone/address, items (name + qty only), courier info.
+     * Does NOT show financial details (unit cost, grand total breakdown).
+     */
+    public function deliverySlip(Sale $sale)
+    {
+        abort_unless(Gate::allows('viewAny', Sale::class), 403);
+
+        if ($sale->trashed()) {
+            abort(404);
+        }
+
+        $sale->load([
+            'customer:id,name,phone,address,city',
+            'items.product:id,name,sku',
+            'items.variant:id,attributes',
+        ]);
+
+        $pdf = Pdf::loadView('pdf.delivery-slip', [
+            'sale'     => $sale,
+            'business' => $this->resolveBusinessProfile(),
+        ])->setPaper('a5', 'portrait');
+
+        $filename = 'DeliverySlip-' . $sale->reference_no . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    // ─── Private Helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Map payment methods with all charge fields + active banks.
+     * Used in both index() and salesList() — DRY.
+     */
+    private function mapPaymentMethods(): array
+    {
+        return PaymentMethod::with('banks')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($pm) => [
+                'id'                  => $pm->id,
+                'name'                => $pm->name,
+                'type'                => $pm->type,
+                'charge_enabled'      => (bool) $pm->charge_enabled,
+                'online_charge_type'  => $pm->online_charge_type,
+                'online_charge_value' => (float) $pm->online_charge_value,
+                'charge_label'        => $pm->charge_label,
+                'banks'               => $pm->banks
+                    ->where('is_active', true)
+                    ->map(fn($b) => [
+                        'id'             => $b->id,
+                        'bank_name'      => $b->bank_name,
+                        'account_number' => $b->account_number ?? null,
+                        'account_name'   => $b->account_name ?? null,
+                        'charge_type'    => $b->charge_type,
+                        'charge_value'   => (float) $b->charge_value,
+                        'charge_enabled' => (bool) $b->charge_enabled,
+                        'charge_label'   => $b->charge_label,
+                        'is_active'      => (bool) $b->is_active,
+                    ])
+                    ->values(),
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Build business profile from SettingsService for PDF templates.
+     */
+    private function resolveBusinessProfile(): array
+    {
+        $all = SettingsService::all();
+
+        return [
+            'business_name'     => $all['business_name']     ?? config('app.name'),
+            'email'             => $all['business_email']    ?? null,
+            'phone'             => $all['business_phone']    ?? null,
+            'address'           => $all['business_address']  ?? null,
+            'logo'              => $all['business_logo']     ?? null,
+            'currency_symbol'   => $all['currency_symbol']   ?? '৳',
+            'currency_position' => $all['currency_position'] ?? 'before',
+            'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
+        ];
+    }
 }

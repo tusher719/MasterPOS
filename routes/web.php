@@ -245,32 +245,35 @@ Route::middleware(['auth', 'verified'])
 
             // ── Step 09: POS (Cart/Sale) ──────────────────────────────────────
         Route::prefix('pos')->group(function () {
+            Route::get('/', [SaleController::class, 'index'])->name('pos.index');
 
-            // POS Terminal
-            Route::get('/', [SaleController::class, 'index'])
-                ->name('pos.index');
-
-            // Sales CRUD
             Route::post('/sales', [SaleController::class, 'store'])
-                    ->middleware('throttle:30,1')
-                    ->name('pos.sales.store');
+                ->middleware('throttle:30,1')
+                ->name('pos.sales.store');
 
+            // ── declared BEFORE resource wildcard ────────────────────────
             Route::post('/sales/{id}/restore', [SaleController::class, 'restore'])
                 ->name('pos.sales.restore');
 
-            Route::get('/sales', [SaleController::class, 'salesList'])
-                ->name('pos.sales.index');
+            Route::post('sales/{sale}/collect-cod-payment', [SaleController::class, 'collectCodPayment'])
+                ->name('pos.sales.collect-cod-payment');
 
-            Route::get('/sales/{sale}', [SaleController::class, 'show'])
-                ->name('pos.sales.show');
+            Route::post('sales/{sale}/update-courier', [SaleController::class, 'updateCourier'])
+                ->name('pos.sales.update-courier');
 
-            Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])
-                ->name('pos.sales.destroy');
+            // ── Item 4.7 ──────────────────────────────────────────────────
+            Route::post('sales/bulk-status-update', [SaleController::class, 'bulkStatusUpdate'])
+                ->name('pos.sales.bulk-status-update');
 
-            Route::post('sales/{sale}/collect-cod-payment', [SaleController::class, 'collectCodPayment'])->name('pos.sales.collect-cod-payment');
+            Route::post('sales/{sale}/add-payment', [SaleController::class, 'addPayment'])
+                ->name('pos.sales.add-payment');
 
-            // ── Item 4.6 — Courier info update ───────────────────────────
-            Route::post('sales/{sale}/update-courier', [SaleController::class, 'updateCourier'])->name('pos.sales.update-courier');
+            Route::get('sales/{sale}/delivery-slip', [SaleController::class, 'deliverySlip'])
+                ->name('pos.sales.delivery-slip');
+
+            Route::get('/sales', [SaleController::class, 'salesList'])->name('pos.sales.index');
+            Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('pos.sales.show');
+            Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('pos.sales.destroy');
         });
 
         // ─── Step 10: Invoices ────────────────────────────────────────────────────

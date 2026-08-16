@@ -54,6 +54,15 @@
   online_charge_value, charge_label, banks[] (active banks only with all charge fields).
   Without mapping, `type` field is missing and frontend charge calculation breaks.
 
+    ### SaleController Private Helpers (Item 4.7)
+    - mapPaymentMethods() — always use this private helper for payment method
+      mapping in SaleController; never inline the mapping in individual methods
+    - resolveBusinessProfile() — always use this private helper for PDF business
+      profile in SaleController; never call SettingsService::all() inline in
+      controller methods
+    - Both helpers added in Item 4.7 to eliminate duplication across
+      index() / salesList() / deliverySlip()
+
 ---
 
 ## 3. Policy Rules
@@ -181,6 +190,12 @@
 - Nested route names always include outer group prefix —
   verify with `php artisan route:list --name=` before using in frontend components
 
+- sale_status_histories is append-only — never update or delete rows;
+  always use SaleStatusHistory::create() with sale_id, status, note, changed_by
+- salesList() must eager load salePayments with paymentMethod, paymentMethodBank,
+  verifiedBy — PaymentHistoryModal reads directly from Inertia props,
+  no frontend fetch() call permitted
+
 ---
 
 ## 9. PDF Rules
@@ -189,6 +204,11 @@
 - **DomPDF does NOT support CSS Grid** — use flexbox or HTML tables only in Blade templates
 - Report PDF templates: DejaVu Sans font, flexbox only, A4 landscape
 - `$rows` in report Blade templates is a Laravel Collection — use `.sum()`, `.count()`, `.where()` directly
+
+- Delivery slip PDF: A5 portrait paper size — use setPaper('a5', 'portrait')
+- Delivery slip must NEVER include financial details (unit_cost, grand_total
+  breakdown, profit margin) — courier-safe output only
+- Delivery slip template: resources/views/pdf/delivery-slip.blade.php
 
 ---
 
@@ -524,3 +544,13 @@ exists. Do not attempt these without test coverage:
   naming conflict with `partner_profit_balances` — needs architectural decision)
 - `investor_capital_balances` → `partner_capital_balances`
 - `investor_name` column → `payee_name` column (migration required)
+
+### Bulk Status Update Rules (Item 4.7)
+
+- Bulk order_status update: only 'confirmed' and 'out_for_delivery' permitted
+- 'cancelled', 'returned', 'delivered' are NEVER allowed in bulk —
+  these require per-sale individual actions (stock reverse, payment
+  collection, audit trail)
+- Backend validation: 'in:confirmed,out_for_delivery' on status field
+- Frontend: BulkStatusModal shows only these two options as card selectors
+- Each sale in bulk update gets its own SaleStatusHistory row

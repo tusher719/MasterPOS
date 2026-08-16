@@ -1,3 +1,5 @@
+// resources/js/Pages/Backend/POS/Sales/Index.tsx
+
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import useFlashToast from "@/hooks/useFlashToast";
 import { Head, Link, router } from "@inertiajs/react";
@@ -33,6 +35,23 @@ export type CourierStatus =
     | "returned"
     | "walk_in";
 
+// ── SalePayment interface ─────────────────────────────────────────────────────
+export interface SalePayment {
+    id: number;
+    amount: number;
+    payment_charge: number;
+    payment_date: string;
+    payment_status_manual: "pending_verification" | "verified" | "rejected";
+    reference: string | null;
+    transaction_id: string | null;
+    note: string | null;
+    payment_method: { id: number; name: string } | null;
+    payment_method_bank: { id: number; bank_name: string } | null;
+    verified_by: { id: number; name: string } | null;
+    verified_at: string | null;
+    created_at: string;
+}
+
 export interface Sale {
     id: number;
     reference_no: string;
@@ -53,11 +72,13 @@ export interface Sale {
     delivery_address: string | null;
     delivery_contact_phone: string | null;
     delivery_status: DeliveryStatus | null;
-    // ── Item 4.6 — Courier ───────────────────────────────────────
+    // ── Item 4.6 — Courier ────────────────────────────────────────
     courier_provider: string | null;
     courier_tracking_id: string | null;
     courier_status: CourierStatus | null;
     courier_note: string | null;
+    // ── Item 4.7 — Payment History ────────────────────────────────
+    sale_payments?: SalePayment[];
     // ─────────────────────────────────────────────────────────────
     deleted_at: string | null;
     created_at: string;
@@ -92,10 +113,11 @@ interface Filters {
     date_to?: string;
 }
 
-// ── PaymentMethod types (Props interface এর আগে add করো) ────────────────────
-interface PaymentMethodBank {
+export interface PaymentMethodBank {
     id: number;
     bank_name: string;
+    account_number: string | null;
+    account_name: string | null;
     charge_type: "percent" | "fixed" | null;
     charge_value: number;
     charge_enabled: boolean;
@@ -103,7 +125,7 @@ interface PaymentMethodBank {
     is_active: boolean;
 }
 
-interface PaymentMethod {
+export interface PaymentMethod {
     id: number;
     name: string;
     type: string | null;
@@ -365,7 +387,6 @@ export default function SalesIndex({
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                     {/* Row 1 — search + payment status + dates + voided + view toggle */}
                     <div className="flex flex-wrap items-center gap-3">
-                        {/* Search */}
                         <input
                             type="text"
                             placeholder="Search reference or customer..."
@@ -378,7 +399,6 @@ export default function SalesIndex({
                                        focus:ring-indigo-500"
                         />
 
-                        {/* Payment Status */}
                         <select
                             value={filters.status ?? ""}
                             onChange={(e) =>
@@ -394,7 +414,6 @@ export default function SalesIndex({
                             <option value="due">Due</option>
                         </select>
 
-                        {/* Date From */}
                         <input
                             type="date"
                             value={filters.date_from ?? ""}
@@ -406,7 +425,6 @@ export default function SalesIndex({
                                        focus:ring-indigo-500"
                         />
 
-                        {/* Date To */}
                         <input
                             type="date"
                             value={filters.date_to ?? ""}
@@ -418,11 +436,10 @@ export default function SalesIndex({
                                        focus:ring-indigo-500"
                         />
 
-                        {/* Voided Toggle */}
                         <label
                             className="flex cursor-pointer items-center gap-2 rounded-md
-                                          border border-gray-300 px-3 py-2 text-sm text-gray-600
-                                          hover:bg-gray-50"
+                                       border border-gray-300 px-3 py-2 text-sm text-gray-600
+                                       hover:bg-gray-50"
                         >
                             <input
                                 type="checkbox"
@@ -439,7 +456,6 @@ export default function SalesIndex({
                             Show Voided
                         </label>
 
-                        {/* Clear Filters */}
                         {hasFilters && (
                             <button
                                 onClick={handleClearFilters}
@@ -450,17 +466,13 @@ export default function SalesIndex({
                             </button>
                         )}
 
-                        {/* ── View Toggle ── */}
+                        {/* View Toggle */}
                         <div className="ml-auto flex items-center rounded-md border border-gray-300 p-0.5">
                             <button
                                 onClick={() => handleViewChange("list")}
                                 title="List view"
                                 className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-all
-                                    ${
-                                        viewMode === "list"
-                                            ? "bg-indigo-600 text-white shadow-sm"
-                                            : "text-gray-500 hover:bg-gray-100"
-                                    }`}
+                                    ${viewMode === "list" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100"}`}
                             >
                                 <List size={14} />
                                 List
@@ -469,11 +481,7 @@ export default function SalesIndex({
                                 onClick={() => handleViewChange("grid")}
                                 title="Grid view"
                                 className={`flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-all
-                                    ${
-                                        viewMode === "grid"
-                                            ? "bg-indigo-600 text-white shadow-sm"
-                                            : "text-gray-500 hover:bg-gray-100"
-                                    }`}
+                                    ${viewMode === "grid" ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100"}`}
                             >
                                 <LayoutGrid size={14} />
                                 Grid
@@ -481,9 +489,8 @@ export default function SalesIndex({
                         </div>
                     </div>
 
-                    {/* Row 2 — Order Status + Payment Type button groups */}
+                    {/* Row 2 — Order Status + Payment Type */}
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                        {/* Order Status segment */}
                         <div className="flex items-center gap-1">
                             <span className="mr-1 text-xs font-medium text-gray-500">
                                 Order:
@@ -491,11 +498,7 @@ export default function SalesIndex({
                             <button
                                 onClick={() => handleFilter("order_status", "")}
                                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
-                                    ${
-                                        !filters.order_status
-                                            ? "bg-gray-700 text-white"
-                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    ${!filters.order_status ? "bg-gray-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                             >
                                 All
                             </button>
@@ -523,7 +526,6 @@ export default function SalesIndex({
                             ))}
                         </div>
 
-                        {/* Payment Type segment */}
                         <div className="flex items-center gap-1">
                             <span className="mr-1 text-xs font-medium text-gray-500">
                                 Type:
@@ -531,11 +533,7 @@ export default function SalesIndex({
                             <button
                                 onClick={() => handleFilter("payment_type", "")}
                                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
-                                    ${
-                                        !filters.payment_type
-                                            ? "bg-gray-700 text-white"
-                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    ${!filters.payment_type ? "bg-gray-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                             >
                                 All
                             </button>
@@ -564,9 +562,8 @@ export default function SalesIndex({
                         </div>
                     </div>
 
-                    {/* Row 3 — Delivery Type + Delivery Status button groups */}
+                    {/* Row 3 — Delivery Type + Delivery Status */}
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                        {/* Delivery Type segment */}
                         <div className="flex items-center gap-1">
                             <span className="mr-1 text-xs font-medium text-gray-500">
                                 Delivery:
@@ -576,11 +573,7 @@ export default function SalesIndex({
                                     handleFilter("delivery_type", "")
                                 }
                                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
-                                    ${
-                                        !filters.delivery_type
-                                            ? "bg-gray-700 text-white"
-                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    ${!filters.delivery_type ? "bg-gray-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                             >
                                 All
                             </button>
@@ -608,7 +601,6 @@ export default function SalesIndex({
                             ))}
                         </div>
 
-                        {/* Delivery Status segment */}
                         <div className="flex items-center gap-1">
                             <span className="mr-1 text-xs font-medium text-gray-500">
                                 D.Status:
@@ -618,11 +610,7 @@ export default function SalesIndex({
                                     handleFilter("delivery_status", "")
                                 }
                                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
-                                    ${
-                                        !filters.delivery_status
-                                            ? "bg-gray-700 text-white"
-                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    ${!filters.delivery_status ? "bg-gray-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                             >
                                 All
                             </button>
@@ -664,11 +652,7 @@ export default function SalesIndex({
                                     handleFilter("courier_status", "")
                                 }
                                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all
-                                    ${
-                                        !filters.courier_status
-                                            ? "bg-gray-700 text-white"
-                                            : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                    }`}
+                                    ${!filters.courier_status ? "bg-gray-700 text-white" : "border border-gray-300 text-gray-600 hover:bg-gray-50"}`}
                             >
                                 All
                             </button>

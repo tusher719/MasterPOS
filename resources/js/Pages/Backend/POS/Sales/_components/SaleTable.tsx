@@ -3,53 +3,41 @@
 import { confirmAction } from "@/lib/confirm";
 import { formatDateTime } from "@/lib/formatDateTime";
 import { Link, router } from "@inertiajs/react";
-import { Eye, PackageCheck, RotateCcw, Trash2, Truck } from "lucide-react";
+import {
+    Eye,
+    FileText,
+    PackageCheck,
+    RotateCcw,
+    Trash2,
+    Truck,
+    Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-    type Sale,
     COURIER_STATUS_OPTIONS,
     DELIVERY_STATUS_OPTIONS,
     DELIVERY_TYPE_OPTIONS,
     ORDER_STATUS_OPTIONS,
     PAYMENT_TYPE_OPTIONS,
+    type PaymentMethod,
+    type Sale,
 } from "../Index";
+import BulkStatusModal from "./BulkStatusModal";
 import CollectCodPaymentModal from "./CollectCodPaymentModal";
 import CourierModal from "./CourierModal";
-
-// ── PaymentMethod type (mirrors what salesList() passes down) ─────────────────
-interface PaymentMethodBank {
-    id: number;
-    bank_name: string;
-    charge_type: "percent" | "fixed" | null;
-    charge_value: number;
-    charge_enabled: boolean;
-    charge_label: string | null;
-    is_active: boolean;
-}
-
-interface PaymentMethod {
-    id: number;
-    name: string;
-    type: string | null;
-    charge_enabled: boolean;
-    online_charge_type: "percent" | "fixed" | null;
-    online_charge_value: number;
-    charge_label: string | null;
-    banks: PaymentMethodBank[];
-}
+import PaymentHistoryModal from "./PaymentHistoryModal";
 
 interface Props {
     sales: Sale[];
     paymentMethods: PaymentMethod[];
     can: {
         view: boolean;
+        create: boolean;
         delete: boolean;
         restore: boolean;
     };
 }
-
-// ── Badge helpers ─────────────────────────────────────────────────────────────
 
 const paymentStatusBadge: Record<string, string> = {
     paid: "bg-green-100 text-green-700",
@@ -121,11 +109,34 @@ function CourierStatusBadge({ status }: { status: Sale["courier_status"] }) {
     );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 export default function SaleTable({ sales, paymentMethods, can }: Props) {
     const [codSale, setCodSale] = useState<Sale | null>(null);
     const [courierSale, setCourierSale] = useState<Sale | null>(null);
+    const [paymentHistorySale, setPaymentHistorySale] = useState<Sale | null>(
+        null,
+    );
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [showBulkModal, setShowBulkModal] = useState(false);
+
+    const eligibleSales = sales.filter((s) => !s.deleted_at);
+    const allSelected =
+        eligibleSales.length > 0 &&
+        eligibleSales.every((s) => selectedIds.includes(s.id));
+
+    const toggleAll = () => {
+        setSelectedIds(allSelected ? [] : eligibleSales.map((s) => s.id));
+    };
+
+    const toggleOne = (id: number) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+        );
+    };
+
+    // Direct from props — no fetch needed
+    const handleOpenPaymentHistory = (sale: Sale) => {
+        setPaymentHistorySale(sale);
+    };
 
     const handleVoid = async (sale: Sale) => {
         const ok = await confirmAction({
@@ -134,7 +145,6 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
             confirmButtonText: "Yes, Void",
         });
         if (!ok) return;
-
         router.delete(route("backend.pos.sales.destroy", sale.id), {
             onSuccess: () => toast.success("Sale voided successfully."),
             onError: () => toast.error("Failed to void sale."),
@@ -148,7 +158,6 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
             confirmButtonText: "Yes, Restore",
         });
         if (!ok) return;
-
         router.post(
             route("backend.pos.sales.restore", sale.id),
             {},
@@ -159,6 +168,11 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
         );
     };
 
+    const isCodCollectable = (sale: Sale) =>
+        sale.payment_type === "cash_on_delivery" &&
+        sale.delivery_status !== "delivered" &&
+        !sale.deleted_at;
+
     if (sales.length === 0) {
         return (
             <div className="rounded-lg border border-gray-200 bg-white py-16 text-center text-gray-400">
@@ -167,17 +181,51 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
         );
     }
 
-    const isCodCollectable = (sale: Sale) =>
-        sale.payment_type === "cash_on_delivery" &&
-        sale.delivery_status !== "delivered" &&
-        !sale.deleted_at;
-
     return (
         <>
+            {/* ── Bulk Action Bar ── */}
+            {selectedIds.length > 0 && (
+                <div
+                    className="mb-3 flex items-center justify-between rounded-lg
+                                border border-indigo-200 bg-indigo-50 px-4 py-2.5"
+                >
+                    <span className="text-sm font-medium text-indigo-700">
+                        {selectedIds.length} sale
+                        {selectedIds.length > 1 ? "s" : ""} selected
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowBulkModal(true)}
+                            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold
+                                       text-white hover:bg-indigo-700"
+                        >
+                            Update Status
+                        </button>
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="rounded-md border border-indigo-300 px-3 py-1.5 text-xs
+                                       font-medium text-indigo-600 hover:bg-indigo-100"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Table ── */}
             <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                 <table className="w-full text-sm">
                     <thead className="border-b border-gray-100 bg-gray-50">
                         <tr>
+                            <th className="w-10 px-3 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={toggleAll}
+                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    title="Select all"
+                                />
+                            </th>
                             <th className="px-4 py-3 text-left font-medium text-gray-500">
                                 Reference
                             </th>
@@ -225,6 +273,7 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                     <tbody className="divide-y divide-gray-100">
                         {sales.map((sale) => {
                             const isDeleted = !!sale.deleted_at;
+                            const isSelected = selectedIds.includes(sale.id);
                             const showCollect =
                                 can.create && isCodCollectable(sale);
 
@@ -234,16 +283,36 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                     className={
                                         isDeleted
                                             ? "bg-red-50 opacity-70"
-                                            : "hover:bg-gray-50"
+                                            : isSelected
+                                              ? "bg-indigo-50"
+                                              : "hover:bg-gray-50"
                                     }
                                 >
+                                    {/* Checkbox */}
+                                    <td className="px-3 py-3">
+                                        {!isDeleted && (
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() =>
+                                                    toggleOne(sale.id)
+                                                }
+                                                className="rounded border-gray-300 text-indigo-600
+                                                           focus:ring-indigo-500"
+                                            />
+                                        )}
+                                    </td>
+
                                     {/* Reference */}
                                     <td className="px-4 py-3">
                                         <span className="font-medium text-indigo-600">
                                             {sale.reference_no}
                                         </span>
                                         {isDeleted && (
-                                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">
+                                            <span
+                                                className="ml-2 rounded-full bg-red-100 px-2 py-0.5
+                                                             text-xs text-red-600"
+                                            >
                                                 Voided
                                             </span>
                                         )}
@@ -288,7 +357,8 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                     {/* Payment Status */}
                                     <td className="px-4 py-3">
                                         <span
-                                            className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${paymentStatusBadge[sale.payment_status]}`}
+                                            className={`rounded-full px-2 py-0.5 text-xs font-medium
+                                                          capitalize ${paymentStatusBadge[sale.payment_status]}`}
                                         >
                                             {sale.payment_status}
                                         </span>
@@ -332,7 +402,7 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                     {/* Actions */}
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-1">
-                                            {/* View */}
+                                            {/* View receipt */}
                                             {can.view && !isDeleted && (
                                                 <Link
                                                     href={route(
@@ -346,16 +416,53 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                                 </Link>
                                             )}
 
-                                            {/* ── Collect COD Payment ── */}
+                                            {/* Payment History */}
+                                            {!isDeleted && (
+                                                <button
+                                                    onClick={() =>
+                                                        handleOpenPaymentHistory(
+                                                            sale,
+                                                        )
+                                                    }
+                                                    className="rounded-md p-1.5 text-gray-400
+                                                               hover:bg-indigo-50 hover:text-indigo-600"
+                                                    title="Payment History"
+                                                >
+                                                    <Wallet size={15} />
+                                                </button>
+                                            )}
+
+                                            {/* Delivery Slip */}
+                                            {!isDeleted &&
+                                                sale.delivery_type &&
+                                                sale.delivery_type !==
+                                                    "store_pickup" && (
+                                                    <a
+                                                        href={route(
+                                                            "backend.pos.sales.delivery-slip",
+                                                            sale.id,
+                                                        )}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="rounded-md p-1.5 text-gray-400
+                                                               hover:bg-gray-100 hover:text-gray-600"
+                                                        title="Download Delivery Slip"
+                                                    >
+                                                        <FileText size={15} />
+                                                    </a>
+                                                )}
+
+                                            {/* Collect COD Payment */}
                                             {showCollect && (
                                                 <button
                                                     onClick={() =>
                                                         setCodSale(sale)
                                                     }
-                                                    className="flex items-center gap-1 rounded-md px-2 py-1
-                                                               text-xs font-medium text-green-700
-                                                               bg-green-50 hover:bg-green-100
-                                                               border border-green-200 transition-colors"
+                                                    className="flex items-center gap-1 rounded-md
+                                                               border border-green-200 bg-green-50
+                                                               px-2 py-1 text-xs font-medium
+                                                               text-green-700 transition-colors
+                                                               hover:bg-green-100"
                                                     title="Collect COD Payment & Mark Delivered"
                                                 >
                                                     <PackageCheck size={13} />
@@ -372,7 +479,8 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                                         onClick={() =>
                                                             setCourierSale(sale)
                                                         }
-                                                        className="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
+                                                        className="rounded-md p-1.5 text-gray-400
+                                                               hover:bg-indigo-50 hover:text-indigo-600"
                                                         title={
                                                             sale.courier_provider
                                                                 ? "Edit Courier Info"
@@ -389,7 +497,8 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                                     onClick={() =>
                                                         handleVoid(sale)
                                                     }
-                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                    className="rounded-md p-1.5 text-gray-400
+                                                               hover:bg-red-50 hover:text-red-500"
                                                     title="Void Sale"
                                                 >
                                                     <Trash2 size={15} />
@@ -402,7 +511,8 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                                     onClick={() =>
                                                         handleRestore(sale)
                                                     }
-                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600"
+                                                    className="rounded-md p-1.5 text-gray-400
+                                                               hover:bg-green-50 hover:text-green-600"
                                                     title="Restore Sale"
                                                 >
                                                     <RotateCcw size={15} />
@@ -417,7 +527,8 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                 </table>
             </div>
 
-            {/* COD Payment Collection Modal */}
+            {/* ── Modals ── */}
+
             {codSale && (
                 <CollectCodPaymentModal
                     sale={{
@@ -435,11 +546,38 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                 />
             )}
 
-            {/* Courier Modal */}
             {courierSale && (
                 <CourierModal
                     sale={courierSale}
                     onClose={() => setCourierSale(null)}
+                />
+            )}
+
+            {paymentHistorySale && (
+                <PaymentHistoryModal
+                    sale={{
+                        id: paymentHistorySale.id,
+                        reference_no: paymentHistorySale.reference_no,
+                        grand_total: Number(paymentHistorySale.grand_total),
+                        paid_amount: Number(paymentHistorySale.paid_amount),
+                        due_amount: Number(paymentHistorySale.due_amount),
+                        payment_status: paymentHistorySale.payment_status,
+                        customer: paymentHistorySale.customer
+                            ? { name: paymentHistorySale.customer.name }
+                            : null,
+                        sale_payments: paymentHistorySale.sale_payments ?? [],
+                    }}
+                    paymentMethods={paymentMethods}
+                    canAddPayment={can.create}
+                    onClose={() => setPaymentHistorySale(null)}
+                />
+            )}
+
+            {showBulkModal && (
+                <BulkStatusModal
+                    selectedIds={selectedIds}
+                    onClose={() => setShowBulkModal(false)}
+                    onSuccess={() => setSelectedIds([])}
                 />
             )}
         </>

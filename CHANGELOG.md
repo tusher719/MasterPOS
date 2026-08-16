@@ -2,6 +2,103 @@
 
 ---
 
+## [v2.30 — Item 4.7] — Sales History Page — 2026-08-16
+
+### New Migration (1)
+
+- `create_sale_status_histories_table`:
+  sale_id (FK cascade), status (varchar), note (text nullable),
+  changed_by (FK users nullable nullOnDelete), timestamps
+  Index: sale_id
+
+### New Files (7)
+
+- `SaleStatusHistory.php`: fillable (sale_id, status, note, changed_by);
+  sale() BelongsTo, changedBy() BelongsTo withTrashed()
+
+- `StoreAdditionalPaymentRequest.php`: validates amount (required, min:0.01),
+  payment_method_id (required, exists), payment_method_bank_id (nullable),
+  payment_charge (nullable), transaction_id, payment_reference, payment_date
+  (required), note (nullable)
+
+- `AddPaymentModal.tsx` (`_components/`): add additional payment to any sale;
+  amount pre-filled with due_amount; method select + bank sub-list for
+  bank_transfer; charge auto-calc (mirrors COD collect logic); transaction_id
+  for mobile_banking; payment_reference for bank_transfer; remaining-after
+  hint; z-[70] (above PaymentHistoryModal); router.post to add-payment route
+
+- `PaymentHistoryModal.tsx` (`_components/`): view all sale_payments for a
+  sale; 3-col summary bar (Grand Total / Total Paid / Due); payment entry
+  cards with amount, charge, method, bank, date, TxID, verified_by, note;
+  status badge (verified/pending/rejected); Add Payment button shown only
+  when due_amount > 0 AND canAddPayment; opens AddPaymentModal at z-[70];
+  z-[60]
+
+- `BulkStatusModal.tsx` (`_components/`): bulk order_status update for
+  selected sales; only confirmed + out_for_delivery allowed in bulk (card
+  radio selector); cancelled/returned/delivered blocked (require individual
+  action); router.post to bulk-status-update route; z-50
+
+- `delivery-slip.blade.php` (`resources/views/pdf/`): A5 portrait courier-
+  friendly PDF; shows customer name/phone/address, items (name + qty only,
+  no financial details), courier info, delivery type/charge, receiver
+  signature box; COD badge when payment_type = cash_on_delivery; DejaVu Sans,
+  flexbox only (no CSS Grid); logo via public_path()
+
+### Updated Files (5)
+
+- `SaleController.php`: SaleStatusHistory import added; addPayment() — creates
+  verified SalePayment, calls recalculatePaymentStatus(), activity log;
+  bulkStatusUpdate() — only confirmed/out_for_delivery allowed, forceFill per
+  sale, SaleStatusHistory per sale, single activity log; deliverySlip() — A5
+  PDF via dompdf, loads customer/items/variants, guards trashed; salesList()
+  query now eager loads salePayments.paymentMethod, salePayments.paymentMethod
+  Bank, salePayments.verifiedBy; store() now creates initial SaleStatusHistory
+  (status: processing); collectCodPayment() now creates SaleStatusHistory
+  (status: delivered); mapPaymentMethods() private helper extracted (DRY —
+  used in index() + salesList()); resolveBusinessProfile() private helper
+  extracted (DRY — used in deliverySlip())
+
+- `routes/web.php`: three new routes added inside pos prefix group, declared
+  BEFORE resource wildcard routes: POST sales/bulk-status-update (name:
+  pos.sales.bulk-status-update), POST sales/{sale}/add-payment (name:
+  pos.sales.add-payment), GET sales/{sale}/delivery-slip (name:
+  pos.sales.delivery-slip)
+
+- `Sales/Index.tsx`: SalePayment interface added and exported; PaymentMethod
+    - PaymentMethodBank interfaces exported (moved from SaleTable.tsx local);
+      sale_payments?: SalePayment[] added to Sale interface; filter/badge/option
+      constants unchanged
+
+- `Sales/_components/SaleTable.tsx`: PaymentMethod imported from Index instead
+  of locally defined; Wallet icon + FileText icon added; PaymentHistoryModal +
+  BulkStatusModal imports added; loadingPayments state removed (no longer
+  needed); handleOpenPaymentHistory simplified — sets paymentHistorySale
+  directly from sale prop (sale_payments now in props); checkbox column +
+  select-all logic added; bulk action bar added above table; Payment History
+  button (Wallet icon) added to actions; Delivery Slip link (FileText icon,
+  opens in new tab) added for non-store_pickup sales; PaymentHistoryModal +
+  BulkStatusModal rendered at fragment bottom
+
+### Business Rules Established
+
+- sale_status_histories written on: sale creation (processing), COD payment
+  collection (delivered), bulk status update (per sale), individual status
+  change (Item 4.8)
+- Bulk status update: only confirmed + out_for_delivery allowed — cancelled/
+  returned/delivered require per-sale individual action for stock reverse
+  and audit trail integrity
+- Payment History modal Add Payment button hidden when due_amount = 0 (fully
+  paid sales cannot receive additional payments via this flow)
+- Delivery Slip PDF shows NO financial details — courier-safe (no unit cost,
+  no grand total breakdown)
+- sale_payments eager loaded in salesList() — no fetch() call needed in
+  frontend; PaymentHistoryModal receives data directly from Inertia props
+- SaleController private helpers: mapPaymentMethods() + resolveBusinessProfile()
+  extracted to eliminate duplication across index/salesList/deliverySlip
+
+---
+
 ## [v2.29 — Item 4.6] — Courier Manual Fields — 2026-08-15
 
 ### New Migration (1)

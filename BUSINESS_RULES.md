@@ -608,3 +608,32 @@ For product-based partner profit:
 - Delivery charge is never negative — validated at both frontend and backend
 - effectiveDeliveryCharge() on Sale model is the authoritative method for computing the actual charge —
   always use this instead of reading delivery_charge directly
+
+## 25. Sale Status History Rules (Item 4.7)
+
+- sale_status_histories is an append-only audit table — never update or delete rows
+- A new SaleStatusHistory row is written on every status-affecting action:
+    - Sale created → status: 'processing', note: 'Sale created.'
+    - COD payment collected → status: 'delivered', note: 'COD payment collected. Marked as delivered.'
+    - Bulk status update → status: new_status, note: 'Bulk status update from {previous_status}.'
+    - Individual status change (Item 4.8) → status: new_status, note: admin-supplied reason
+- changed_by is always Auth::id() — never null for admin-triggered actions
+- status column is varchar — stores order_status string values
+- SaleStatusHistory::create() is the only write method — never use forceFill or raw query
+
+## 26. Sales History Page Rules (Item 4.7)
+
+- sale_payments is eager loaded in salesList() — PaymentHistoryModal receives
+  data directly from Inertia props; no separate fetch() call needed
+- Bulk status update restricted to: confirmed, out_for_delivery only
+  — cancelled / returned / delivered require per-sale individual action
+  because these trigger stock reverse, payment collection, or audit events
+- Delivery Slip PDF (A5 portrait) shows NO financial details — customer name,
+  phone, address, items (name + qty only), courier info, delivery type/charge
+  — safe to hand to courier without exposing unit costs or margin
+- Add Payment button in PaymentHistoryModal hidden when due_amount = 0
+  — fully paid sales cannot receive additional payments via this flow
+- Payment charge stored per SalePayment row — never on sales table
+- SaleController private helpers:
+    - mapPaymentMethods() — single source for payment method mapping (DRY)
+    - resolveBusinessProfile() — single source for business settings in PDFs (DRY)

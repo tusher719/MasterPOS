@@ -19,6 +19,8 @@
 - `profit_distributions.source_type` determines which calculation engine to use
 - Profit share percent comes from `partner_profit_rules.share_percent` — NEVER from investment amount
 - Pending profit rules have `approved_by IS NULL` — excluded from all calculations
+- `sale_status_histories.status` is varchar (not enum) — stores order_status
+  string values; always written via SaleStatusHistory::create(), never raw query
 
 ---
 
@@ -287,6 +289,17 @@ Note: POS payments created with payment_status_manual = 'verified' immediately.
 Note: Storefront manual payments created with payment_status_manual = 'pending_verification'.
 Note: sales.paid_amount is always derived from SUM(sale_payments WHERE payment_status_manual = 'verified').
 Note: recalculatePaymentStatus() on Sale model is the single authority for syncing paid_amount/due_amount/payment_status.
+
+### sale_status_histories
+
+id, sale_id (FK sales cascade),
+status (varchar),
+note (text nullable),
+changed_by (FK users nullable nullOnDelete),
+timestamps
+Index: sale_id
+Note: Append-only audit table — never update or delete rows.
+Note: status is varchar (not enum) — stores order_status string values.
 
 ---
 
