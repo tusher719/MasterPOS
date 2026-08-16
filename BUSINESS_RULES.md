@@ -621,6 +621,18 @@ For product-based partner profit:
 - status column is varchar — stores order_status string values
 - SaleStatusHistory::create() is the only write method — never use forceFill or raw query
 
+## 25. Sale Status History Rules (updated — Item 4.8)
+
+Individual status update (Item 4.8):
+
+- Admin selects new status from UpdateOrderStatusModal — current status disabled (cannot re-select)
+- Mandatory note/reason required (min 3 chars) before submit
+- cancelled/returned statuses show amber warning: stock reverse NOT automatic — handle separately
+- SaleStatusHistory::create() called inside DB::transaction() with forceFill on order_status
+- changed_by = Auth::id() always
+- payment_type field is immutable after sale creation — it records original intent, not current payment state
+- Delivery type null on old sales (pre-Item 4.2) is expected — no bug
+
 ## 26. Sales History Page Rules (Item 4.7)
 
 - sale_payments is eager loaded in salesList() — PaymentHistoryModal receives

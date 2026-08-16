@@ -2,6 +2,67 @@
 
 ---
 
+## [v2.31 — Item 4.8] — Sale Status History UI — 2026-08-16
+
+### New Files (3)
+
+- `UpdateOrderStatusRequest.php`: validates order_status
+  (required, in:processing/confirmed/out_for_delivery/delivered/cancelled/returned)
+  and note (required, min:3, max:500); custom messages for both fields
+
+- `UpdateOrderStatusModal.tsx` (`_components/`): individual order status update
+  modal; 2-col grid of status cards — current status disabled with "current" badge;
+  cancelled/returned show amber warning (stock not auto-reversed);
+  mandatory reason textarea (min 3 chars); preview line shows new status badge;
+  submit disabled when no change or submitting; router.post to
+  backend.pos.sales.update-order-status; z-50
+
+- `StatusHistoryTimeline.tsx` (`_components/`): vertical timeline component;
+  most recent entry has indigo dot, older entries gray dot; each entry shows
+  StatusBadge (from ORDER_STATUS_OPTIONS) + formatted datetime + note text +
+  changed_by user name; formatDateTime() helper (en-GB locale, 12hr);
+  fallback badge for unknown status values; empty state when no history
+
+### Updated Files (4)
+
+- `SaleController.php`: updateOrderStatus() method added — trashed guard,
+  same-status guard, forceFill order_status, SaleStatusHistory::create(),
+  ActivityLogService::log(); show() now eager loads statusHistories.changedBy;
+  show() can array extended with updateStatus key (Gate::allows create);
+  UpdateOrderStatusRequest import added
+
+- `Sale.php`: statusHistories() HasMany relation added — orderByDesc('created_at');
+  SaleStatusHistory import added
+
+- `routes/web.php`: POST sales/{sale}/update-order-status route added after
+  delivery-slip route, before resource wildcard;
+  name: pos.sales.update-order-status
+
+- `Sales/Show.tsx`: full rebuild — lg:grid-cols-3 layout (main col + sidebar);
+  Items table with variant attributes display; Payment History section (inline,
+  no modal — reads from sale_payments prop); Status History Timeline section
+  (entry count badge in header); Update Status button in page header
+  (indigo-50, RefreshCw icon, hidden for voided sales); Order Status sidebar
+  card; Payment Summary sidebar with delivery charge line; Customer sidebar;
+  Delivery Info sidebar (conditional); Courier Info sidebar (conditional);
+  Sale Info sidebar; Delivery Slip link in header (non-store_pickup only);
+  sale_date timestamp sliced to [0,10] for clean display;
+  UpdateOrderStatusModal rendered at fragment bottom
+
+### Business Rules Established
+
+- payment_type is immutable after sale creation — records original intent
+  (half_paid, full_paid, COD); payment_status is the live financial truth
+  (auto-calculated); both coexist independently
+- Individual status update requires mandatory note — no silent status changes
+- cancelled/returned via individual update does NOT auto-reverse stock —
+  admin must handle separately; amber warning shown in modal
+- delivery_type null on pre-Item-4.2 sales is expected behavior — not a bug
+- StatusHistoryTimeline most recent entry = indigo dot (top); older = gray dot
+- Show.tsx sidebar pattern: lg:grid-cols-3, main lg:col-span-2, sidebar 1 col
+
+---
+
 ## [v2.30 — Item 4.7] — Sales History Page — 2026-08-16
 
 ### New Migration (1)

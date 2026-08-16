@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\StoreSaleRequest;
 use App\Http\Requests\Backend\StoreAdditionalPaymentRequest;
 use App\Http\Requests\Backend\UpdateCourierRequest;
+use App\Http\Requests\Backend\UpdateOrderStatusRequest as BackendUpdateOrderStatusRequest;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
 use App\Models\Product;
@@ -335,13 +336,15 @@ class SaleController extends Controller
             'salePayments.paymentMethod',
             'salePayments.paymentMethodBank',
             'salePayments.verifiedBy',
+            'statusHistories.changedBy',
         ]);
 
         return Inertia::render('Backend/POS/Sales/Show', [
             'sale' => $sale,
             'can'  => [
-                'delete'  => Gate::allows('delete', Sale::class),
-                'restore' => Gate::allows('restore', Sale::class),
+                'delete'       => Gate::allows('delete', Sale::class),
+                'restore'      => Gate::allows('restore', Sale::class),
+                'updateStatus' => Gate::allows('create', Sale::class),
             ],
         ]);
     }
@@ -693,5 +696,54 @@ class SaleController extends Controller
             'currency_position' => $all['currency_position'] ?? 'before',
             'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
         ];
+    }
+
+
+    // ─── Update Order Status (Item 4.8) ───────────────────────────────────────
+    /**
+     * Individual order status update with mandatory reason.
+     * Writes a SaleStatusHistory row on every change.
+     */
+    public function updateOrderStatus(
+        BackendUpdateOrderStatusRequest $request,
+        Sale $sale
+    ): RedirectResponse {
+        abort_unless(Gate::allows('create', Sale::class), 403);
+
+        if ($sale->trashed()) {
+            return back()->withErrors(['error' => 'Cannot update status of a voided sale.']);
+        }
+
+        $previousStatus = $sale->order_status;
+        $newStatus      = $request->validated()['order_status'];
+        $note           = $request->validated()['note'];
+
+        if ($previousStatus === $newStatus) {
+            return back()->withErrors(['error' => 'Sale is already in this status.']);
+        }
+
+        DB::transaction(function () use ($sale, $newStatus, $note, $previousStatus) {
+            $sale->forceFill(['order_status' => $newStatus])->save();
+
+            SaleStatusHistory::create([
+                'sale_id'    => $sale->id,
+                'status'     => $newStatus,
+                'note'       => $note,
+                'changed_by' => Auth::id(),
+            ]);
+
+            ActivityLogService::log(
+                'sales', 'status_updated',
+                "Order status changed: {$previousStatus} → {$newStatus} ({$sale->reference_no})",
+                $sale,
+                [
+                    'previous_status' => $previousStatus,
+                    'new_status'      => $newStatus,
+                    'note'            => $note,
+                ]
+            );
+        });
+
+        return back()->with('success', 'Order status updated successfully.');
     }
 }

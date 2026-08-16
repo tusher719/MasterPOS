@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Item 4.8 — Sale Status History (In Progress)
-- **Last Completed:** Item 4.7 — Sales History Page ✅
+- **Current Step:** Item 4.9 — Order Confirmation Email (Next)
+- **Last Completed:** Item 4.8 — Sale Status History ✅
 
 ## Financial Domain Overview
 
@@ -114,6 +114,7 @@
 | 4.5         | COD Delivery + Payment Collection                   | ✅     |
 | 4.6         | Courier Manual Fields                               | ✅     |
 | 4.7         | Sales History Page                                  | ✅     |
+| 4.8         | Sale Status History                                 | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -121,7 +122,6 @@
 
 | #   | Item                     | Priority   |
 | --- | ------------------------ | ---------- |
-| 4.8 | Sale Status History      | Must Fix   |
 | 4.9 | Order Confirmation Email | Should Fix |
 
 ### Sprint 3 — Fraud Protection

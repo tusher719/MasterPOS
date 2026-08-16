@@ -271,6 +271,12 @@ Route::middleware(['auth', 'verified'])
             Route::get('sales/{sale}/delivery-slip', [SaleController::class, 'deliverySlip'])
                 ->name('pos.sales.delivery-slip');
 
+            // ── Item 4.8 ──────────────────────────────────────────────────
+            Route::post('sales/{sale}/update-order-status', [SaleController::class, 'updateOrderStatus'])
+                ->name('pos.sales.update-order-status');
+
+            Route::get('/sales', [SaleController::class, 'salesList'])->name('pos.sales.index');
+
             Route::get('/sales', [SaleController::class, 'salesList'])->name('pos.sales.index');
             Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('pos.sales.show');
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('pos.sales.destroy');

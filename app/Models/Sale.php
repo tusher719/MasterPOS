@@ -82,6 +82,11 @@ class Sale extends Model
         return $this->hasMany(SalePayment::class)->orderBy('payment_date')->orderBy('id');
     }
 
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(SaleStatusHistory::class)->orderByDesc('created_at');
+    }
+
     // ─── Reference Number Generator ───────────────────────────────
 
     /**

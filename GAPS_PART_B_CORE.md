@@ -266,7 +266,7 @@ sales additions:
 
 ---
 
-### 4.8 Sale Status History (Must Fix)
+### 4.8 Sale Status History ✅ DONE
 
 ```
 sale_status_histories: id, sale_id (FK cascade),

@@ -195,6 +195,11 @@
 - salesList() must eager load salePayments with paymentMethod, paymentMethodBank,
   verifiedBy — PaymentHistoryModal reads directly from Inertia props,
   no frontend fetch() call permitted
+    - updateOrderStatus() individual status change requires mandatory note (min 3 chars);
+      never allow same-status update — guard in both controller and modal
+
+- Sales/Show.tsx uses statusHistories relation (orderByDesc) — most recent entry
+  shown at top of timeline with indigo dot; older entries gray dot
 
 ---
 
