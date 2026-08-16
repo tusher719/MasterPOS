@@ -280,7 +280,7 @@ Powers customer-facing tracking timeline (4.11 + storefront 10.9).
 
 ---
 
-### 4.9 Order Confirmation Email — Opt-in from POS (Should Fix)
+### 4.9 Order Confirmation Email — Opt-in from POS ✅ DONE
 
 ```
 sales additions: email_sent_at (timestamp nullable)

@@ -38,6 +38,7 @@ class Sale extends Model
         'courier_note',
         // ─────────────────────────────────────────────────────────
         'note',
+        'email_sent_at',
         'created_by',
     ];
 

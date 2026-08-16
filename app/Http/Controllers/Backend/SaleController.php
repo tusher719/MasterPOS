@@ -26,6 +26,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use App\Mail\OrderConfirmationMail;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -252,6 +254,16 @@ class SaleController extends Controller
         });
 
         $sale = Sale::find($saleId);
+
+        // Send order confirmation email outside transaction —
+        // mail failure must never roll back a completed sale.
+        if (
+            $sale &&
+            ($data['send_email_confirmation'] ?? false) &&
+            $sale->customer?->email
+        ) {
+            $this->sendOrderConfirmationEmail($sale);
+        }
 
         return response()->json([
             'id'           => $sale?->id,
@@ -698,6 +710,34 @@ class SaleController extends Controller
         ];
     }
 
+    /**
+     * Send order confirmation email to the customer.
+     * Called after DB transaction completes — never inside transaction.
+     * Updates email_sent_at on success.
+     */
+    private function sendOrderConfirmationEmail(Sale $sale): void
+    {
+        $sale->loadMissing([
+            'customer',
+            'paymentMethod',
+            'items.product',
+            'items.variant',
+        ]);
+
+        try {
+            Mail::to($sale->customer->email)
+                ->send(new OrderConfirmationMail($sale, $this->resolveBusinessProfile()));
+
+            // Mark email as sent — forceFill not needed, email_sent_at is fillable
+            $sale->update(['email_sent_at' => now()]);
+        } catch (\Throwable $e) {
+            // Log failure but do not throw — sale is already complete
+            \Illuminate\Support\Facades\Log::warning(
+                'Order confirmation email failed for sale ' . $sale->reference_no,
+                ['error' => $e->getMessage()]
+            );
+        }
+    }
 
     // ─── Update Order Status (Item 4.8) ───────────────────────────────────────
     /**

@@ -43,7 +43,10 @@ interface Props {
     onDiscountChange: (value: number) => void;
     onTaxChange: (value: number) => void;
     onPaidAmountChange: (value: number) => void;
-    onNoteChange: (value: string) => void;
+    onNoteChange: (val: string) => void;
+    sendEmailConfirmation: boolean;
+    onSendEmailConfirmationChange: (val: boolean) => void;
+    selectedCustomerEmail: string | null;
     onCheckout: () => void;
 }
 
@@ -109,6 +112,9 @@ export default function CheckoutPanel({
     onTaxChange,
     onPaidAmountChange,
     onNoteChange,
+    sendEmailConfirmation,
+    onSendEmailConfirmationChange,
+    selectedCustomerEmail,
     onCheckout,
 }: Props) {
     const { settings } = usePage().props as any;
@@ -532,6 +538,30 @@ export default function CheckoutPanel({
                                focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
             </div>
+
+            {/* ── Email Confirmation Checkbox ── */}
+            {/* Only shown when selected customer has an email address */}
+            {selectedCustomerEmail && (
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                    <input
+                        type="checkbox"
+                        checked={sendEmailConfirmation}
+                        onChange={(e) =>
+                            onSendEmailConfirmationChange(e.target.checked)
+                        }
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600
+                                   focus:ring-indigo-500"
+                    />
+                    <div>
+                        <p className="text-xs font-medium text-gray-700">
+                            Send order confirmation email
+                        </p>
+                        <p className="text-[11px] text-gray-400">
+                            {selectedCustomerEmail}
+                        </p>
+                    </div>
+                </label>
+            )}
 
             {/* ── Checkout Button ── */}
             <button

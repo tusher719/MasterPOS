@@ -10,6 +10,7 @@ class SaleItem extends Model
     protected $fillable = [
         'sale_id',
         'product_id',
+        'variant_id',
         'quantity',
         'unit_price',
         'discount',
@@ -33,5 +34,14 @@ class SaleItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class)->withTrashed();
+    }
+
+    /**
+     * ProductVariant uses SoftDeletes — withTrashed() required
+     * so deleted variants still resolve in order history.
+     */
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 }

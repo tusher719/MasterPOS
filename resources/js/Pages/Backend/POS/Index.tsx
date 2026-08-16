@@ -247,6 +247,7 @@ export default function POSIndex({
     const [paidAmount, setPaidAmount] = useState(0);
     const [note, setNote] = useState("");
     const [processing, setProcessing] = useState(false);
+    const [sendEmailConfirmation, setSendEmailConfirmation] = useState(false);
 
     // grandTotal includes paymentCharge
     const grandTotal = useMemo(
@@ -403,6 +404,7 @@ export default function POSIndex({
         setTax(0);
         setPaidAmount(0);
         setNote("");
+        setSendEmailConfirmation(false);
     };
 
     const handleClearCart = async () => {
@@ -526,6 +528,7 @@ export default function POSIndex({
                 tax,
                 paid_amount: isCOD ? 0 : paidAmount,
                 note,
+                send_email_confirmation: sendEmailConfirmation,
                 items: cartItems.map((i) => ({
                     product_id: i.product_id,
                     variant_id: i.variant_id ?? null,
@@ -671,36 +674,44 @@ export default function POSIndex({
                     </div>
                     <div className="flex-1 overflow-hidden">
                         <CheckoutPanel
-                            customers={customers}
-                            paymentMethods={paymentMethods}
-                            customerId={customerId}
-                            paymentMethodId={paymentMethodId}
-                            paymentMethodBankId={paymentMethodBankId}
-                            paymentType={paymentType}
-                            paymentCharge={paymentCharge}
-                            transactionId={transactionId}
-                            paymentReference={paymentReference}
-                            discount={discount}
-                            tax={tax}
-                            paidAmount={paidAmount}
-                            note={note}
-                            subtotal={subtotal}
-                            grandTotal={grandTotal}
-                            dueAmount={dueAmount}
-                            paymentStatus={paymentStatus}
-                            processing={processing}
-                            cartEmpty={cartItems.length === 0}
-                            onCustomerChange={setCustomerId}
-                            onPaymentMethodChange={handlePaymentMethodChange}
-                            onPaymentMethodBankChange={handleBankChange}
-                            onPaymentTypeChange={handlePaymentTypeChange}
-                            onTransactionIdChange={setTransactionId}
-                            onPaymentReferenceChange={setPaymentReference}
-                            onDiscountChange={setDiscount}
-                            onTaxChange={setTax}
-                            onPaidAmountChange={setPaidAmount}
-                            onNoteChange={setNote}
-                            onCheckout={handleCheckout}
+                            {...({
+                                customers,
+                                paymentMethods,
+                                customerId,
+                                paymentMethodId,
+                                paymentMethodBankId,
+                                paymentType,
+                                paymentCharge,
+                                transactionId,
+                                paymentReference,
+                                discount,
+                                tax,
+                                paidAmount,
+                                note,
+                                subtotal,
+                                grandTotal,
+                                dueAmount,
+                                paymentStatus,
+                                processing,
+                                cartEmpty: cartItems.length === 0,
+                                onCustomerChange: setCustomerId,
+                                onPaymentMethodChange:
+                                    handlePaymentMethodChange,
+                                onPaymentMethodBankChange: handleBankChange,
+                                onPaymentTypeChange: handlePaymentTypeChange,
+                                onTransactionIdChange: setTransactionId,
+                                onPaymentReferenceChange: setPaymentReference,
+                                onDiscountChange: setDiscount,
+                                onTaxChange: setTax,
+                                onPaidAmountChange: setPaidAmount,
+                                onNoteChange: setNote,
+                                onSendEmailConfirmationChange:
+                                    setSendEmailConfirmation,
+                                selectedCustomerEmail:
+                                    customers.find((c) => c.id === customerId)
+                                        ?.email ?? null,
+                                onCheckout: handleCheckout,
+                            } as any)}
                         />
                     </div>
                 </div>

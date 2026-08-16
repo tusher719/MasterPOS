@@ -670,3 +670,7 @@ partners
   ├── investor_capital_balances (many, via partner_id)
   └── investment_fund_usages (many, via partner_id)
 ```
+
+### sales additions (Item 4.9 migration)
+
+email_sent_at (timestamp nullable)

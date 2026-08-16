@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Item 4.9 — Order Confirmation Email (Next)
-- **Last Completed:** Item 4.8 — Sale Status History ✅
+- **Current Step:** Sprint 3 — Item 6.1 — Fraud Flags Core Table (Next)
+- **Last Completed:** Item 4.9 — Order Confirmation Email ✅
 
 ## Financial Domain Overview
 
@@ -115,14 +115,11 @@
 | 4.6         | Courier Manual Fields                               | ✅     |
 | 4.7         | Sales History Page                                  | ✅     |
 | 4.8         | Sale Status History                                 | ✅     |
+| 4.9         | Order Confirmation Email                            | ✅     |
 
 ## Pending Work — Sprint Order
 
-### Sprint 2 — Sales/Delivery/Payment Core
-
-| #   | Item                     | Priority   |
-| --- | ------------------------ | ---------- |
-| 4.9 | Order Confirmation Email | Should Fix |
+### Sprint 2 — Sales/Delivery/Payment Core ✅ DONE
 
 ### Sprint 3 — Fraud Protection
 

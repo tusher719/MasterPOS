@@ -2,6 +2,63 @@
 
 ---
 
+## [v2.32 — Item 4.9] — Order Confirmation Email — 2026-08-16
+
+### New Migration (1)
+
+- `add_email_sent_at_to_sales_table`:
+  email_sent_at (timestamp nullable) — after note column
+
+### New Files (2)
+
+- `app/Mail/OrderConfirmationMail.php`: Mailable class — envelope subject
+  includes reference_no; content renders emails.order-confirmation view;
+  passes sale + business profile array
+
+- `resources/views/emails/order-confirmation.blade.php`: HTML email template —
+  header (indigo bg, business name), order details info card (reference_no,
+  date, payment type, method, transaction_id, delivery address), items table
+  (product name + variant attributes, qty, unit price, subtotal), totals
+  breakdown (subtotal, discount, tax, delivery charge, grand total),
+  payment status badge (COD/paid/partial/due), note section, footer with
+  business address; inline CSS only (email client compatibility)
+
+### Updated Files (4)
+
+- `Sale.php`: email_sent_at added to $fillable
+
+- `StoreSaleRequest.php`: send_email_confirmation (nullable, boolean) added
+  to validation rules
+
+- `SaleController.php`: OrderConfirmationMail + Mail imports added;
+  store() calls sendOrderConfirmationEmail() AFTER DB transaction completes —
+  mail failure never rolls back a completed sale; sendOrderConfirmationEmail()
+  private helper added — loadMissing relations, Mail::to()->send(), updates
+  email_sent_at on success, logs warning on failure without throwing
+
+- `CheckoutPanel.tsx`: sendEmailConfirmation, onSendEmailConfirmationChange,
+  selectedCustomerEmail props added; email confirmation checkbox rendered
+  between Note textarea and Checkout button — only visible when selected
+  customer has an email address; shows customer email address as hint text
+
+- `Index.tsx`: sendEmailConfirmation state added (default false);
+  resetCheckoutState() resets to false; send_email_confirmation included
+  in checkout payload; selectedCustomerEmail + callback props passed to
+  CheckoutPanel
+
+### Business Rules Established
+
+- Email opt-in only — checkbox shown only when customer has an email address;
+  walk-in customers and customers without email never see the checkbox
+- send_email_confirmation = false (unchecked) → no email sent regardless
+- Email sent AFTER DB transaction — mail failure never affects sale record
+- email_sent_at filled on successful send only — null means not sent or failed
+- Mail failure logged as warning (Log::warning) — sale remains complete
+- MAIL_FROM_NAME must be set as literal string in .env on Windows —
+  ${APP_NAME} variable interpolation unreliable on Windows environments
+
+---
+
 ## [v2.31 — Item 4.8] — Sale Status History UI — 2026-08-16
 
 ### New Files (3)
