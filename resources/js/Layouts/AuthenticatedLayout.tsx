@@ -24,6 +24,7 @@ import {
     ScrollText,
     Settings2,
     Shield,
+    ShieldAlert,
     ShoppingBag,
     ShoppingCart,
     Tag,
@@ -281,6 +282,18 @@ const NAV_ITEMS: NavItem[] = [
                 icon: Users,
                 href: "backend.partners.index",
                 active: "backend.partners.index*",
+            },
+        ],
+    },
+    {
+        label: "Fraud Protection",
+        icon: ShieldAlert,
+        children: [
+            {
+                label: "Fraud Flags",
+                icon: ShieldAlert,
+                href: "backend.fraud-flags.index",
+                active: "backend.fraud-flags.*",
             },
         ],
     },

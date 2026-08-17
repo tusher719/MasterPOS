@@ -11,6 +11,7 @@ use App\Models\BusinessSetting;
 use App\Models\CapitalLedgerEntry;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\FraudFlag;
 use App\Models\HoldOrder;
 use App\Models\Investment;
 use App\Models\InvestmentFundUsage;
@@ -32,6 +33,7 @@ use App\Observers\BusinessSettingObserver;
 use App\Policies\CapitalLedgerPolicy;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\ExpensePolicy;
+use App\Policies\FraudFlagPolicy;
 use App\Policies\HoldOrderPolicy;
 use App\Policies\InvestmentFundUsagePolicy;
 use App\Policies\InvestmentPolicy;
@@ -129,6 +131,9 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Step 17 Phase 4G Policies ─────────────────────────────────────────────────
         Gate::policy(InvestmentFundUsage::class, InvestmentFundUsagePolicy::class);
+
+        // ─── Sprint 3 — Fraud Protection ──────────────────────────────────────
+        Gate::policy(FraudFlag::class, FraudFlagPolicy::class);
 
         // Settings cache invalidation
         BusinessSetting::observe(BusinessSettingObserver::class);

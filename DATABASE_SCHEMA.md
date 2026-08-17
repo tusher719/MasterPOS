@@ -674,3 +674,35 @@ partners
 ### sales additions (Item 4.9 migration)
 
 email_sent_at (timestamp nullable)
+
+### Sprint 3 — Fraud Protection
+
+### fraud_flags
+
+id, customer_id (FK customers nullable nullOnDelete),
+phone (varchar), email (varchar nullable),
+full_name_snapshot (varchar), address_snapshot (text nullable),
+reason (enum: no_answer/refused_delivery/multiple_returns/fake_order/
+failed_validation/ip_limit_exceeded/low_success_ratio/other),
+reason_note (text),
+trigger_type (enum: manual/auto_layer2/auto_layer3),
+related_sale_ids (JSON nullable),
+status (enum: pending_review/confirmed_fraud/cleared default: pending_review),
+flagged_by (FK users nullable nullOnDelete — null = system-triggered),
+flagged_at (timestamp),
+reviewed_by (FK users nullable nullOnDelete),
+reviewed_at (timestamp nullable),
+review_note (text nullable),
+external_fraud_check_response (JSON nullable — Phase 2 reserved),
+timestamps
+Indexes: phone, email, status, trigger_type, customer_id, flagged_at
+
+Note: status excluded from $fillable — use confirmFraud() / clearFlag() model methods.
+Note: flagged_by = null means system-triggered (auto_layer2 / auto_layer3).
+Note: external_fraud_check_response never written in Phase 1.
+
+### 6. Enum Reference — add rows
+
+| fraud_flags | reason | no_answer, refused_delivery, multiple_returns, fake_order, failed_validation, ip_limit_exceeded, low_success_ratio, other |
+| fraud_flags | trigger_type | manual, auto_layer2, auto_layer3 |
+| fraud_flags | status | pending_review, confirmed_fraud, cleared |

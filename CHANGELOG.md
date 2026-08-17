@@ -2,6 +2,96 @@
 
 ---
 
+## [v2.33 — Item 6.1] — Fraud Flags Core Table — 2026-08-17
+
+### New Migration (1)
+
+- `create_fraud_flags_table`:
+  customer_id (FK nullable nullOnDelete), phone (varchar), email (varchar nullable),
+  full_name_snapshot (varchar), address_snapshot (text nullable),
+  reason (enum: no_answer/refused_delivery/multiple_returns/fake_order/
+  failed_validation/ip_limit_exceeded/low_success_ratio/other),
+  reason_note (text), trigger_type (enum: manual/auto_layer2/auto_layer3),
+  related_sale_ids (JSON nullable), status (enum: pending_review/confirmed_fraud/cleared
+  default: pending_review),
+  flagged_by (FK users nullable nullOnDelete), flagged_at (timestamp),
+  reviewed_by (FK users nullable nullOnDelete), reviewed_at (timestamp nullable),
+  review_note (text nullable),
+  external_fraud_check_response (JSON nullable — Phase 2 reserved),
+  timestamps
+  Indexes: phone, email, status, trigger_type, customer_id, flagged_at
+
+### New Files (9)
+
+- `FraudFlag.php`: fillable excludes status/reviewed_by/reviewed_at/review_note
+  (Rule 66); confirmFraud() + clearFlag() model methods via forceFill()->save();
+  is_pending/is_confirmed/is_cleared accessors; scopes: pendingReview(),
+  confirmedFraud(), cleared(), byPhone(), byTriggerType()
+
+- `FraudFlagPolicy.php`: viewAny (flag OR review permission), flag(), review();
+  no model parameter on any method (Rule 3 pattern)
+
+- `FraudFlagSeeder.php`: fraud.flag + fraud.review permissions created;
+  Admin role gets both; Fraud Manager role created with both permissions;
+  Staff gets no fraud permissions
+
+- `FraudFlagController.php`: index() — paginated list with search/status/
+  trigger_type/reason filters, stats aggregation, append() for accessors;
+  store() — manual flag creation, customer snapshot resolution;
+  review() — confirm or clear, same-status guard, forceFill via model methods
+
+- `StoreFraudFlagRequest.php`: customer_id nullable exists, phone required,
+  reason enum validation, reason_note min:10, related_sale_ids array
+
+- `ReviewFraudFlagRequest.php`: action in:confirm/clear, review_note min:10
+
+- `resources/js/types/fraud-flag.d.ts`: FraudFlagReason, FraudFlagTriggerType,
+  FraudFlagStatus types; FraudFlag, FraudFlagStats, FraudFlagFilters,
+  FraudFlagCan interfaces; StoreFraudFlagFormData, ReviewFraudFlagFormData,
+  FraudFlagIndexProps
+
+- `resources/js/types/fraud-flag-colors.ts`: FRAUD_FLAG_STATUS_LABELS/COLORS,
+  FRAUD_FLAG_TRIGGER_LABELS/COLORS, FRAUD_FLAG_REASON_LABELS,
+  STATUS/TRIGGER/REASON filter options arrays
+
+- `resources/js/Pages/Backend/FraudFlags/Index.tsx`: stats cards (Total/Pending/
+  Confirmed/Cleared), search + status/trigger/reason filters, table with
+  customer info/reason/trigger badge/status badge/flagged_at/flagged_by columns;
+  ReviewModal (Confirm Fraud / Clear Flag with mandatory note);
+  CreateFlagModal (manual flag creation); can.flag + can.review gated actions
+
+### Updated Files (4)
+
+- `AppServiceProvider.php`: FraudFlag + FraudFlagPolicy imports added;
+  Gate::policy(FraudFlag::class, FraudFlagPolicy::class) registered under
+  Sprint 3 comment block
+
+- `routes/web.php`: FraudFlagController import added; fraud-flags prefix group
+  added before delete-preview route — index (GET), store (POST),
+  review (POST /{fraudFlag}/review)
+
+- `AuthenticatedLayout.tsx`: ShieldAlert import confirmed present; Fraud Protection
+  nav group added after Partners, before Reports — single child: Fraud Flags
+
+- `FraudFlagController.php`: append(['is_pending', 'is_confirmed', 'is_cleared'])
+  added after paginate() — fixes accessor serialization bug (Rule 17 pattern)
+
+### Business Rules Established
+
+- System creates pending_review flags only — auto_layer2/auto_layer3 triggers
+  will set flagged_by = null (null = system-triggered)
+- Admin / Fraud Manager reviews flags: confirm → confirmed_fraud, clear → cleared
+- Already-reviewed flags (non-pending) cannot be re-reviewed — backend guard
+- status, reviewed_by, reviewed_at, review_note excluded from $fillable —
+  set only via confirmFraud() / clearFlag() model methods (Rule 66)
+- Accessors (is_pending, is_confirmed, is_cleared) must be explicitly appended
+  via ->append() after paginate() — never auto-serialized by Laravel
+- external_fraud_check_response column reserved for Phase 2 paid external API —
+  never written in Phase 1
+- Fraud Manager is a new role — distinct from Admin and Staff
+
+---
+
 ## [v2.32 — Item 4.9] — Order Confirmation Email — 2026-08-16
 
 ### New Migration (1)

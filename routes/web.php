@@ -6,6 +6,7 @@ use App\Http\Controllers\Backend\CapitalWithdrawalController;
 use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DeletePreviewController;
+use App\Http\Controllers\Backend\FraudFlagController;
 use App\Http\Controllers\Backend\DistributionReverseController;
 use App\Http\Controllers\Backend\LoginHistoryController;
 use App\Http\Controllers\Backend\RoleController;
@@ -588,6 +589,14 @@ Route::middleware(['auth', 'verified'])
             Route::get('/{partner}', [PartnerController::class, 'show'])->name('show');
             Route::put('/{partner}', [PartnerController::class, 'update'])->name('update');
             Route::delete('/{partner}', [PartnerController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Sprint 3 — Fraud Flags ────────────────────────────────────────────
+        // review route BEFORE resource-style store to prevent any future conflict
+        Route::prefix('fraud-flags')->name('fraud-flags.')->group(function () {
+            Route::get('/', [FraudFlagController::class, 'index'])->name('index');
+            Route::post('/', [FraudFlagController::class, 'store'])->name('store');
+            Route::post('/{fraudFlag}/review', [FraudFlagController::class, 'review'])->name('review');
         });
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint
