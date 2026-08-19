@@ -324,7 +324,7 @@ fraud_flags: id,
 
 ---
 
-### 6.2 Layer 1 — Basic Form Validation (Must Fix)
+### 6.2 Layer 1 — Basic Form Validation ✅ DONE
 
 At checkout (POS + storefront):
 

@@ -649,3 +649,34 @@ Individual status update (Item 4.8):
 - SaleController private helpers:
     - mapPaymentMethods() — single source for payment method mapping (DRY)
     - resolveBusinessProfile() — single source for business settings in PDFs (DRY)
+
+## 27. Layer 1 Fraud Validation Rules (Item 6.2)
+
+Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
+
+### Phone
+
+- Must match Bangladeshi mobile format: 01[3-9]XXXXXXXX (11 digits)
+- Accepts +8801XXXXXXXXX and 8801XXXXXXXXX prefix variants
+- Checked against: registered customer's phone OR walk-in phone typed at checkout
+
+### Name (walk-in orders only)
+
+- Cannot be purely numeric (e.g. a phone number entered as name)
+- Must contain at least some letters (Latin or Bangla Unicode)
+- Single character repeated 5+ times rejected (keyboard spam)
+- Minimum 2 characters after trim
+
+### Address (non-store_pickup delivery only)
+
+- Minimum 3 words required
+- Address composed entirely of digits, spaces, and punctuation rejected
+- All words identical and shorter than 3 chars rejected
+
+### Failure Behavior
+
+- Layer 1 failure returns HTTP 422 {layer1_errors: {field: message}}
+- Sale is never created on Layer 1 failure
+- Errors shown in CheckoutPanel red block above checkout button
+- layer1Errors cleared on every new checkout attempt
+- No paid or external validation service used in Phase 1

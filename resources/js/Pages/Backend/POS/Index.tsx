@@ -55,7 +55,7 @@ interface Props {
     };
 }
 
-// ── Charge helpers ───────────────────────────────────────────────────────────
+// ── Charge helpers ────────────────────────────────────────────────────────────
 
 /**
  * Calculate charge for a payment method (non-bank-transfer).
@@ -95,7 +95,7 @@ export function calcBankCharge(
     return 0;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function POSIndex({
     products,
@@ -127,7 +127,7 @@ export default function POSIndex({
         });
     }, [products, search, selectedCategory]);
 
-    // ── Cart ─────────────────────────────────────────────────────────
+    // ── Cart ──────────────────────────────────────────────────────────────────
     const [cartItems, setCartItems] = useState<CartItemRow[]>([]);
 
     const handleAddToCart = (product: Product) => {
@@ -232,7 +232,7 @@ export default function POSIndex({
         [cartItems],
     );
 
-    // ── Checkout state ───────────────────────────────────────────────
+    // ── Checkout state ────────────────────────────────────────────────────────
     const [customerId, setCustomerId] = useState<number | null>(null);
     const [paymentMethodId, setPaymentMethodId] = useState<number | null>(null);
     const [paymentMethodBankId, setPaymentMethodBankId] = useState<
@@ -248,6 +248,12 @@ export default function POSIndex({
     const [note, setNote] = useState("");
     const [processing, setProcessing] = useState(false);
     const [sendEmailConfirmation, setSendEmailConfirmation] = useState(false);
+
+    // Layer 1 validation errors returned from backend (422 layer1_errors).
+    // Cleared on every new checkout attempt and on cart reset.
+    const [layer1Errors, setLayer1Errors] = useState<Record<string, string>>(
+        {},
+    );
 
     // grandTotal includes paymentCharge
     const grandTotal = useMemo(
@@ -266,7 +272,7 @@ export default function POSIndex({
         return "partial";
     }, [paidAmount, grandTotal]);
 
-    // ── Auto-recalculate charge when method / bank changes ───────────
+    // ── Auto-recalculate charge when method / bank changes ────────────────────
     const handlePaymentMethodChange = (id: number | null) => {
         setPaymentMethodId(id);
         setPaymentMethodBankId(null); // reset bank on method change
@@ -286,7 +292,6 @@ export default function POSIndex({
         if (method.type === "bank_transfer") {
             setPaymentCharge(0);
         } else {
-            // subtotal for charge base = subtotal - discount + tax (before charge)
             const base = Math.max(0, subtotal - discount + tax);
             setPaymentCharge(calcMethodCharge(method, base));
         }
@@ -309,7 +314,6 @@ export default function POSIndex({
     };
 
     // Re-calc charge whenever subtotal / discount / tax change
-    // (keeps charge in sync if cart items are modified after method selected)
     useEffect(() => {
         if (!paymentMethodId) return;
         const method = paymentMethods.find((m) => m.id === paymentMethodId);
@@ -324,11 +328,10 @@ export default function POSIndex({
         }
     }, [subtotal, discount, tax]);
 
-    // ── Payment type selection ────────────────────────────────────────
+    // ── Payment type selection ─────────────────────────────────────────────────
     const handlePaymentTypeChange = (type: PaymentType) => {
         setPaymentType(type);
         if (type === "cash_on_delivery") {
-            // COD: no upfront payment
             setPaidAmount(0);
             setPaymentMethodId(null);
             setPaymentMethodBankId(null);
@@ -336,7 +339,6 @@ export default function POSIndex({
             setTransactionId("");
             setPaymentReference("");
         } else if (type === "full_paid") {
-            // Auto-fill full amount (charge included via grandTotal)
             setPaidAmount(grandTotal);
         } else if (type === "half_paid") {
             setPaidAmount(parseFloat((grandTotal / 2).toFixed(2)));
@@ -352,7 +354,7 @@ export default function POSIndex({
 
     const [receiptSale, setReceiptSale] = useState<any>(null);
 
-    // ── Hold Orders state ─────────────────────────────────────────────
+    // ── Hold Orders state ─────────────────────────────────────────────────────
     const [showHoldDrawer, setShowHoldDrawer] = useState(false);
     const [resumedHoldOrderId, setResumedHoldOrderId] = useState<number | null>(
         null,
@@ -405,6 +407,8 @@ export default function POSIndex({
         setPaidAmount(0);
         setNote("");
         setSendEmailConfirmation(false);
+        // Clear any Layer 1 errors from the previous attempt
+        setLayer1Errors({});
     };
 
     const handleClearCart = async () => {
@@ -482,12 +486,14 @@ export default function POSIndex({
         setPaidAmount(0);
         setTransactionId("");
         setPaymentReference("");
+        // Clear any stale Layer 1 errors from the previous cart session
+        setLayer1Errors({});
 
         setShowHoldDrawer(false);
         toast.success("Hold order resumed. Complete checkout to convert.");
     };
 
-    // ── Checkout submit ───────────────────────────────────────────────
+    // ── Checkout submit ───────────────────────────────────────────────────────
     const handleCheckout = async () => {
         if (!can.create) {
             toast.error("You do not have permission to create sales.");
@@ -506,15 +512,22 @@ export default function POSIndex({
             return;
         }
 
+        // Clear previous Layer 1 errors before each new attempt
+        setLayer1Errors({});
         setProcessing(true);
+
         try {
             const isCOD = paymentType === "cash_on_delivery";
             const selectedMethod = paymentMethods.find(
                 (m) => m.id === paymentMethodId,
             );
+            const selectedCustomer = customers.find((c) => c.id === customerId);
 
             const payload = {
                 customer_id: customerId,
+                // Pass the registered customer's phone so Layer1ValidationService
+                // can validate it on the backend (walk-in phone not collected in POS UI)
+                customer_phone: selectedCustomer?.phone ?? null,
                 sale_date: new Date().toISOString().split("T")[0],
                 payment_type: paymentType,
                 payment_method_id: isCOD ? null : paymentMethodId,
@@ -543,13 +556,11 @@ export default function POSIndex({
                 payload,
             );
 
-            const customer = customers.find((c) => c.id === customerId);
-
             setReceiptSale({
                 id: response.data?.id ?? 0,
                 reference_no: response.data?.reference_no ?? "",
                 sale_date: payload.sale_date,
-                customer_name: customer?.name ?? null,
+                customer_name: selectedCustomer?.name ?? null,
                 payment_method: isCOD
                     ? "Cash on Delivery"
                     : (selectedMethod?.name ?? null),
@@ -584,9 +595,25 @@ export default function POSIndex({
             }
         } catch (error: any) {
             if (error.response?.status === 422) {
-                const errors = error.response.data.errors;
+                const data = error.response.data;
+
+                // Layer 1 fraud validation failure — backend returns
+                // {layer1_errors: {phone: '...', customer_name: '...', delivery_address: '...'}}
+                // Display errors in CheckoutPanel's error block.
+                if (data.layer1_errors) {
+                    setLayer1Errors(data.layer1_errors);
+                    const count = Object.keys(data.layer1_errors).length;
+                    toast.error(
+                        `Order blocked: ${count} validation issue${count > 1 ? "s" : ""} found. See checkout panel.`,
+                        { duration: 5000 },
+                    );
+                    return;
+                }
+
+                // Standard Laravel validation error (non-Layer-1)
+                const errors = data.errors ?? {};
                 const first = Object.values(errors)[0] as string[];
-                toast.error(first[0] ?? "Validation error.");
+                toast.error(first?.[0] ?? "Validation error.");
             } else {
                 toast.error("Failed to complete sale. Please try again.");
             }
@@ -674,44 +701,45 @@ export default function POSIndex({
                     </div>
                     <div className="flex-1 overflow-hidden">
                         <CheckoutPanel
-                            {...({
-                                customers,
-                                paymentMethods,
-                                customerId,
-                                paymentMethodId,
-                                paymentMethodBankId,
-                                paymentType,
-                                paymentCharge,
-                                transactionId,
-                                paymentReference,
-                                discount,
-                                tax,
-                                paidAmount,
-                                note,
-                                subtotal,
-                                grandTotal,
-                                dueAmount,
-                                paymentStatus,
-                                processing,
-                                cartEmpty: cartItems.length === 0,
-                                onCustomerChange: setCustomerId,
-                                onPaymentMethodChange:
-                                    handlePaymentMethodChange,
-                                onPaymentMethodBankChange: handleBankChange,
-                                onPaymentTypeChange: handlePaymentTypeChange,
-                                onTransactionIdChange: setTransactionId,
-                                onPaymentReferenceChange: setPaymentReference,
-                                onDiscountChange: setDiscount,
-                                onTaxChange: setTax,
-                                onPaidAmountChange: setPaidAmount,
-                                onNoteChange: setNote,
-                                onSendEmailConfirmationChange:
-                                    setSendEmailConfirmation,
-                                selectedCustomerEmail:
-                                    customers.find((c) => c.id === customerId)
-                                        ?.email ?? null,
-                                onCheckout: handleCheckout,
-                            } as any)}
+                            customers={customers}
+                            paymentMethods={paymentMethods}
+                            customerId={customerId}
+                            paymentMethodId={paymentMethodId}
+                            paymentMethodBankId={paymentMethodBankId}
+                            paymentType={paymentType}
+                            paymentCharge={paymentCharge}
+                            transactionId={transactionId}
+                            paymentReference={paymentReference}
+                            discount={discount}
+                            tax={tax}
+                            paidAmount={paidAmount}
+                            note={note}
+                            subtotal={subtotal}
+                            grandTotal={grandTotal}
+                            dueAmount={dueAmount}
+                            paymentStatus={paymentStatus}
+                            processing={processing}
+                            cartEmpty={cartItems.length === 0}
+                            onCustomerChange={setCustomerId}
+                            onPaymentMethodChange={handlePaymentMethodChange}
+                            onPaymentMethodBankChange={handleBankChange}
+                            onPaymentTypeChange={handlePaymentTypeChange}
+                            onTransactionIdChange={setTransactionId}
+                            onPaymentReferenceChange={setPaymentReference}
+                            onDiscountChange={setDiscount}
+                            onTaxChange={setTax}
+                            onPaidAmountChange={setPaidAmount}
+                            onNoteChange={setNote}
+                            sendEmailConfirmation={sendEmailConfirmation}
+                            onSendEmailConfirmationChange={
+                                setSendEmailConfirmation
+                            }
+                            selectedCustomerEmail={
+                                customers.find((c) => c.id === customerId)
+                                    ?.email ?? null
+                            }
+                            onCheckout={handleCheckout}
+                            layer1Errors={layer1Errors}
                         />
                     </div>
                 </div>

@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- **Current Step:** Sprint 3 — Item 6.2 — Layer 1 Form Validation (Next)
-- **Last Completed:** Item 6.1 — Fraud Flags Core Table ✅
+Current Step: Sprint 3 — Item 6.3 — Layer 2 IP Order Limit (Next)
+Last Completed: Item 6.2 — Layer 1 Form Validation ✅
 
 ## Financial Domain Overview
 
@@ -117,6 +117,7 @@
 | 4.8         | Sale Status History                                 | ✅     |
 | 4.9         | Order Confirmation Email                            | ✅     |
 | 6.1         | Fraud Flags Core Table                              | ✅     |
+| 6.2         | Layer 1 Form Validation                             | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -127,7 +128,7 @@
 | #   | Item                        | Priority |
 | --- | --------------------------- | -------- |
 | 6.1 | Fraud Flags Core Table ✅   | Done     |
-| 6.2 | Layer 1 Form Validation     | Must Fix |
+| 6.2 | Layer 1 Form Validation     | ✅       |
 | 6.3 | Layer 2 IP Order Limit      | Must Fix |
 | 6.4 | Layer 3 Success Ratio Check | Must Fix |
 | 6.5 | Order-Blocked Popup         | Must Fix |

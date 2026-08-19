@@ -7,6 +7,8 @@ import {
     calcBankCharge,
 } from "../Index";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Customer {
     id: number;
     name: string;
@@ -48,7 +50,14 @@ interface Props {
     onSendEmailConfirmationChange: (val: boolean) => void;
     selectedCustomerEmail: string | null;
     onCheckout: () => void;
+
+    // Layer 1 errors returned from backend (422 layer1_errors response).
+    // Key matches the field name: 'phone', 'customer_name', 'delivery_address'.
+    // Cleared by parent on every new checkout attempt.
+    layer1Errors: Record<string, string>;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const paymentStatusColors = {
     paid: "bg-green-100 text-green-700",
@@ -81,6 +90,8 @@ const PAYMENT_TYPE_OPTIONS: {
         icon: <Truck size={13} />,
     },
 ];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CheckoutPanel({
     customers,
@@ -116,11 +127,12 @@ export default function CheckoutPanel({
     onSendEmailConfirmationChange,
     selectedCustomerEmail,
     onCheckout,
+    layer1Errors,
 }: Props) {
     const { settings } = usePage().props as any;
     const currency = settings?.currency_symbol ?? "৳";
 
-    // Normalize all decimals — Laravel serializes as strings
+    // Normalize all decimals — Laravel serializes decimal fields as strings
     const subtotalNum = Number(subtotal);
     const discountNum = Number(discount);
     const taxNum = Number(tax);
@@ -145,7 +157,7 @@ export default function CheckoutPanel({
     const selectedBank =
         activeBanks.find((b) => b.id === paymentMethodBankId) ?? null;
 
-    // Charge label to show
+    // Charge label to show in totals breakdown
     const chargeLabel: string | null = (() => {
         if (paymentChargeNum <= 0) return null;
         if (isBankTransfer && selectedBank?.charge_label)
@@ -155,9 +167,11 @@ export default function CheckoutPanel({
         return "Payment Charge";
     })();
 
+    const hasLayer1Errors = Object.keys(layer1Errors).length > 0;
+
     return (
         <div className="flex h-full flex-col gap-3 overflow-y-auto p-4">
-            {/* ── Customer Select ── */}
+            {/* ── Customer Select ─────────────────────────────────────────────── */}
             <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">
                     Customer <span className="text-gray-400">(optional)</span>
@@ -179,9 +193,17 @@ export default function CheckoutPanel({
                         </option>
                     ))}
                 </select>
+
+                {/* Layer 1 phone error for registered customer —
+                    shown when backend rejects the phone stored on the Customer record */}
+                {layer1Errors.phone && (
+                    <p className="mt-1 text-xs text-red-600">
+                        {layer1Errors.phone}
+                    </p>
+                )}
             </div>
 
-            {/* ── Payment Type ── */}
+            {/* ── Payment Type ─────────────────────────────────────────────────── */}
             <div>
                 <label className="mb-1.5 block text-xs font-medium text-gray-600">
                     Payment Type <span className="text-red-400">*</span>
@@ -225,7 +247,7 @@ export default function CheckoutPanel({
                 )}
             </div>
 
-            {/* ── Payment Method (hidden for COD) ── */}
+            {/* ── Payment Method (hidden for COD) ──────────────────────────────── */}
             {!isCOD && (
                 <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -251,7 +273,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* ── Bank Sub-list (bank_transfer only) ── */}
+            {/* ── Bank Sub-list (bank_transfer only) ───────────────────────────── */}
             {!isCOD && isBankTransfer && activeBanks.length > 0 && (
                 <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -315,7 +337,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* ── Transaction ID (mobile banking) ── */}
+            {/* ── Transaction ID (mobile banking) ──────────────────────────────── */}
             {!isCOD && isMobileBanking && (
                 <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -333,7 +355,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* ── Payment Reference (bank transfer) ── */}
+            {/* ── Payment Reference (bank transfer) ────────────────────────────── */}
             {!isCOD && isBankTransfer && (
                 <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -353,7 +375,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* ── Discount & Tax ── */}
+            {/* ── Discount & Tax ───────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">
@@ -390,7 +412,7 @@ export default function CheckoutPanel({
                 </div>
             </div>
 
-            {/* ── Totals Breakdown ── */}
+            {/* ── Totals Breakdown ─────────────────────────────────────────────── */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
                 <div className="flex justify-between text-sm text-gray-600">
                     <span>Subtotal</span>
@@ -435,7 +457,7 @@ export default function CheckoutPanel({
                 </div>
             </div>
 
-            {/* ── Paid Amount (hidden for COD) ── */}
+            {/* ── Paid Amount (hidden for COD) ─────────────────────────────────── */}
             {!isCOD && (
                 <div>
                     <div className="mb-1 flex items-center justify-between">
@@ -489,7 +511,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* COD notice */}
+            {/* ── COD notice ───────────────────────────────────────────────────── */}
             {isCOD && (
                 <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5">
                     <p className="text-xs text-indigo-700">
@@ -502,7 +524,7 @@ export default function CheckoutPanel({
                 </div>
             )}
 
-            {/* ── Due Amount + Payment Status ── */}
+            {/* ── Due Amount + Payment Status ──────────────────────────────────── */}
             <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-1.5">
                 {!isCOD && (
                     <div className="flex justify-between text-sm text-gray-600">
@@ -524,7 +546,7 @@ export default function CheckoutPanel({
                 </div>
             </div>
 
-            {/* ── Note ── */}
+            {/* ── Note ─────────────────────────────────────────────────────────── */}
             <div>
                 <label className="mb-1 block text-xs font-medium text-gray-600">
                     Note <span className="text-gray-400">(optional)</span>
@@ -539,8 +561,8 @@ export default function CheckoutPanel({
                 />
             </div>
 
-            {/* ── Email Confirmation Checkbox ── */}
-            {/* Only shown when selected customer has an email address */}
+            {/* ── Email Confirmation Checkbox (Item 4.9) ────────────────────────
+                Only shown when selected customer has an email address.        */}
             {selectedCustomerEmail && (
                 <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
                     <input
@@ -563,7 +585,26 @@ export default function CheckoutPanel({
                 </label>
             )}
 
-            {/* ── Checkout Button ── */}
+            {/* ── Layer 1 error summary block ───────────────────────────────────
+                Shown when backend returns layer1_errors on 422 response.
+                POS does not have dedicated phone/name input fields —
+                those come from the Customer selector or the Customer record.
+                All Layer 1 errors are displayed here as a grouped block
+                above the checkout button so the staff can act on them.      */}
+            {hasLayer1Errors && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 space-y-1">
+                    <p className="text-xs font-semibold text-red-700">
+                        Order blocked — please fix the following:
+                    </p>
+                    {Object.entries(layer1Errors).map(([field, message]) => (
+                        <p key={field} className="text-xs text-red-600">
+                            • {message}
+                        </p>
+                    ))}
+                </div>
+            )}
+
+            {/* ── Checkout Button ───────────────────────────────────────────────── */}
             <button
                 type="button"
                 onClick={onCheckout}

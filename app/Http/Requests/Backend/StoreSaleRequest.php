@@ -14,62 +14,52 @@ class StoreSaleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // ─── Sale Fields ──────────────────────────────────────
-            'customer_id'       => ['nullable', 'integer', 'exists:customers,id'],
+            // ─── Sale Fields ───────────────────────────────────────────────────
+            'customer_id'             => ['nullable', 'integer', 'exists:customers,id'],
             'send_email_confirmation' => ['nullable', 'boolean'],
-            'sale_date'         => ['required', 'date'],
-            'payment_method_id' => ['nullable', 'integer', 'exists:payment_methods,id'],
-            'discount'          => ['nullable', 'numeric', 'min:0'],
-            'tax'               => ['nullable', 'numeric', 'min:0'],
-            'paid_amount'       => ['required', 'numeric', 'min:0'],
-            'note'              => ['nullable', 'string', 'max:1000'],
+            'sale_date'               => ['required', 'date'],
+            'payment_method_id'       => ['nullable', 'integer', 'exists:payment_methods,id'],
+            'discount'                => ['nullable', 'numeric', 'min:0'],
+            'tax'                     => ['nullable', 'numeric', 'min:0'],
+            'paid_amount'             => ['required', 'numeric', 'min:0'],
+            'note'                    => ['nullable', 'string', 'max:1000'],
 
-            // ─── Payment Type (Item 4.1) ──────────────────────────
+            // ─── Layer 1 — Customer identity fields ────────────────────────────
+            // customer_phone: the phone to run Layer 1 validation against.
+            //   - Registered customer: Index.tsx passes selectedCustomer.phone
+            //   - Walk-in customer: not collected in POS UI yet (Sprint 8 storefront will add this)
+            //   Actual BD format check runs in SaleController via Layer1ValidationService.
+            //   This rule only ensures it arrives as a string when present.
+            'customer_phone' => ['nullable', 'string', 'max:20'],
+
+            // customer_name: walk-in customer name typed at checkout.
+            //   For registered customers this is not sent — Layer1 skips name
+            //   check when customer_id is set (controller logic).
+            'customer_name'  => ['nullable', 'string', 'max:255'],
+
+            // ─── Payment Type (Item 4.1) ───────────────────────────────────────
             'payment_type' => ['nullable', 'string', 'in:full_paid,half_paid,cash_on_delivery'],
 
-            // ─── Multi-Payment Fields (Item 4.3) ──────────────────
+            // ─── Multi-Payment Fields (Item 4.3) ───────────────────────────────
             // Bank under Bank Transfer — nullable, only set when
             // payment method type = bank_transfer
-            'payment_method_bank_id' => [
-                'nullable',
-                'integer',
-                'exists:payment_method_banks,id',
-            ],
+            'payment_method_bank_id' => ['nullable', 'integer', 'exists:payment_method_banks,id'],
             // Charge calculated at POS for the selected method/bank
-            'payment_charge' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
+            'payment_charge'         => ['nullable', 'numeric', 'min:0'],
             // Optional reference number (cheque no, slip no, etc.)
-            'payment_reference' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
+            'payment_reference'      => ['nullable', 'string', 'max:100'],
             // bKash/Nagad/bank TrxID
-            'transaction_id' => [
-                'nullable',
-                'string',
-                'max:100',
-            ],
+            'transaction_id'         => ['nullable', 'string', 'max:100'],
 
-            // ─── Delivery Fields (Item 4.2) ───────────────────────
+            // ─── Delivery Fields (Item 4.2) ────────────────────────────────────
             'delivery_type' => [
                 'nullable',
                 'string',
                 'in:store_pickup,inside_dhaka,outside_dhaka,parallel',
             ],
-            'delivery_charge' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-            'delivery_charge_free' => [
-                'nullable',
-                'boolean',
-            ],
-            'delivery_address' => [
+            'delivery_charge'        => ['nullable', 'numeric', 'min:0'],
+            'delivery_charge_free'   => ['nullable', 'boolean'],
+            'delivery_address'       => [
                 'nullable',
                 'string',
                 'max:1000',
@@ -77,24 +67,20 @@ class StoreSaleRequest extends FormRequest
                 'required_if:delivery_type,outside_dhaka',
                 'required_if:delivery_type,parallel',
             ],
-            'delivery_contact_phone' => [
-                'nullable',
-                'string',
-                'max:20',
-            ],
-            'delivery_status' => [
+            'delivery_contact_phone' => ['nullable', 'string', 'max:20'],
+            'delivery_status'        => [
                 'nullable',
                 'string',
                 'in:pending,dispatched,delivered,failed',
             ],
 
-            // ─── Cart Items ───────────────────────────────────────
-            'items'                  => ['required', 'array', 'min:1'],
-            'items.*.product_id'     => ['required', 'integer', 'exists:products,id'],
-            'items.*.variant_id'     => ['nullable', 'integer', 'exists:product_variants,id'],
-            'items.*.quantity'       => ['required', 'integer', 'min:1'],
-            'items.*.unit_price'     => ['required', 'numeric', 'min:0'],
-            'items.*.discount'       => ['nullable', 'numeric', 'min:0'],
+            // ─── Cart Items ────────────────────────────────────────────────────
+            'items'              => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
+            'items.*.quantity'   => ['required', 'integer', 'min:1'],
+            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.discount'   => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -112,6 +98,10 @@ class StoreSaleRequest extends FormRequest
             'paid_amount.required'        => 'Paid amount is required.',
             'paid_amount.min'             => 'Paid amount cannot be negative.',
             'sale_date.required'          => 'Sale date is required.',
+
+            // Layer 1 identity
+            'customer_phone.max' => 'Phone number must not exceed 20 characters.',
+            'customer_name.max'  => 'Customer name must not exceed 255 characters.',
 
             // Payment
             'payment_method_bank_id.exists' => 'Selected bank is invalid.',

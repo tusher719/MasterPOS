@@ -16,6 +16,7 @@ use App\Models\SalePayment;
 use App\Models\SaleStatusHistory;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
+use App\Services\Fraud\Layer1ValidationService;
 use App\Services\SaleStockService;
 use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -36,7 +37,10 @@ class SaleController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(private SaleStockService $stockService) {}
+    public function __construct(
+        private SaleStockService       $stockService,
+        private Layer1ValidationService $layer1,
+    ) {}
 
     // ─── POS Terminal ─────────────────────────────────────────────────────────
 
@@ -112,12 +116,51 @@ class SaleController extends Controller
     /**
      * POS checkout — returns JSON {id, reference_no}.
      * Frontend uses axios.post() not Inertia form submission.
+     *
+     * Layer 1 fraud checks run BEFORE DB::transaction() (Rule 18 pattern).
+     * A Layer 1 failure returns JSON {layer1_errors: {...}} with HTTP 422.
+     * The frontend toasts each error inline — no page navigation.
      */
     public function store(StoreSaleRequest $request): JsonResponse
     {
         $this->authorize('create', Sale::class);
 
-        $data   = $request->validated();
+        $data = $request->validated();
+
+        // ── Layer 1 validation (pre-flight, outside transaction) ──────────────
+        // Resolve the phone to validate:
+        //   - Walk-in order: staff typed customer_phone at checkout
+        //   - Registered customer: read phone from the Customer record
+        $phoneToCheck = null;
+
+        if (! empty($data['customer_phone'])) {
+            $phoneToCheck = $data['customer_phone'];
+        } elseif (! empty($data['customer_id'])) {
+            $customer     = Customer::find($data['customer_id']);
+            $phoneToCheck = $customer?->phone;
+        }
+
+        // Only validate address when delivery is required (not store_pickup)
+        $addressToCheck = null;
+        $deliveryType   = $data['delivery_type'] ?? null;
+        if ($deliveryType && $deliveryType !== 'store_pickup') {
+            $addressToCheck = $data['delivery_address'] ?? null;
+        }
+
+        // customer_name is only checked for walk-in orders (no customer_id)
+        $nameToCheck = empty($data['customer_id']) ? ($data['customer_name'] ?? null) : null;
+
+        if ($phoneToCheck !== null) {
+            $layer1Errors = $this->layer1->validate($phoneToCheck, $nameToCheck, $addressToCheck);
+
+            if (! empty($layer1Errors)) {
+                return response()->json([
+                    'layer1_errors' => $layer1Errors,
+                ], 422);
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         $saleId = null;
 
         DB::transaction(function () use ($data, &$saleId) {
@@ -212,7 +255,6 @@ class SaleController extends Controller
                 $sale->recalculatePaymentStatus();
             }
 
-            // Initial status history entry
             SaleStatusHistory::create([
                 'sale_id'    => $sale->id,
                 'status'     => 'processing',
@@ -652,94 +694,8 @@ class SaleController extends Controller
         return $pdf->download($filename);
     }
 
-    // ─── Private Helpers ───────────────────────────────────────────────────────
-
-    /**
-     * Map payment methods with all charge fields + active banks.
-     * Used in both index() and salesList() — DRY.
-     */
-    private function mapPaymentMethods(): array
-    {
-        return PaymentMethod::with('banks')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn($pm) => [
-                'id'                  => $pm->id,
-                'name'                => $pm->name,
-                'type'                => $pm->type,
-                'charge_enabled'      => (bool) $pm->charge_enabled,
-                'online_charge_type'  => $pm->online_charge_type,
-                'online_charge_value' => (float) $pm->online_charge_value,
-                'charge_label'        => $pm->charge_label,
-                'banks'               => $pm->banks
-                    ->where('is_active', true)
-                    ->map(fn($b) => [
-                        'id'             => $b->id,
-                        'bank_name'      => $b->bank_name,
-                        'account_number' => $b->account_number ?? null,
-                        'account_name'   => $b->account_name ?? null,
-                        'charge_type'    => $b->charge_type,
-                        'charge_value'   => (float) $b->charge_value,
-                        'charge_enabled' => (bool) $b->charge_enabled,
-                        'charge_label'   => $b->charge_label,
-                        'is_active'      => (bool) $b->is_active,
-                    ])
-                    ->values(),
-            ])
-            ->toArray();
-    }
-
-    /**
-     * Build business profile from SettingsService for PDF templates.
-     */
-    private function resolveBusinessProfile(): array
-    {
-        $all = SettingsService::all();
-
-        return [
-            'business_name'     => $all['business_name']     ?? config('app.name'),
-            'email'             => $all['business_email']    ?? null,
-            'phone'             => $all['business_phone']    ?? null,
-            'address'           => $all['business_address']  ?? null,
-            'logo'              => $all['business_logo']     ?? null,
-            'currency_symbol'   => $all['currency_symbol']   ?? '৳',
-            'currency_position' => $all['currency_position'] ?? 'before',
-            'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
-        ];
-    }
-
-    /**
-     * Send order confirmation email to the customer.
-     * Called after DB transaction completes — never inside transaction.
-     * Updates email_sent_at on success.
-     */
-    private function sendOrderConfirmationEmail(Sale $sale): void
-    {
-        $sale->loadMissing([
-            'customer',
-            'paymentMethod',
-            'items.product',
-            'items.variant',
-        ]);
-
-        try {
-            Mail::to($sale->customer->email)
-                ->send(new OrderConfirmationMail($sale, $this->resolveBusinessProfile()));
-
-            // Mark email as sent — forceFill not needed, email_sent_at is fillable
-            $sale->update(['email_sent_at' => now()]);
-        } catch (\Throwable $e) {
-            // Log failure but do not throw — sale is already complete
-            \Illuminate\Support\Facades\Log::warning(
-                'Order confirmation email failed for sale ' . $sale->reference_no,
-                ['error' => $e->getMessage()]
-            );
-        }
-    }
-
     // ─── Update Order Status (Item 4.8) ───────────────────────────────────────
+
     /**
      * Individual order status update with mandatory reason.
      * Writes a SaleStatusHistory row on every change.
@@ -785,5 +741,91 @@ class SaleController extends Controller
         });
 
         return back()->with('success', 'Order status updated successfully.');
+    }
+
+    // ─── Private Helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Map payment methods with all charge fields + active banks.
+     * Used in index() and salesList() — DRY via private helper (Item 4.7).
+     */
+    private function mapPaymentMethods(): array
+    {
+        return PaymentMethod::with('banks')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($pm) => [
+                'id'                  => $pm->id,
+                'name'                => $pm->name,
+                'type'                => $pm->type,
+                'charge_enabled'      => (bool) $pm->charge_enabled,
+                'online_charge_type'  => $pm->online_charge_type,
+                'online_charge_value' => (float) $pm->online_charge_value,
+                'charge_label'        => $pm->charge_label,
+                'banks'               => $pm->banks
+                    ->where('is_active', true)
+                    ->map(fn($b) => [
+                        'id'             => $b->id,
+                        'bank_name'      => $b->bank_name,
+                        'account_number' => $b->account_number ?? null,
+                        'account_name'   => $b->account_name ?? null,
+                        'charge_type'    => $b->charge_type,
+                        'charge_value'   => (float) $b->charge_value,
+                        'charge_enabled' => (bool) $b->charge_enabled,
+                        'charge_label'   => $b->charge_label,
+                        'is_active'      => (bool) $b->is_active,
+                    ])
+                    ->values(),
+            ])
+            ->toArray();
+    }
+
+    /**
+     * Build business profile from SettingsService for PDF templates.
+     * Used in deliverySlip() and sendOrderConfirmationEmail() — DRY (Item 4.7).
+     */
+    private function resolveBusinessProfile(): array
+    {
+        $all = SettingsService::all();
+
+        return [
+            'business_name'     => $all['business_name']    ?? config('app.name'),
+            'email'             => $all['business_email']   ?? null,
+            'phone'             => $all['business_phone']   ?? null,
+            'address'           => $all['business_address'] ?? null,
+            'logo'              => $all['business_logo']    ?? null,
+            'currency_symbol'   => $all['currency_symbol']  ?? '৳',
+            'currency_position' => $all['currency_position'] ?? 'before',
+            'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
+        ];
+    }
+
+    /**
+     * Send order confirmation email to the customer.
+     * Called after DB transaction completes — never inside transaction.
+     * Updates email_sent_at on success.
+     */
+    private function sendOrderConfirmationEmail(Sale $sale): void
+    {
+        $sale->loadMissing([
+            'customer',
+            'paymentMethod',
+            'items.product',
+            'items.variant',
+        ]);
+
+        try {
+            Mail::to($sale->customer->email)
+                ->send(new OrderConfirmationMail($sale, $this->resolveBusinessProfile()));
+
+            $sale->update(['email_sent_at' => now()]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'Order confirmation email failed for sale ' . $sale->reference_no,
+                ['error' => $e->getMessage()]
+            );
+        }
     }
 }

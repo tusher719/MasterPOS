@@ -2,6 +2,61 @@
 
 ---
 
+## [v2.34 — Item 6.2] — Layer 1 Form Validation — 2026-08-19
+
+### New Files (1)
+
+- `app/Services/Fraud/Layer1ValidationService.php`:
+  validatePhone() — BD format 01[3-9]XXXXXXXX, accepts +88/88 prefix;
+  validateName() — rejects purely numeric, no-letter, repeated-char names;
+  validateAddress() — minimum 3 words, rejects all-digit/punctuation input;
+  validate() — runs all three checks, returns field => error array;
+  normalizePhone() — strips +88/88 prefix, returns local 11-digit format
+
+### Updated Files (4)
+
+- `app/Http/Requests/Backend/StoreSaleRequest.php`:
+  customer_phone (nullable string max:20) added — carries phone for Layer 1 check;
+  customer_name (nullable string max:255) added — walk-in name for Layer 1 check;
+  BD format validation deferred to controller via Layer1ValidationService
+  (FormRequest only does basic type check)
+
+- `app/Http/Controllers/Backend/SaleController.php`:
+  Layer1ValidationService injected in constructor alongside SaleStockService;
+  store() — Layer 1 pre-flight check BEFORE DB::transaction() (Rule 18 pattern);
+  phone resolved from customer_phone field OR Customer record (registered customer);
+  address checked only when delivery_type is non-store_pickup;
+  name checked only for walk-in orders (no customer_id);
+  Layer 1 failure returns JSON {layer1_errors: {...}} HTTP 422 — sale not created
+
+- `resources/js/Pages/Backend/POS/_components/CheckoutPanel.tsx`:
+  layer1Errors: Record<string, string> prop added;
+  phone error shown inline under Customer selector (registered customer case);
+  Layer 1 error summary block shown above checkout button when errors present —
+  bullet list of all field errors; existing UI/props fully preserved
+
+- `resources/js/Pages/Backend/POS/Index.tsx`:
+  layer1Errors state added (Record<string, string>, default {});
+  resetCheckoutState() clears layer1Errors;
+  handleResumeHoldOrder() clears layer1Errors;
+  handleCheckout() clears layer1Errors before each attempt;
+  handleCheckout() detects data.layer1_errors on 422 → setLayer1Errors() + toast;
+  customer_phone passed in payload from selectedCustomer.phone (registered customer);
+  CheckoutPanel receives layer1Errors prop (explicit props, no spread)
+
+### Business Rules Established
+
+- Layer 1 runs on every POS checkout attempt — pre-flight, outside DB::transaction()
+- Phone validation: 01[3-9]XXXXXXXX format required (Bangladeshi mobile only)
+- Name validation: purely numeric, no-letter, and repeated-char names rejected
+- Address validation: minimum 3 words, all-digit/punctuation addresses rejected
+- Layer 1 failure returns HTTP 422 {layer1_errors: {...}} — never a redirect
+- layer1Errors cleared on every new checkout attempt, cart reset, and hold order resume
+- Walk-in customer phone not collected in POS UI yet — Sprint 8 storefront will add this
+- Layer 1 is free logic only — no paid validation service used
+
+---
+
 ## [v2.33 — Item 6.1] — Fraud Flags Core Table — 2026-08-17
 
 ### New Migration (1)
