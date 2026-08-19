@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- Current Step: Sprint 3 — Item 6.4 — Layer 3 Success Ratio Check (Next)
-- Last Completed: Item 6.3 — Layer 2 IP Order Limit ✅
+- Current Step: Sprint 3 — Item 6.5 — Order-Blocked Popup (Next)
+- Last Completed: Item 6.4 — Layer 3 Success Ratio Check ✅
 
 ## Financial Domain Overview
 
@@ -119,6 +119,7 @@
 | 6.1         | Fraud Flags Core Table                              | ✅     |
 | 6.2         | Layer 1 Form Validation                             | ✅     |
 | 6.3         | Layer 2 IP Order Limit                              | ✅     |
+| 6.4         | Layer 3 Success Ratio Check                         | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -126,10 +127,9 @@
 
 ### Sprint 3 — Fraud Protection
 
-| #   | Item                        | Priority |
-| --- | --------------------------- | -------- |
-| 6.4 | Layer 3 Success Ratio Check | Must Fix |
-| 6.5 | Order-Blocked Popup         | Must Fix |
+| #   | Item                | Priority |
+| --- | ------------------- | -------- |
+| 6.5 | Order-Blocked Popup | Must Fix |
 
 ### Sprint 4 — Fulfillment Ops
 

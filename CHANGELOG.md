@@ -2,6 +2,53 @@
 
 ---
 
+---
+
+[v2.36 — Item 6.4] — Layer 3 Success Ratio Check — 2026-08-19
+
+New Migration (1)
+seed_fraud_layer3_settings:
+fraud_success_ratio_threshold (int default 60),
+fraud_min_orders_before_check (int default 3)
+Both seeded into business_settings on up(), deleted on down().
+
+New Files (1)
+app/Services/Fraud/Layer3SuccessRatioService.php:
+check(phone) — public entry point;
+normalizePhone() — strips +88/88 prefix, returns local 01XXXXXXXXX format (same pattern as Layer1/Layer2);
+resolveThreshold() — reads fraud_success_ratio_threshold from SettingsService, fallback 60;
+resolveMinOrders() — reads fraud_min_orders_before_check from SettingsService, fallback 3;
+countTotalOrders() — non-voided sales matched by customer.phone OR delivery_contact_phone;
+countDeliveredOrders() — same match condition, filtered by order_status = 'delivered';
+ratio computed as: round((delivered / total) \* 100) as integer percent;
+block condition: ratio < threshold AND total >= minOrders;
+createFraudFlag() — non-fatal (try/catch + Log::warning); sets trigger_type=auto_layer3,
+flagged_by=null (system-triggered), status=pending_review via forceFill()->save() (Rule 66)
+
+Updated Files (1)
+app/Http/Controllers/Backend/SaleController.php:
+Layer3SuccessRatioService import added;
+Layer3SuccessRatioService injected in constructor alongside Layer1 + Layer2;
+store(): Layer 3 check block added after Layer 2 block, before DB::transaction() —
+$this->layer3->check($phoneToCheck) called only when $phoneToCheck !== null;
+Layer 3 failure returns JSON {layer3_blocked: true, reason: 'low_success_ratio'} HTTP 422;
+Layer 1 failure skips Layer 2 + Layer 3; Layer 2 failure skips Layer 3 only
+
+Business Rules Established
+Layer 3 runs only after Layer 1 + Layer 2 both pass
+Phone required — no phone = Layer 3 skipped (fail open)
+New customers (total orders < min_orders_before_check) always pass Layer 3
+Rolling history: all non-voided sales matched by customer.phone OR delivery_contact_phone
+Success ratio = delivered_orders / total_orders × 100 (integer percent)
+Block condition: ratio < threshold (not <=) — exactly-at-threshold passes
+Auto-block creates fraud_flag (trigger_type=auto_layer3, flagged_by=null, status=pending_review)
+fraud_flag creation failure is non-fatal — block decision already made before flag write
+Threshold configurable: business_settings.fraud_success_ratio_threshold (default 60)
+Min orders configurable: business_settings.fraud_min_orders_before_check (default 3)
+Layer 3 response shape: {layer3_blocked: true, reason: 'low_success_ratio'} — frontend Item 6.5 reads this
+
+---
+
 [v2.35 — Item 6.3] — Layer 2 IP Order Limit — 2026-08-19
 New Migration (1)
 create_order_attempt_logs_table:

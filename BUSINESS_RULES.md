@@ -691,3 +691,18 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - fraud_flag creation failure is non-fatal — block decision is already made
 - Limit configurable via business_settings.fraud_ip_order_limit_per_24h (default 3)
 - order_attempt_logs is append-only — never updated or deleted (audit log)
+
+## 29. Layer 3 Success Ratio Rules (Item 6.4)
+
+- Layer 3 runs only after Layer 1 + Layer 2 both pass — pre-flight, outside DB::transaction()
+- Phone required — no phone means Layer 3 is skipped (fail open)
+- New customers (total orders < fraud_min_orders_before_check) always pass Layer 3
+- Total orders matched by: customer.phone OR delivery_contact_phone (walk-in)
+- Voided sales (deleted_at IS NOT NULL) excluded from both total and delivered counts
+- Success ratio = round((delivered / total) \* 100) as integer percent
+- Block condition: ratio < threshold (not <=) — exactly-at-threshold passes
+- Auto-block creates fraud_flag (trigger_type=auto_layer3, flagged_by=null, status=pending_review)
+- fraud_flag creation failure is non-fatal — block decision already made before flag write
+- Threshold configurable: business_settings.fraud_success_ratio_threshold (default 60)
+- Min orders configurable: business_settings.fraud_min_orders_before_check (default 3)
+- Layer 3 response shape: {layer3_blocked: true, reason: 'low_success_ratio'}

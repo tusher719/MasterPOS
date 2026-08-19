@@ -18,6 +18,7 @@ use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
 use App\Services\Fraud\Layer1ValidationService;
 use App\Services\Fraud\Layer2IpOrderLimitService;
+use App\Services\Fraud\Layer3SuccessRatioService;
 use App\Services\SaleStockService;
 use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -41,7 +42,8 @@ class SaleController extends Controller
     public function __construct(
         private SaleStockService       $stockService,
         private Layer1ValidationService $layer1,
-        private Layer2IpOrderLimitService   $layer2,
+        private Layer2IpOrderLimitService $layer2,
+        private Layer3SuccessRatioService $layer3,
     ) {}
 
     // ─── POS Terminal ─────────────────────────────────────────────────────────
@@ -178,8 +180,23 @@ class SaleController extends Controller
         if (! $layer2Result['passed']) {
             return response()->json([
                 'layer2_blocked' => true,
-                'reason'         => $layer2Result['message'], // 'ip_limit_exceeded'
+                'reason'         => $layer2Result['message'],
             ], 422);
+        }
+
+        // ── Layer 3 validation (success ratio check, pre-flight, outside transaction) ─
+        // Runs only when a phone is available — same condition as Layer 1/2.
+        // Requires minimum order history before activating (fraud_min_orders_before_check).
+        // A new customer with no history always passes Layer 3.
+        if ($phoneToCheck !== null) {
+            $layer3Result = $this->layer3->check($phoneToCheck);
+
+            if (! $layer3Result['passed']) {
+                return response()->json([
+                    'layer3_blocked' => true,
+                    'reason'         => $layer3Result['message'], // 'low_success_ratio'
+                ], 422);
+            }
         }
         // ─────────────────────────────────────────────────────────────────────
 
