@@ -90,6 +90,23 @@ timestamps
 
 type enum extended: added `bank_transfer` value
 
+### order_attempt_logs
+
+id, ip_address (varchar 45), phone (varchar 20 nullable),
+attempted_at (timestamp), was_blocked (bool default false), timestamps
+Indexes: (ip_address, attempted_at), phone
+
+### business_settings additions (Item 6.3)
+
+fraud_ip_order_limit_per_24h (int default 3)
+fraud_block_message (text)
+fraud_contact_whatsapp (varchar nullable)
+fraud_contact_phone (varchar nullable)
+fraud_contact_facebook (varchar nullable)
+
+Note: fraud_block_message and contact fields shared with Layer 3 (6.4/6.5) —
+seeded once here, not duplicated in later migrations.
+
 ---
 
 ## Step 04 — Products

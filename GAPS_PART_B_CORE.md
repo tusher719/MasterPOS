@@ -335,7 +335,7 @@ At checkout (POS + storefront):
 
 ---
 
-### 6.3 Layer 2 — IP Order Limit (Must Fix)
+### 6.3 Layer 2 — IP Order Limit ✅ DONE
 
 ```
 order_attempt_logs: id,

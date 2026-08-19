@@ -2,6 +2,51 @@
 
 ---
 
+[v2.35 — Item 6.3] — Layer 2 IP Order Limit — 2026-08-19
+New Migration (1)
+create_order_attempt_logs_table:
+ip_address (varchar 45 — IPv4 + IPv6), phone (varchar 20 nullable — normalized 01XXXXXXXXX),
+attempted_at (timestamp), was_blocked (bool default false), timestamps
+Indexes: (ip_address, attempted_at), phone
+Also seeds 5 business_settings keys on up():
+fraud_ip_order_limit_per_24h (int default 3),
+fraud_block_message (Bengali default text — shared with Item 6.5 popup),
+fraud_contact_whatsapp / fraud_contact_phone / fraud_contact_facebook (all null — admin fills via Settings)
+New Files (2)
+app/Models/OrderAttemptLog.php:
+fillable (ip_address, phone, attempted_at, was_blocked);
+was_blocked cast boolean, attempted_at cast datetime;
+scopeRecentByIp() — WHERE ip_address = ? AND attempted_at >= now() - 24h (core Layer 2 query);
+scopeBlocked() — WHERE was_blocked = true (future reporting)
+app/Services/Fraud/Layer2IpOrderLimitService.php:
+check(ip, phone, name, address) — public entry point;
+normalizePhone() reused from Layer1ValidationService (no duplication);
+flow: log attempt (was_blocked=false) → count IP in 24h window → if count > limit:
+update log row was_blocked=true + createFraudFlag() + return blocked result;
+resolveLimit() — reads fraud_ip_order_limit_per_24h from SettingsService, fallback 3;
+createFraudFlag() — non-fatal (try/catch + Log::warning); sets trigger_type=auto_layer2,
+flagged_by=null (system-triggered), status via forceFill()->save() (Rule 66)
+Updated Files (1)
+app/Http/Controllers/Backend/SaleController.php:
+Layer2IpOrderLimitService import + use statement added;
+Layer2IpOrderLimitService injected in constructor alongside Layer1ValidationService;
+store(): Layer 2 check block added after Layer 1 block, before DB::transaction() —
+$this->layer2->check(ip, phone, name, address) called;
+Layer 2 failure returns JSON {layer2_blocked: true, reason: 'ip_limit_exceeded'} HTTP 422;
+Layer 1 failure still skips Layer 2 entirely (gibberish phone does not consume IP slot)
+Business Rules Established
+Every checkout attempt (POS + storefront) logged in order_attempt_logs — append-only, never deleted
+Layer 2 runs only after Layer 1 passes — Layer 1 failure skips IP logging
+Rolling 24-hour window: ip_address = ? AND attempted_at >= now() - 24h
+Block condition: count > limit (not >=) — exactly-at-limit attempt passes through
+Auto-block creates fraud_flag (trigger_type=auto_layer2, flagged_by=null, status=pending_review)
+fraud_flag creation failure is non-fatal — block decision already made before flag write
+Limit configurable: business_settings.fraud_ip_order_limit_per_24h (default 3)
+fraud_block_message and contact fields seeded here once — shared with Layer 3 (6.4) and block popup (6.5)
+Layer 2 response shape: {layer2_blocked: true, reason: 'ip_limit_exceeded'} — frontend Item 6.5 reads this
+
+---
+
 ## [v2.34 — Item 6.2] — Layer 1 Form Validation — 2026-08-19
 
 ### New Files (1)

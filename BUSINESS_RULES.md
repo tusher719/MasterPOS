@@ -680,3 +680,14 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Errors shown in CheckoutPanel red block above checkout button
 - layer1Errors cleared on every new checkout attempt
 - No paid or external validation service used in Phase 1
+
+## 28. Layer 2 IP Order Limit Rules (Item 6.3)
+
+- Every checkout attempt (POS + storefront) is logged in order_attempt_logs
+- Layer 2 runs AFTER Layer 1 — a Layer 1 failure does not consume an IP slot
+- Rolling 24-hour window: WHERE ip_address = ? AND attempted_at >= NOW() - 24h
+- count > limit triggers auto-block (not count >= limit — exactly-at-limit passes)
+- Auto-block creates a fraud_flag (trigger_type = auto_layer2, flagged_by = null)
+- fraud_flag creation failure is non-fatal — block decision is already made
+- Limit configurable via business_settings.fraud_ip_order_limit_per_24h (default 3)
+- order_attempt_logs is append-only — never updated or deleted (audit log)

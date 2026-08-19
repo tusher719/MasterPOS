@@ -17,6 +17,7 @@ use App\Models\SaleStatusHistory;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
 use App\Services\Fraud\Layer1ValidationService;
+use App\Services\Fraud\Layer2IpOrderLimitService;
 use App\Services\SaleStockService;
 use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -40,6 +41,7 @@ class SaleController extends Controller
     public function __construct(
         private SaleStockService       $stockService,
         private Layer1ValidationService $layer1,
+        private Layer2IpOrderLimitService   $layer2,
     ) {}
 
     // ─── POS Terminal ─────────────────────────────────────────────────────────
@@ -150,6 +152,7 @@ class SaleController extends Controller
         // customer_name is only checked for walk-in orders (no customer_id)
         $nameToCheck = empty($data['customer_id']) ? ($data['customer_name'] ?? null) : null;
 
+        // AFTER
         if ($phoneToCheck !== null) {
             $layer1Errors = $this->layer1->validate($phoneToCheck, $nameToCheck, $addressToCheck);
 
@@ -158,6 +161,25 @@ class SaleController extends Controller
                     'layer1_errors' => $layer1Errors,
                 ], 422);
             }
+        }
+
+        // ── Layer 2 validation (IP order limit, pre-flight, outside transaction) ─
+        // Runs after Layer 1 so a gibberish-phone attempt does not consume an
+        // IP slot. Only real-format phones proceed to the IP count check.
+        // $request->ip() returns the client IP (respects X-Forwarded-For when
+        // configured in TrustProxies middleware for production).
+        $layer2Result = $this->layer2->check(
+            ip:      $request->ip(),
+            phone:   $phoneToCheck,
+            name:    $nameToCheck,
+            address: $addressToCheck,
+        );
+
+        if (! $layer2Result['passed']) {
+            return response()->json([
+                'layer2_blocked' => true,
+                'reason'         => $layer2Result['message'], // 'ip_limit_exceeded'
+            ], 422);
         }
         // ─────────────────────────────────────────────────────────────────────
 

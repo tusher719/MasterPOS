@@ -43,8 +43,8 @@
 
 ## Current Status
 
-Current Step: Sprint 3 — Item 6.3 — Layer 2 IP Order Limit (Next)
-Last Completed: Item 6.2 — Layer 1 Form Validation ✅
+- Current Step: Sprint 3 — Item 6.4 — Layer 3 Success Ratio Check (Next)
+- Last Completed: Item 6.3 — Layer 2 IP Order Limit ✅
 
 ## Financial Domain Overview
 
@@ -118,6 +118,7 @@ Last Completed: Item 6.2 — Layer 1 Form Validation ✅
 | 4.9         | Order Confirmation Email                            | ✅     |
 | 6.1         | Fraud Flags Core Table                              | ✅     |
 | 6.2         | Layer 1 Form Validation                             | ✅     |
+| 6.3         | Layer 2 IP Order Limit                              | ✅     |
 
 ## Pending Work — Sprint Order
 
@@ -127,9 +128,6 @@ Last Completed: Item 6.2 — Layer 1 Form Validation ✅
 
 | #   | Item                        | Priority |
 | --- | --------------------------- | -------- |
-| 6.1 | Fraud Flags Core Table ✅   | Done     |
-| 6.2 | Layer 1 Form Validation     | ✅       |
-| 6.3 | Layer 2 IP Order Limit      | Must Fix |
 | 6.4 | Layer 3 Success Ratio Check | Must Fix |
 | 6.5 | Order-Blocked Popup         | Must Fix |
 
