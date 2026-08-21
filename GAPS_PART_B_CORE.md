@@ -366,7 +366,7 @@ business_settings additions:
 
 ---
 
-### 6.5 Order-Blocked Popup (Must Fix — bundled with 6.3/6.4)
+### 6.5 Order-Blocked Popup ✅ DONE
 
 ```
 business_settings additions:

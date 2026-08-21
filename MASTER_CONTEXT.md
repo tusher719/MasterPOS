@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- Current Step: Sprint 3 — Item 6.5 — Order-Blocked Popup (Next)
-- Last Completed: Item 6.4 — Layer 3 Success Ratio Check ✅
+- Current Step: Sprint 4 — Item 8.1 — Order Task System (Next)
+- Last Completed: Item 6.5 — Order-Blocked Popup ✅
 
 ## Financial Domain Overview
 
@@ -121,15 +121,13 @@
 | 6.3         | Layer 2 IP Order Limit                              | ✅     |
 | 6.4         | Layer 3 Success Ratio Check                         | ✅     |
 
+### 6.5 Order-Blocked Popup ✅ DONE
+
 ## Pending Work — Sprint Order
 
 ### Sprint 2 — Sales/Delivery/Payment Core ✅ DONE
 
-### Sprint 3 — Fraud Protection
-
-| #   | Item                | Priority |
-| --- | ------------------- | -------- |
-| 6.5 | Order-Blocked Popup | Must Fix |
+### Sprint 3 — Fraud Protection ✅ DONE
 
 ### Sprint 4 — Fulfillment Ops
 

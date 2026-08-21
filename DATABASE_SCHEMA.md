@@ -104,6 +104,11 @@ fraud_contact_whatsapp (varchar nullable)
 fraud_contact_phone (varchar nullable)
 fraud_contact_facebook (varchar nullable)
 
+### business_settings additions (Item 6.4)
+
+fraud_success_ratio_threshold (int default 60)
+fraud_min_orders_before_check (int default 3)
+
 Note: fraud_block_message and contact fields shared with Layer 3 (6.4/6.5) —
 seeded once here, not duplicated in later migrations.
 

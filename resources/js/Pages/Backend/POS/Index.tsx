@@ -7,6 +7,7 @@ import { CartItemRow } from "./_components/CartItem";
 import CartSidebar from "./_components/CartSidebar";
 import CheckoutPanel from "./_components/CheckoutPanel";
 import HoldOrdersDrawer, { HoldOrder } from "./_components/HoldOrdersDrawer";
+import OrderBlockedModal from "./_components/OrderBlockedModal";
 import ProductGrid, { Product } from "./_components/ProductGrid";
 import ProductSearch from "./_components/ProductSearch";
 import ReceiptModal from "./_components/ReceiptModal";
@@ -255,6 +256,10 @@ export default function POSIndex({
         {},
     );
 
+    // Layer 2/3 fraud block — backend returns layer2_blocked বা layer3_blocked
+    // এই state true হলে OrderBlockedModal দেখায়
+    const [orderBlocked, setOrderBlocked] = useState(false);
+
     // grandTotal includes paymentCharge
     const grandTotal = useMemo(
         () => Math.max(0, subtotal - discount + tax + paymentCharge),
@@ -409,6 +414,7 @@ export default function POSIndex({
         setSendEmailConfirmation(false);
         // Clear any Layer 1 errors from the previous attempt
         setLayer1Errors({});
+        setOrderBlocked(false);
     };
 
     const handleClearCart = async () => {
@@ -610,6 +616,13 @@ export default function POSIndex({
                     return;
                 }
 
+                // Layer 2 (IP limit exceeded) বা Layer 3 (low success ratio) block
+                // Backend response: {layer2_blocked: true} বা {layer3_blocked: true}
+                if (data.layer2_blocked || data.layer3_blocked) {
+                    setOrderBlocked(true);
+                    return;
+                }
+
                 // Standard Laravel validation error (non-Layer-1)
                 const errors = data.errors ?? {};
                 const first = Object.values(errors)[0] as string[];
@@ -781,6 +794,12 @@ export default function POSIndex({
                 onResume={handleResumeHoldOrder}
                 onCountChange={setHoldCount}
                 resumedHoldOrderId={resumedHoldOrderId}
+            />
+
+            {/* Order blocked popup — Layer 2 বা Layer 3 fraud block এ trigger হয় */}
+            <OrderBlockedModal
+                isOpen={orderBlocked}
+                onClose={() => setOrderBlocked(false)}
             />
         </AuthenticatedLayout>
     );

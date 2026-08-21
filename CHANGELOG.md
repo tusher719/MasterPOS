@@ -2,6 +2,49 @@
 
 ---
 
+[v2.37 — Item 6.5] — Order-Blocked Popup — 2026-08-21
+
+New Files (1)
+resources/js/Pages/Backend/POS/\_components/OrderBlockedModal.tsx:
+Shown when Layer 2 (IP limit) or Layer 3 (success ratio) blocks checkout;
+reads fraud_block_message from usePage().props.settings (globally shared via
+HandleInertiaRequests — Item 1.1 pattern);
+WhatsApp button shown when fraud_contact_whatsapp non-null (href: wa.me/number);
+Call button shown when fraud_contact_phone non-null (href: tel:number);
+Facebook/Page button shown when fraud_contact_facebook non-null (href: direct URL);
+contact buttons absent when all three settings are null;
+fallback Bengali message when fraud_block_message not yet configured by admin;
+backdrop click closes modal; z-[80] (above all other POS modals);
+lucide-react has no Facebook icon — ExternalLink used instead
+
+Updated Files (1)
+resources/js/Pages/Backend/POS/Index.tsx:
+OrderBlockedModal import added;
+orderBlocked state added (bool, default false);
+resetCheckoutState() clears orderBlocked alongside layer1Errors;
+handleCheckout() error handler: layer2_blocked OR layer3_blocked on 422
+response → setOrderBlocked(true); runs after layer1_errors check, before
+standard Laravel validation error handler;
+OrderBlockedModal rendered at JSX fragment bottom with isOpen/onClose props
+
+Bug Fix (1)
+app/Services/Fraud/Layer2IpOrderLimitService.php line 65:
+OrderAttemptLog::scopeRecentByIp(OrderAttemptLog::query(), $ip) — wrong,
+  scope cannot be called statically;
+  Fixed to: OrderAttemptLog::query()->recentByIp($ip)->count()
+
+Business Rules Established
+fraud_block_message, fraud_contact_whatsapp/phone/facebook already seeded
+in Item 6.3 migration — no new migration needed for Item 6.5
+Admin edits contact values via DB/Tinker in dev phase; Settings UI tab
+for fraud config deferred to Sprint 5
+OrderBlockedModal shows for both Layer 2 and Layer 3 blocks —
+single modal, same message, same contact buttons
+Modal does not reveal which layer blocked the order — intentional
+(customer-facing message is always the same generic block message)
+orderBlocked cleared on every resetCheckoutState() call — includes
+cart clear, hold order, and new sale flows
+
 ---
 
 [v2.36 — Item 6.4] — Layer 3 Success Ratio Check — 2026-08-19

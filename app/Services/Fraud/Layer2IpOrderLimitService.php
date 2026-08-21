@@ -62,9 +62,7 @@ class Layer2IpOrderLimitService
         ]);
 
         $limit = $this->resolveLimit();
-        $count = OrderAttemptLog::scopeRecentByIp(
-            OrderAttemptLog::query(), $ip
-        )->count();
+        $count = OrderAttemptLog::query()->recentByIp($ip)->count();
 
         if ($count > $limit) {
             // Mark this log row as blocked
