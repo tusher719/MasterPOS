@@ -723,8 +723,38 @@ Note: status excluded from $fillable — use confirmFraud() / clearFlag() model 
 Note: flagged_by = null means system-triggered (auto_layer2 / auto_layer3).
 Note: external_fraud_check_response never written in Phase 1.
 
+### Sprint 4 — Order Tasks
+
+### order_tasks
+
+id, title (varchar), customer_name_snapshot (varchar),
+customer_phone_snapshot (varchar nullable),
+source (enum: facebook/instagram/whatsapp/phone/website/other),
+priority (enum: urgent/normal/flexible default: normal),
+due_date (date nullable), note (text nullable),
+assignment_type (enum: assigned/open default: open),
+assigned_to (FK users nullable nullOnDelete),
+claimed_by (FK users nullable nullOnDelete),
+claimed_at (timestamp nullable),
+status (enum: pending/claimed/in_progress/ready/converted_to_sale/cancelled default: pending),
+linked_sale_id (FK sales nullable nullOnDelete),
+created_by (FK users restrict),
+completed_by (FK users nullable nullOnDelete),
+completed_at (timestamp nullable),
+started_at (timestamp nullable),
+timestamps, deleted_at
+Indexes: status, priority, source, assignment_type, assigned_to, claimed_by, due_date
+
+Note: claimed_by/claimed_at/status excluded from $fillable — set only via
+atomic claim guard (DB::transaction + lockForUpdate) or forceFill()->save()
+
 ### 6. Enum Reference — add rows
 
 | fraud_flags | reason | no_answer, refused_delivery, multiple_returns, fake_order, failed_validation, ip_limit_exceeded, low_success_ratio, other |
 | fraud_flags | trigger_type | manual, auto_layer2, auto_layer3 |
 | fraud_flags | status | pending_review, confirmed_fraud, cleared |
+
+| order_tasks | source | facebook, instagram, whatsapp, phone, website, other |
+| order_tasks | priority | urgent, normal, flexible |
+| order_tasks | assignment_type | assigned, open |
+| order_tasks | status | pending, claimed, in_progress, ready, converted_to_sale, cancelled |

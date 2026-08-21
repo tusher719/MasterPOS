@@ -2,6 +2,43 @@
 
 ---
 
+[v2.38 — Item 8.1] — Order Task System — 2026-08-21
+
+New Migration (1)
+create_order_tasks_table: title, customer_name_snapshot, customer_phone_snapshot,
+source (enum), priority (enum), due_date, note, assignment_type (enum),
+assigned_to (FK nullable), claimed_by (FK nullable), claimed_at, status (enum),
+linked_sale_id (FK nullable), created_by, completed_by, completed_at, started_at,
+timestamps, deleted_at
+
+New Files (9)
+OrderTask.php: SoftDeletes, fillable excludes claimed_by/claimed_at/status (Rule 66),
+isPending/isClaimed/isInProgress/isReady/isConverted/isCancelled/isTerminal/isClaimable helpers,
+scopeByStatus/Priority/Source/AssignmentType/AssignedTo/ClaimedBy/Overdue scopes
+OrderTaskPolicy.php: viewAny/create/assign/claim/complete/delete — no model param (Rule 3)
+OrderTaskSeeder.php: Moderator role created with claim+complete permissions;
+Admin all 5 permissions; Staff view only
+OrderTaskController.php: index/store/update/assign/claim/updateStatus/convertToSale/destroy;
+claim() uses DB::transaction() + lockForUpdate() atomic guard (Rule 66);
+tasks manually structured as {data, meta, links} to prevent frontend meta undefined error
+order-task.d.ts: OrderTaskSource/Priority/AssignmentType/Status types;
+OrderTask/Stats/Filters/Can/StaffOption/FormData interfaces; meta optional
+order-task-colors.ts: STATUS/PRIORITY/SOURCE labels+colors; filter option arrays
+Index.tsx: stats cards, 3-row filter panel, table with TaskRow component,
+safe meta?.last_page pagination; 5 modal integrations
+CreateOrderTaskModal.tsx / EditOrderTaskModal.tsx / AssignModal.tsx /
+UpdateStatusModal.tsx / ConvertToSaleModal.tsx — \_components/
+
+Updated Files (3)
+AppServiceProvider.php: OrderTask + OrderTaskPolicy registered
+routes/web.php: order-tasks prefix group, 8 routes, special actions before wildcard
+AuthenticatedLayout.tsx: Fulfillment nav group added after Fraud Protection
+
+New Role
+Moderator: order_task.view + order_task.claim + order_task.complete
+
+---
+
 [v2.37 — Item 6.5] — Order-Blocked Popup — 2026-08-21
 
 New Files (1)

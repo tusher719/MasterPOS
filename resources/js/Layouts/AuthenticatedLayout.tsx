@@ -298,6 +298,18 @@ const NAV_ITEMS: NavItem[] = [
         ],
     },
     {
+        label: "Fulfillment",
+        icon: ClipboardList,
+        children: [
+            {
+                label: "Order Tasks",
+                icon: ClipboardList,
+                href: "backend.order-tasks.index",
+                active: "backend.order-tasks.*",
+            },
+        ],
+    },
+    {
         label: "Reports",
         icon: BarChart3,
         children: [

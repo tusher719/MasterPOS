@@ -391,7 +391,7 @@ Modal UI:
 
 ## SPRINT 4 — Fulfillment Ops
 
-### 8.1 Order Task / Fulfillment Queue ✅ (Must Fix)
+### 8.1 Order Task / Fulfillment Queue ✅ DONE
 
 ```
 order_tasks: id,

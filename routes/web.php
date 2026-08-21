@@ -23,6 +23,7 @@ use App\Http\Controllers\Backend\InvestorBalanceController;
 use App\Http\Controllers\Backend\InvestorStatementController;
 use App\Http\Controllers\Backend\InvoiceController;
 use App\Http\Controllers\Backend\NotificationController;
+use App\Http\Controllers\Backend\OrderTaskController;
 use App\Http\Controllers\Backend\PartnerController;
 use App\Http\Controllers\Backend\PartnerEligibilityController;
 use App\Http\Controllers\Backend\PartnerProductAssignmentController;
@@ -597,6 +598,19 @@ Route::middleware(['auth', 'verified'])
             Route::get('/', [FraudFlagController::class, 'index'])->name('index');
             Route::post('/', [FraudFlagController::class, 'store'])->name('store');
             Route::post('/{fraudFlag}/review', [FraudFlagController::class, 'review'])->name('review');
+        });
+
+        // ── Sprint 4 — Order Tasks ────────────────────────────────────────────
+        // Special action routes BEFORE wildcard {orderTask} to prevent swallowing
+        Route::prefix('order-tasks')->name('order-tasks.')->group(function () {
+            Route::get('/',                                    [OrderTaskController::class, 'index'])->name('index');
+            Route::post('/',                                   [OrderTaskController::class, 'store'])->name('store');
+            Route::post('/{orderTask}/claim',                  [OrderTaskController::class, 'claim'])->name('claim');
+            Route::post('/{orderTask}/assign',                 [OrderTaskController::class, 'assign'])->name('assign');
+            Route::post('/{orderTask}/update-status',          [OrderTaskController::class, 'updateStatus'])->name('update-status');
+            Route::post('/{orderTask}/convert-to-sale',        [OrderTaskController::class, 'convertToSale'])->name('convert-to-sale');
+            Route::put('/{orderTask}',                         [OrderTaskController::class, 'update'])->name('update');
+            Route::delete('/{orderTask}',                      [OrderTaskController::class, 'destroy'])->name('destroy');
         });
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint

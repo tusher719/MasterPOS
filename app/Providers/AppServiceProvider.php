@@ -17,6 +17,7 @@ use App\Models\Investment;
 use App\Models\InvestmentFundUsage;
 use App\Models\InvestmentType;
 use App\Models\InvestorProfitBalance;
+use App\Models\OrderTask;
 use App\Models\Partner;
 use App\Models\PartnerProductAssignment;
 use App\Models\PartnerProfitEligibility;
@@ -41,6 +42,7 @@ use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvestorProfitBalancePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\NotificationPolicy;
+use App\Policies\OrderTaskPolicy;
 use App\Policies\PartnerEligibilityPolicy;
 use App\Policies\PartnerPolicy;
 use App\Policies\PartnerProductAssignmentPolicy;
@@ -137,5 +139,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Settings cache invalidation
         BusinessSetting::observe(BusinessSettingObserver::class);
+
+        // Sprint 4 — Order Tasks
+        Gate::policy(OrderTask::class, OrderTaskPolicy::class);
     }
 }
