@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- Current Step: Sprint 4 — Item 8.3 — Pre-Order/Booking System (Next)
-- Last Completed: Item 8.2 — Staff Performance Report ✅
+- Current Step: Sprint 4 — Item 3.8 — Product Planning Task Manager (Next)
+- Last Completed: Item 8.3 — Pre-Order/Booking System ✅
 
 ## Financial Domain Overview
 
@@ -122,6 +122,7 @@
 | 6.4         | Layer 3 Success Ratio Check                         | ✅     |
 | 8.1         | Order Task System                                   | ✅     |
 | 8.2         | Staff Performance Report                            | ✅     |
+| 8.3         | Pre-Order/Booking System                            | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -135,7 +136,7 @@
 
 | #   | Item                          | Priority   |
 | --- | ----------------------------- | ---------- |
-| 8.3 | Pre-Order/Booking System      | Should Fix |
+| 8.3 | Pre-Order/Booking System      | ✅ Done    |
 | 3.8 | Product Planning Task Manager | Should Fix |
 
 ### Sprint 5 — Admin Polish

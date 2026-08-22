@@ -2,6 +2,120 @@
 
 ---
 
+[v2.40 — Item 8.3] — Pre-Order/Booking System — 2026-08-23
+
+New Migration (1)
+create_pre_orders_table:
+customer_id (FK nullable nullOnDelete), customer_name_snapshot, customer_phone_snapshot (nullable),
+product_id (FK nullable nullOnDelete), product_name_snapshot (nullable),
+booking_date (date), expected_delivery_date (date nullable),
+total_amount/advance_amount/due_amount (decimal 10,2),
+advance_payment_method/transaction_id/payment_proof (nullable),
+status (enum: pending/confirmed/ready/delivered/cancelled default: pending),
+linked_sale_id (FK sales nullable nullOnDelete),
+note, created_by (restrict), updated_by (nullable), timestamps, deleted_at
+Indexes: status, booking_date, expected_delivery_date, customer_id
+
+New Files (11)
+app/Models/PreOrder.php:
+SoftDeletes; status excluded from $fillable (Rule 66);
+isPending/isConfirmed/isReady/isDelivered/isCancelled/isTerminal/isConverted helpers;
+scopeByStatus/scopeOverdue scopes; recalculateDue() helper;
+relations: customer/product/linkedSale/createdBy/updatedBy (all withTrashed where applicable)
+
+app/Policies/PreOrderPolicy.php:
+viewAny/create/manage/delete/restore — no model parameter (Rule 3);
+manage permission covers edit + status change + convert + delete
+
+database/seeders/PreOrderSeeder.php:
+3 permissions: pre_order.view/create/manage;
+Admin: all 3; Staff: view only; Moderator: view + create
+
+app/Http/Requests/Backend/StorePreOrderRequest.php:
+withValidator() guard: advance_amount cannot exceed total_amount
+
+app/Http/Requests/Backend/UpdatePreOrderRequest.php:
+withValidator() guard: same amount check + terminal status block
+
+app/Http/Controllers/Backend/PreOrderController.php:
+index() — paginated list, search/status/date_from/date_to/trashed filters, 7-key stats;
+store() — proof upload to pre-orders/proofs/, due_amount auto-calc, forceFill status=pending;
+update() — replaces old proof file if new uploaded, recalculates due_amount;
+updateStatus() — terminal guard + same-status guard, forceFill status, appends note;
+convertToSale() — already-converted guard + cancelled guard, forceFill linked_sale_id+status;
+destroy() — soft delete; restore() — onlyTrashed()->findOrFail() (Rule 2)
+
+resources/js/types/pre-order.d.ts:
+PreOrderStatus type; PreOrder/PreOrderStats/PreOrderFilters/PreOrderCan interfaces;
+PreOrderPaginatedData/PreOrderIndexProps; PreOrderFormData/UpdateStatusFormData/ConvertToSaleFormData;
+CustomerOption/ProductOption
+
+resources/js/types/pre-order-colors.ts:
+PRE_ORDER_STATUS_LABELS/COLORS; PRE_ORDER_STATUS_OPTIONS filter array;
+ADVANCE_PAYMENT_METHOD_OPTIONS (cash/bkash/nagad/rocket/bank_transfer/other);
+PRE_ORDER_STATUS_FLOW map (terminal states have empty array);
+getNextStatuses(current) helper
+
+resources/js/Pages/Backend/PreOrders/Index.tsx:
+7 stat cards (total/pending/confirmed/ready/delivered/cancelled/overdue);
+filter panel: search input + AppDateRangeInput + status pills + trashed toggle;
+table: 9 cols (customer/product/booking_date/delivery_date/total/advance/due/status/actions);
+actions: edit (Calendar icon) / update-status (CheckCircle2) / convert (ShoppingCart) / delete (XCircle) / restore (RotateCcw);
+convert button hidden when already linked or cancelled;
+status + update-status buttons hidden for terminal statuses;
+pagination
+
+resources/js/Pages/Backend/PreOrders/\_components/CreatePreOrderModal.tsx:
+customer name/phone, product description, booking date (AppDateInput),
+expected delivery (AppDateInput with minDate=booking_date), total/advance amounts,
+due_amount read-only computed display, payment method select,
+transaction_id shown only when method !== cash and method is set, note textarea;
+client-side guard: advance ≤ total
+
+resources/js/Pages/Backend/PreOrders/\_components/EditPreOrderModal.tsx:
+useEffect populates from preOrder prop; date slice [0,10] (Rule 6);
+decimal fields kept as string for inputs; same fields as create modal
+
+resources/js/Pages/Backend/PreOrders/\_components/UpdateStatusModal.tsx:
+current status display; next valid statuses from getNextStatuses() as card selectors;
+terminal state notice when no next statuses; cancellation amber warning banner;
+optional note textarea
+
+resources/js/Pages/Backend/PreOrders/\_components/ConvertToSaleModal.tsx:
+pre-order summary card (customer/product/total/advance/due);
+sale reference search via fetch() to pos.sales.index with search param;
+exact reference_no match from paginated JSON; found sale green confirmation;
+"Link & Convert" button disabled until valid sale found
+
+Updated Files (3)
+routes/web.php:
+PreOrderController import added;
+pre-orders prefix group added after order-tasks group:
+restore + update-status + convert-to-sale declared BEFORE wildcard {preOrder}
+
+app/Providers/AppServiceProvider.php:
+PreOrder + PreOrderPolicy imports added;
+Gate::policy(PreOrder::class, PreOrderPolicy::class) registered under Sprint 4 block
+
+resources/js/Layouts/AuthenticatedLayout.tsx:
+BookOpen icon imported from lucide-react;
+Pre-Orders child added to Fulfillment nav group
+(href: backend.pre-orders.index, active: backend.pre-orders.\*)
+
+Business Rules Established
+due_amount = total_amount − advance_amount — auto-calculated on every store/update
+status excluded from $fillable — set only via forceFill()->save() (Rule 66)
+Terminal statuses (delivered/cancelled) block all further edits and status changes
+convertToSale() sets linked_sale_id + forceFill status=delivered in one save()
+Already-converted pre-orders cannot be linked to another sale
+Cancelled pre-orders cannot be converted to sale
+ConvertToSaleModal uses fetch() to search sales by reference — no separate API endpoint
+advance_payment_proof stored at storage/app/public/pre-orders/proofs/
+Old proof file deleted from disk when replaced on update
+Moderator role (created in Item 8.1) gets pre_order.view + pre_order.create
+
+---
+
 [v2.39 — Item 8.2] — Staff Performance Report — 2026-08-22
 
 New Files (2)

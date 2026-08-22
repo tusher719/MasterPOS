@@ -748,6 +748,31 @@ Indexes: status, priority, source, assignment_type, assigned_to, claimed_by, due
 Note: claimed_by/claimed_at/status excluded from $fillable — set only via
 atomic claim guard (DB::transaction + lockForUpdate) or forceFill()->save()
 
+### Sprint 4 — Pre-Orders
+
+### pre_orders
+
+id, customer_id (FK customers nullable nullOnDelete),
+customer_name_snapshot (varchar), customer_phone_snapshot (varchar nullable),
+product_id (FK products nullable nullOnDelete),
+product_name_snapshot (varchar nullable),
+booking_date (date), expected_delivery_date (date nullable),
+total_amount (decimal 10,2), advance_amount (decimal 10,2 default 0),
+due_amount (decimal 10,2),
+advance_payment_method (varchar nullable),
+advance_transaction_id (varchar nullable),
+advance_payment_proof (varchar nullable — file path),
+status (enum: pending/confirmed/ready/delivered/cancelled default: pending),
+linked_sale_id (FK sales nullable nullOnDelete),
+note (text nullable),
+created_by (FK users restrict), updated_by (FK users nullable nullOnDelete),
+timestamps, deleted_at
+Indexes: status, booking_date, expected_delivery_date, customer_id
+
+Note: due_amount = total_amount − advance_amount (auto-calculated on store/update)
+Note: status excluded from $fillable — set only via forceFill()->save()
+Note: linked_sale_id filled on convertToSale() action — marks pre-order as delivered
+
 ### 6. Enum Reference — add rows
 
 | fraud_flags | reason | no_answer, refused_delivery, multiple_returns, fake_order, failed_validation, ip_limit_exceeded, low_success_ratio, other |
@@ -758,3 +783,4 @@ atomic claim guard (DB::transaction + lockForUpdate) or forceFill()->save()
 | order_tasks | priority | urgent, normal, flexible |
 | order_tasks | assignment_type | assigned, open |
 | order_tasks | status | pending, claimed, in_progress, ready, converted_to_sale, cancelled |
+| pre_orders | status | pending, confirmed, ready, delivered, cancelled |

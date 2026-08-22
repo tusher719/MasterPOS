@@ -30,6 +30,7 @@ use App\Http\Controllers\Backend\PartnerProductAssignmentController;
 use App\Http\Controllers\Backend\PartnerProfitRuleController;
 use App\Http\Controllers\Backend\PartnerSettlementConfigController;
 use App\Http\Controllers\Backend\PaymentMethodBankController;
+use App\Http\Controllers\Backend\PreOrderController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
 use App\Http\Controllers\Backend\ProfitCalculationController;
@@ -613,6 +614,18 @@ Route::middleware(['auth', 'verified'])
             Route::post('/{orderTask}/convert-to-sale',        [OrderTaskController::class, 'convertToSale'])->name('convert-to-sale');
             Route::put('/{orderTask}',                         [OrderTaskController::class, 'update'])->name('update');
             Route::delete('/{orderTask}',                      [OrderTaskController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Sprint 4 — Pre-Orders ─────────────────────────────────────────────────
+        // restore + convert-to-sale BEFORE wildcard {preOrder} to prevent swallowing
+        Route::prefix('pre-orders')->name('pre-orders.')->group(function () {
+            Route::post('/{id}/restore',                    [PreOrderController::class, 'restore'])->name('restore');
+            Route::post('/{preOrder}/update-status',        [PreOrderController::class, 'updateStatus'])->name('update-status');
+            Route::post('/{preOrder}/convert-to-sale',      [PreOrderController::class, 'convertToSale'])->name('convert-to-sale');
+            Route::get('/',                                 [PreOrderController::class, 'index'])->name('index');
+            Route::post('/',                                [PreOrderController::class, 'store'])->name('store');
+            Route::put('/{preOrder}',                       [PreOrderController::class, 'update'])->name('update');
+            Route::delete('/{preOrder}',                    [PreOrderController::class, 'destroy'])->name('destroy');
         });
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint

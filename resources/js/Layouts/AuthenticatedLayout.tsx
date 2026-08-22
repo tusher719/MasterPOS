@@ -4,6 +4,7 @@ import { Link, router, usePage } from "@inertiajs/react";
 import {
     BarChart3,
     Bell,
+    BookOpen,
     Boxes,
     Building2,
     CheckCheck,
@@ -312,6 +313,12 @@ const NAV_ITEMS: NavItem[] = [
                 icon: TrendingUp,
                 href: "backend.order-tasks.performance",
                 active: "backend.order-tasks.performance*",
+            },
+            {
+                label: "Pre-Orders",
+                icon: BookOpen,
+                href: "backend.pre-orders.index",
+                active: "backend.pre-orders.*",
             },
         ],
     },
