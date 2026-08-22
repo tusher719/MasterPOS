@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- Current Step: Sprint 4 — Item 8.2 — Staff Performance Report (Next)
-- Last Completed: Item 8.1 — Order Task System ✅
+- Current Step: Sprint 4 — Item 8.3 — Pre-Order/Booking System (Next)
+- Last Completed: Item 8.2 — Staff Performance Report ✅
 
 ## Financial Domain Overview
 
@@ -121,6 +121,7 @@
 | 6.3         | Layer 2 IP Order Limit                              | ✅     |
 | 6.4         | Layer 3 Success Ratio Check                         | ✅     |
 | 8.1         | Order Task System                                   | ✅     |
+| 8.2         | Staff Performance Report                            | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -134,7 +135,6 @@
 
 | #   | Item                          | Priority   |
 | --- | ----------------------------- | ---------- |
-| 8.2 | Staff Performance Report      | Should Fix |
 | 8.3 | Pre-Order/Booking System      | Should Fix |
 | 3.8 | Product Planning Task Manager | Should Fix |
 

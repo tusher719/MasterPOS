@@ -2,6 +2,46 @@
 
 ---
 
+[v2.39 — Item 8.2] — Staff Performance Report — 2026-08-22
+
+New Files (2)
+app/Http/Controllers/Backend/StaffPerformanceReportController.php:
+index() — abort_unless order_task.view; filters: user_id/date_from/date_to/source/status;
+staffOptions: active non-deleted users; buildPerformanceRows() private method —
+loads filtered order_tasks, groups by assigned_to + claimed_by user IDs,
+per-user: total_tasks/assigned/claimed/in_progress/completed/cancelled/avg_completion_minutes;
+avg time = completed_at - claimed_at (fallback: started_at); sorted by completed desc;
+summary: total_tasks/total_completed/total_cancelled/avg across all rows
+
+resources/js/Pages/Backend/OrderTasks/StaffPerformanceReport.tsx:
+Props: rows/summary/staffOptions/filters; StatCard component (4 cards);
+filter panel (5 controls: staff select, date from/to, source select, status select);
+per-staff table with color-coded badges (assigned=blue, claimed=purple,
+in_progress=amber, completed=green, cancelled=red); completion rate badge
+(green ≥70%, amber ≥40%, red <40%); avg time formatMinutes helper;
+tfoot totals row; empty state
+
+Updated Files (2)
+routes/web.php: StaffPerformanceReportController import added;
+Route::get('/performance', ...) added inside order-tasks prefix group
+BEFORE store() POST route (name: order-tasks.performance)
+
+resources/js/Layouts/AuthenticatedLayout.tsx:
+Fulfillment nav group: Performance Report child added (icon: TrendingUp,
+href: backend.order-tasks.performance);
+Order Tasks active pattern fixed: "backend.order-tasks.\*" → "backend.order-tasks.index"
+(prevents Performance Report from being highlighted when on Order Tasks page)
+
+Business Rules Established
+No new migration — reads from existing order_tasks table only
+Permission reused: order_task.view (no new permission needed)
+Completed = converted_to_sale OR ready (both terminal positive outcomes)
+Avg completion time: completed_at minus claimed_at (preferred), falls back to started_at
+Staff who appear as assigned_to OR claimed_by are included in report
+Route declared as GET before POST store() inside prefix group — no wildcard conflict
+
+---
+
 [v2.38 — Item 8.1] — Order Task System — 2026-08-21
 
 New Migration (1)

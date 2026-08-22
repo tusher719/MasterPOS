@@ -39,6 +39,7 @@ use App\Http\Controllers\Backend\PurchaseController;
 use App\Http\Controllers\Backend\PurchasePaymentController;
 use App\Http\Controllers\Backend\ReportController;
 use App\Http\Controllers\Backend\SaleController;
+use App\Http\Controllers\Backend\StaffPerformanceReportController;
 use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\ProfileController;
@@ -604,6 +605,7 @@ Route::middleware(['auth', 'verified'])
         // Special action routes BEFORE wildcard {orderTask} to prevent swallowing
         Route::prefix('order-tasks')->name('order-tasks.')->group(function () {
             Route::get('/',                                    [OrderTaskController::class, 'index'])->name('index');
+            Route::get('/performance',                         [StaffPerformanceReportController::class, 'index'])->name('performance');
             Route::post('/',                                   [OrderTaskController::class, 'store'])->name('store');
             Route::post('/{orderTask}/claim',                  [OrderTaskController::class, 'claim'])->name('claim');
             Route::post('/{orderTask}/assign',                 [OrderTaskController::class, 'assign'])->name('assign');
