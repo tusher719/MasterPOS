@@ -320,6 +320,12 @@ const NAV_ITEMS: NavItem[] = [
                 href: "backend.pre-orders.index",
                 active: "backend.pre-orders.*",
             },
+            {
+                label: "Planning Tasks",
+                icon: ClipboardList,
+                href: "backend.product-planning-tasks.index",
+                active: "backend.product-planning-tasks.*",
+            },
         ],
     },
     {

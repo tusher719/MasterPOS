@@ -2,6 +2,128 @@
 
 ---
 
+[v2.41 — Item 3.8] — Product Planning Task Manager — 2026-08-24
+
+New Migrations (2)
+create_product_planning_tasks_table:
+title, note (nullable), status (enum: pending/in_progress/done/cancelled default: pending),
+due_date (nullable), created_by (restrict), assigned_to (nullable nullOnDelete),
+completed_by (nullable nullOnDelete), completed_at (nullable), timestamps, deleted_at
+Indexes: status, due_date, assigned_to
+
+create_product_planning_task_items_table:
+task_id (FK cascade), product_id (FK restrict), variant_id (FK nullable nullOnDelete),
+quantity (decimal 10,2), unit_cost (decimal 10,2 nullable), note (nullable),
+status (enum: pending/ready/cancelled default: pending), timestamps
+Indexes: task_id, status
+
+New Files (9)
+app/Models/ProductPlanningTask.php:
+SoftDeletes; status excluded from $fillable (Rule 66);
+isPending/isInProgress/isDone/isCancelled/isTerminal helpers;
+scopeByStatus/scopeOverdue scopes;
+relations: items/createdBy/assignedTo/completedBy (withTrashed where applicable)
+
+app/Models/ProductPlanningTaskItem.php:
+fillable includes status (item-level status is not approval-gated);
+getSubtotalAttribute() computed accessor (quantity × unit_cost, null when no cost);
+relations: task/product/variant (withTrashed where applicable)
+
+app/Policies/ProductPlanningTaskPolicy.php:
+viewAny/create/edit/delete/restore — no model parameter (Rule 3);
+restore() reuses delete permission
+
+database/seeders/ProductPlanningTaskSeeder.php:
+4 permissions: product_task.view/create/edit/delete;
+Admin: all 4; Staff: view only; Moderator: view + create + edit
+
+app/Http/Requests/Backend/StoreProductPlanningTaskRequest.php:
+items array min:1 required; per-item product_id/quantity required;
+variant_id/unit_cost/note/status nullable
+
+app/Http/Requests/Backend/UpdateProductPlanningTaskRequest.php:
+same rules as store + items.\*.id nullable for upsert;
+withValidator() terminal status guard — blocks edits on done/cancelled tasks
+
+app/Http/Controllers/Backend/ProductPlanningTaskController.php:
+index() — paginated list, search/status/assigned_to/trashed filters, 6-key stats,
+relation keys mapped to assigned_to_user/created_by_user/completed_by_user;
+store() — creates task + items in DB::transaction(), forceFill status=pending;
+update() — upserts items by id (delete removed, update existing, create new);
+updateStatus() — terminal guard + same-status guard, forceFill status/completed_at/completed_by;
+destroy() — soft delete; restore() — onlyTrashed()->findOrFail() (Rule 2)
+
+resources/js/types/product-planning-task.d.ts:
+TaskStatus/TaskItemStatus types; ProductPlanningTask/TaskItem/TaskStats/TaskFilters/
+TaskCan/TaskPaginatedData/TaskIndexProps interfaces;
+ProductOption/VariantOption for item row dropdowns;
+TaskItemFormData/TaskFormData/UpdateStatusFormData
+
+resources/js/types/product-planning-task-colors.ts:
+TASK_STATUS_LABELS/COLORS/OPTIONS; TASK_STATUS_FLOW map;
+getNextTaskStatuses(current) helper;
+TASK_ITEM_STATUS_LABELS/COLORS/OPTIONS
+
+resources/js/Pages/Backend/ProductPlanningTasks/Index.tsx:
+6 stat cards (total/pending/in_progress/done/cancelled/overdue);
+filter panel: search input + status pills + staff select + trashed toggle;
+table: 8 cols (title/status/items/grand_total/due_date/assigned_to/created_by/actions);
+actions: update-status (CheckCircle2, hidden for terminal) /
+edit (Edit2, hidden for terminal) / delete (XCircle) / restore (RotateCcw);
+grand total computed client-side from items array;
+pagination
+
+resources/js/Pages/Backend/ProductPlanningTasks/\_components/CreateTaskModal.tsx:
+title, note, due_date (AppDateInput), assigned_to select;
+dynamic item rows: product select → variant select (shown only when has_variants) →
+qty → unit_cost (auto-filled from cost_price/cost_price_override) →
+subtotal (read-only computed) → item status → note → remove button;
+Add Item button; grand total display; client-side guards before submit
+
+resources/js/Pages/Backend/ProductPlanningTasks/\_components/EditTaskModal.tsx:
+useEffect populates from task prop; date slice [0,10] (Rule 6);
+item rows carry id for upsert; same fields as create modal;
+auto-fill unit_cost from product/variant cost on product/variant change
+
+resources/js/Pages/Backend/ProductPlanningTasks/\_components/UpdateStatusModal.tsx:
+current status display; next valid statuses from getNextTaskStatuses() as card selectors;
+terminal state notice when no next statuses;
+cancellation amber warning banner; optional note textarea;
+submit disabled until status selected
+
+Updated Files (3)
+routes/web.php:
+ProductPlanningTaskController import added;
+product-planning-tasks prefix group added after pre-orders group:
+restore + update-status declared BEFORE wildcard {productPlanningTask}
+
+app/Providers/AppServiceProvider.php:
+ProductPlanningTask + ProductPlanningTaskPolicy imports added;
+Gate::policy(ProductPlanningTask::class, ProductPlanningTaskPolicy::class) registered
+
+resources/js/Layouts/AuthenticatedLayout.tsx:
+Planning Tasks child added to Fulfillment nav group
+(href: backend.product-planning-tasks.index, active: backend.product-planning-tasks.\*)
+
+Bug Fixes (2)
+ProductPlanningTaskItem: ProductVariant + Product imports added explicitly —
+missing imports caused RelationNotFoundException on eager load
+
+ProductPlanningTaskController index(): relation keys mapped via transform() —
+assigned_to_user/created_by_user/completed_by_user added as explicit keys
+because Laravel serializes relation names differently from FK column names
+
+Business Rules Established
+status excluded from $fillable on ProductPlanningTask — set only via forceFill()->save() (Rule 66)
+Terminal statuses (done/cancelled) block all further edits and status changes
+item-level status (pending/ready/cancelled) is directly fillable — not approval-gated
+update() syncs items via upsert pattern: delete removed IDs, update existing, create new
+Grand total computed client-side from items array — not stored in DB
+unit_cost auto-filled from product.cost_price or variant.cost_price_override on selection
+Moderator role gets product_task.view + create + edit (cannot delete)
+
+---
+
 [v2.40 — Item 8.3] — Pre-Order/Booking System — 2026-08-23
 
 New Migration (1)

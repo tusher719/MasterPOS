@@ -466,7 +466,7 @@ pre_orders: id,
 
 ---
 
-### 3.8 Product Planning Task Manager ✅ (Should Fix — internal tool)
+### 3.8 Product Planning Task Manager ✅ DONE
 
 Internal tool for planning and tracking product preparation.
 Separate from Order Tasks (8.1).

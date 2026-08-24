@@ -33,6 +33,7 @@ use App\Http\Controllers\Backend\PaymentMethodBankController;
 use App\Http\Controllers\Backend\PreOrderController;
 use App\Http\Controllers\Backend\ProductCategoryController;
 use App\Http\Controllers\Backend\ProductController;
+use App\Http\Controllers\Backend\ProductPlanningTaskController;
 use App\Http\Controllers\Backend\ProfitCalculationController;
 use App\Http\Controllers\Backend\ProfitDistributionController;
 use App\Http\Controllers\Backend\ProfitPaymentController;
@@ -626,6 +627,16 @@ Route::middleware(['auth', 'verified'])
             Route::post('/',                                [PreOrderController::class, 'store'])->name('store');
             Route::put('/{preOrder}',                       [PreOrderController::class, 'update'])->name('update');
             Route::delete('/{preOrder}',                    [PreOrderController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Sprint 4 — Product Planning Tasks ────────────────────────────────────────
+        Route::prefix('product-planning-tasks')->name('product-planning-tasks.')->group(function () {
+            Route::post('/{id}/restore',                        [ProductPlanningTaskController::class, 'restore'])->name('restore');
+            Route::post('/{productPlanningTask}/update-status', [ProductPlanningTaskController::class, 'updateStatus'])->name('update-status');
+            Route::get('/',                                     [ProductPlanningTaskController::class, 'index'])->name('index');
+            Route::post('/',                                    [ProductPlanningTaskController::class, 'store'])->name('store');
+            Route::put('/{productPlanningTask}',                [ProductPlanningTaskController::class, 'update'])->name('update');
+            Route::delete('/{productPlanningTask}',             [ProductPlanningTaskController::class, 'destroy'])->name('destroy');
         });
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint

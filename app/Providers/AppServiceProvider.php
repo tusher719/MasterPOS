@@ -25,6 +25,7 @@ use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
 use App\Models\PaymentMethod;
 use App\Models\PreOrder;
+use App\Models\ProductPlanningTask;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
 use App\Models\Purchase;
@@ -51,6 +52,7 @@ use App\Policies\PartnerProfitRulePolicy;
 use App\Policies\PartnerSettlementConfigPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\PreOrderPolicy;
+use App\Policies\ProductCategoryPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
@@ -147,5 +149,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Sprint 4 — Pre-Orders ────────────────────────────────────────────────
         Gate::policy(PreOrder::class, PreOrderPolicy::class);
+
+        // ─── Sprint 4 — Product Planning Tasks ───────────────────────────────────
+        Gate::policy(ProductPlanningTask::class, ProductCategoryPolicy::class);
     }
 }

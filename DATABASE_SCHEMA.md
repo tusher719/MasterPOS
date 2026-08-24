@@ -773,6 +773,35 @@ Note: due_amount = total_amount − advance_amount (auto-calculated on store/upd
 Note: status excluded from $fillable — set only via forceFill()->save()
 Note: linked_sale_id filled on convertToSale() action — marks pre-order as delivered
 
+### Sprint 4 — Product Planning Tasks
+
+### product_planning_tasks
+
+id, title (varchar), note (text nullable),
+status (enum: pending/in_progress/done/cancelled default: pending),
+due_date (date nullable),
+created_by (FK users restrict), assigned_to (FK users nullable nullOnDelete),
+completed_by (FK users nullable nullOnDelete), completed_at (timestamp nullable),
+timestamps, deleted_at
+Indexes: status, due_date, assigned_to
+
+Note: status excluded from $fillable — set only via forceFill()->save() (Rule 66)
+
+### product_planning_task_items
+
+id, task_id (FK product_planning_tasks cascade),
+product_id (FK products restrict), variant_id (FK product_variants nullable nullOnDelete),
+quantity (decimal 10,2), unit_cost (decimal 10,2 nullable),
+note (text nullable),
+status (enum: pending/ready/cancelled default: pending),
+timestamps
+Indexes: task_id, status
+
+### Enum Reference — add rows
+
+| product_planning_tasks | status | pending, in_progress, done, cancelled |
+| product_planning_task_items | status | pending, ready, cancelled |
+
 ### 6. Enum Reference — add rows
 
 | fraud_flags | reason | no_answer, refused_delivery, multiple_returns, fake_order, failed_validation, ip_limit_exceeded, low_success_ratio, other |
