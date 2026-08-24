@@ -317,6 +317,15 @@ When writing date input fields in modals or forms:
 - Partner module: placed under a new "Partners" nav group
 - Capital domain nav group: "Investments" (existing — do not rename)
 
+### Navbar Logo (Item 1.2)
+
+- NavbarLogo component in AuthenticatedLayout reads from global settings prop
+- logo_type: image / text / both — both renders image + text side by side
+- parseSegments() helper used for safe JSON.parse of logo_text_segments
+- Settings page Inertia prop must be 'pageSettings' — never 'settings' (conflicts with global flat map)
+- Logo style saves use window.axios.post() — NOT useForm (transform() returns void, cannot chain .post())
+- SettingsService::invalidate() called after every logo upload
+
 ---
 
 ## 12. Inertia Page Render Rule

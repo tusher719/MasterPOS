@@ -706,3 +706,14 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Threshold configurable: business_settings.fraud_success_ratio_threshold (default 60)
 - Min orders configurable: business_settings.fraud_min_orders_before_check (default 3)
 - Layer 3 response shape: {layer3_blocked: true, reason: 'low_success_ratio'}
+
+## 30. Navbar Logo Rules (Item 1.2)
+
+- logo_type controls navbar display: image / text / both
+- logo_image_path is the canonical key — set on every logo upload alongside business_logo
+- business_logo key retained for PDF Blade templates (dompdf uses public_path())
+- logo_text_segments: JSON array of {text, color} objects, max 5 segments
+- both mode: image renders at max-h-7 max-w-[36px], text segments alongside
+- Save auto-reloads page (800ms delay) so globally shared settings prop refreshes
+- Settings page uses pageSettings Inertia prop (not settings) to avoid conflict with global flat map
+- window.axios.post() used for logo style save — useForm.transform() returns void in Inertia

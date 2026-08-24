@@ -636,6 +636,84 @@ function NotificationBell() {
     );
 }
 
+// ─── Navbar Logo ─────────────────────────────────────────────────────────────
+/** Renders the sidebar logo based on settings:
+ *  - logo_type = 'image' → shows uploaded image
+ *  - logo_type = 'text'  → renders colored text segments
+ *  - fallback            → plain business_name in indigo
+ */
+function NavbarLogo({ settings }: { settings: any }) {
+    const logoType = settings?.logo_type ?? "text";
+
+    // Parse text segments safely
+    const parseSegments = () => {
+        try {
+            const s = JSON.parse(settings?.logo_text_segments ?? "[]");
+            return Array.isArray(s) ? s : [];
+        } catch {
+            return [];
+        }
+    };
+
+    // Both mode — image + text side by side
+    if (logoType === "both") {
+        const segments = parseSegments();
+        return (
+            <div className="flex items-center gap-2">
+                {settings?.logo_image_path && (
+                    <img
+                        src={"/storage/" + settings.logo_image_path}
+                        alt="Logo"
+                        className="max-h-7 max-w-[36px] object-contain"
+                    />
+                )}
+                {segments.length > 0 && (
+                    <span className="text-lg font-bold">
+                        {segments.map((seg: any, i: number) => (
+                            <span key={i} style={{ color: seg.color }}>
+                                {seg.text}
+                            </span>
+                        ))}
+                    </span>
+                )}
+            </div>
+        );
+    }
+
+    // Image only
+    if (logoType === "image" && settings?.logo_image_path) {
+        return (
+            <img
+                src={"/storage/" + settings.logo_image_path}
+                alt={settings?.business_name ?? "Logo"}
+                className="max-h-8 max-w-[140px] object-contain"
+            />
+        );
+    }
+
+    // Text only
+    if (logoType === "text" && settings?.logo_text_segments) {
+        const segments = parseSegments();
+        if (segments.length > 0) {
+            return (
+                <span className="text-lg font-bold">
+                    {segments.map((seg: any, i: number) => (
+                        <span key={i} style={{ color: seg.color }}>
+                            {seg.text}
+                        </span>
+                    ))}
+                </span>
+            );
+        }
+    }
+
+    // Fallback: plain business name
+    return (
+        <span className="text-lg font-bold text-indigo-600">
+            {settings?.business_name ?? "Master POS"}
+        </span>
+    );
+}
 // ─── Main Layout ────────────────────────────────────────────────────────────
 export default function AuthenticatedLayout({ children }: PropsWithChildren) {
     useFlashToast();
@@ -651,11 +729,7 @@ export default function AuthenticatedLayout({ children }: PropsWithChildren) {
                 } flex flex-col border-r border-gray-200 bg-white transition-all duration-200`}
             >
                 <div className="flex h-16 items-center justify-between border-b border-gray-100 px-4">
-                    {!collapsed && (
-                        <span className="text-lg font-bold text-indigo-600">
-                            {settings?.business_name ?? "Master POS"}
-                        </span>
-                    )}
+                    {!collapsed && <NavbarLogo settings={settings} />}
                     <button
                         onClick={() => setCollapsed(!collapsed)}
                         className="text-gray-400 hover:text-gray-600"

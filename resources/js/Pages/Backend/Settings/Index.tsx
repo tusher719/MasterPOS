@@ -6,8 +6,12 @@ import {
     Building2,
     DollarSign,
     Info,
+    Monitor,
+    Plus,
     Receipt,
     Save,
+    Trash2,
+    Type,
     Upload,
     X,
 } from "lucide-react";
@@ -18,8 +22,24 @@ import { toast } from "sonner";
 interface SettingsGroup {
     [key: string]: string | null | undefined;
 }
-interface Props {
+
+interface LogoTextSegment {
+    text: string;
+    color: string;
+}
+
+// Internal prop type for tab sub-components
+interface TabProps {
     settings: {
+        business?: SettingsGroup;
+        currency?: SettingsGroup;
+        tax?: SettingsGroup;
+        notification?: SettingsGroup;
+    };
+}
+
+interface Props {
+    pageSettings: {
         business?: SettingsGroup;
         currency?: SettingsGroup;
         tax?: SettingsGroup;
@@ -36,7 +56,21 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-export default function SettingsIndex({ settings }: Props) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Safely parse logo_text_segments from settings (stored as JSON string). */
+function parseSegments(raw: string | null | undefined): LogoTextSegment[] {
+    if (!raw) return [{ text: "Master", color: "#4f46e5" }];
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+        // ignore
+    }
+    return [{ text: "Master", color: "#4f46e5" }];
+}
+
+export default function SettingsIndex({ pageSettings: settings }: Props) {
     useFlashToast();
     const [activeTab, setActiveTab] = useState<TabId>("business");
 
@@ -279,15 +313,18 @@ function Toggle({
 function SaveButton({
     processing,
     label = "Save Changes",
+    onClick,
 }: {
     processing: boolean;
     label?: string;
+    onClick?: () => void;
 }) {
     return (
         <div className="flex justify-end pt-2">
             <button
                 type="button"
                 disabled={processing}
+                onClick={onClick}
                 className="flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
             >
                 <Save size={14} />
@@ -297,14 +334,105 @@ function SaveButton({
     );
 }
 
+// ─── Navbar Logo Preview ──────────────────────────────────────────────────────
+/** Renders a miniature sidebar header so the admin can see exactly
+ *  how the logo will look before saving. */
+function NavbarLogoPreview({
+    logoType,
+    logoImageUrl,
+    segments,
+    businessName,
+}: {
+    logoType: string;
+    logoImageUrl: string | null;
+    segments: LogoTextSegment[];
+    businessName: string;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <Monitor size={14} className="shrink-0 text-gray-400" />
+            <span className="text-xs text-gray-400">Navbar preview:</span>
+
+            {/* Simulated sidebar header */}
+            <div className="flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 shadow-sm">
+                {logoType === "both" ? (
+                    <div className="flex items-center gap-1.5">
+                        {logoImageUrl && (
+                            <img
+                                src={logoImageUrl}
+                                alt="Logo preview"
+                                className="max-h-6 max-w-[36px] object-contain"
+                            />
+                        )}
+                        {segments.length > 0 && (
+                            <span className="text-sm font-bold">
+                                {segments.map((seg, i) => (
+                                    <span key={i} style={{ color: seg.color }}>
+                                        {seg.text}
+                                    </span>
+                                ))}
+                            </span>
+                        )}
+                    </div>
+                ) : logoType === "image" && logoImageUrl ? (
+                    <img
+                        src={logoImageUrl}
+                        alt="Logo preview"
+                        className="max-h-6 max-w-[120px] object-contain"
+                    />
+                ) : logoType === "text" && segments.length > 0 ? (
+                    <span className="text-sm font-bold">
+                        {segments.map((seg, i) => (
+                            <span key={i} style={{ color: seg.color }}>
+                                {seg.text}
+                            </span>
+                        ))}
+                    </span>
+                ) : (
+                    <span className="text-sm font-bold text-indigo-600">
+                        {businessName || "Master POS"}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // ─── Business Info Tab ────────────────────────────────────────────────────────
-function BusinessTab({ settings }: Props) {
+function BusinessTab({ settings }: TabProps) {
     const b = settings.business ?? {};
     const logoInputRef = useRef<HTMLInputElement>(null);
+
+    // Resolve logo image URL — prefer new key, fall back to old key
+    const resolveLogoUrl = () => {
+        // Controller builds a full URL for logo_image_path_url
+        if (b.logo_image_path_url) return b.logo_image_path_url;
+        // Fallback: build from raw path
+        if (b.logo_image_path) {
+            return window.location.origin + "/storage/" + b.logo_image_path;
+        }
+        if (b.business_logo_url) return b.business_logo_url;
+        return null;
+    };
+
     const [logoPreview, setLogoPreview] = useState<string | null>(
-        b.business_logo_url ?? null,
+        resolveLogoUrl(),
     );
 
+    // ── Logo type + segments form ──
+    const [logoType, setLogoType] = useState<"image" | "text" | "both">(
+        (b.logo_type as "image" | "text" | "both") ?? "text",
+    );
+    const [segments, setSegments] = useState<LogoTextSegment[]>(
+        parseSegments(b.logo_text_segments),
+    );
+
+    // logoStyleForm useForm লাইনটা সরাও — এর বদলে:
+    const [logoStyleProcessing, setLogoStyleProcessing] = useState(false);
+
+    const logoForm = useForm<{ logo: File | null }>({ logo: null });
+
+    // ── Business info form ──
     const form = useForm({
         group: "business",
         business_name: b.business_name ?? "",
@@ -313,8 +441,7 @@ function BusinessTab({ settings }: Props) {
         business_address: b.business_address ?? "",
     });
 
-    const logoForm = useForm<{ logo: File | null }>({ logo: null });
-
+    // ── Handlers ──
     const submit = () => {
         form.post(route("backend.settings.update"), {
             onSuccess: () => toast.success("Business info saved."),
@@ -335,9 +462,57 @@ function BusinessTab({ settings }: Props) {
         });
     };
 
+    // Save logo_type and logo_text_segments together
+    // submitLogoStyle replace করো:
+    const submitLogoStyle = () => {
+        const segmentsJson = JSON.stringify(segments);
+        setLogoStyleProcessing(true);
+
+        window.axios
+            .post(route("backend.settings.update"), {
+                group: "business",
+                logo_type: logoType,
+                logo_text_segments: segmentsJson,
+            })
+            .then(() => {
+                toast.success("Navbar logo style saved.");
+                // Reload after short delay so toast is visible before refresh
+                setTimeout(() => window.location.reload(), 800);
+            })
+            .catch(() => {
+                toast.error("Failed to save navbar style.");
+            })
+            .finally(() => {
+                setLogoStyleProcessing(false);
+            });
+    };
+
+    // ── Segment editor helpers ──
+    const addSegment = () => {
+        if (segments.length >= 5) return;
+        setSegments([...segments, { text: "", color: "#4f46e5" }]);
+    };
+
+    const removeSegment = (index: number) => {
+        if (segments.length <= 1) return;
+        setSegments(segments.filter((_, i) => i !== index));
+    };
+
+    const updateSegment = (
+        index: number,
+        field: keyof LogoTextSegment,
+        value: string,
+    ) => {
+        setSegments(
+            segments.map((seg, i) =>
+                i === index ? { ...seg, [field]: value } : seg,
+            ),
+        );
+    };
+
     return (
         <div className="space-y-5">
-            {/* Logo */}
+            {/* ── Logo Upload ───────────────────────────────────────────── */}
             <Section
                 title="Business Logo"
                 description="Displayed on invoices, receipts and reports."
@@ -400,7 +575,155 @@ function BusinessTab({ settings }: Props) {
                 </div>
             </Section>
 
-            {/* Info */}
+            {/* ── Navbar Logo Style ─────────────────────────────────────── */}
+            <Section
+                title="Navbar Logo Style"
+                description="Choose how your logo appears in the sidebar navigation."
+            >
+                <div className="space-y-5">
+                    {/* Live preview */}
+                    <NavbarLogoPreview
+                        logoType={logoType}
+                        logoImageUrl={logoPreview}
+                        segments={segments}
+                        businessName={form.data.business_name}
+                    />
+
+                    {/* Type selector */}
+                    <FormRow label="Display Type" required>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setLogoType("image")}
+                                className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                                    logoType === "image"
+                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Upload size={14} />
+                                Image Only
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLogoType("text")}
+                                className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                                    logoType === "text"
+                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Type size={14} />
+                                Text Only
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setLogoType("both")}
+                                className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                                    logoType === "both"
+                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                <Monitor size={14} />
+                                Image + Text
+                            </button>
+                        </div>
+                    </FormRow>
+
+                    {/* Image mode hint — shown for image and both modes */}
+                    {(logoType === "image" || logoType === "both") && (
+                        <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
+                            <Info
+                                size={14}
+                                className="mt-0.5 shrink-0 text-indigo-500"
+                            />
+                            <p className="text-sm text-indigo-700">
+                                The uploaded image above will be used in the
+                                navbar. Upload a new image using the{" "}
+                                <strong>Business Logo</strong> section.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Text segment builder — shown for text and both modes */}
+                    {(logoType === "text" || logoType === "both") && (
+                        <FormRow
+                            label="Text Segments"
+                            hint="Each segment can have its own color. Max 5 segments."
+                        >
+                            <div className="space-y-2">
+                                {segments.map((seg, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <input
+                                            type="text"
+                                            value={seg.text}
+                                            onChange={(e) =>
+                                                updateSegment(
+                                                    i,
+                                                    "text",
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder={`Segment ${i + 1}`}
+                                            maxLength={20}
+                                            className="flex-1 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        />
+                                        <div className="flex items-center gap-1.5 rounded-md border border-gray-300 px-2 py-1.5">
+                                            <input
+                                                type="color"
+                                                value={seg.color}
+                                                onChange={(e) =>
+                                                    updateSegment(
+                                                        i,
+                                                        "color",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="h-5 w-8 cursor-pointer rounded border-0 p-0"
+                                                title="Pick color"
+                                            />
+                                            <span className="font-mono text-xs text-gray-400">
+                                                {seg.color}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeSegment(i)}
+                                            disabled={segments.length <= 1}
+                                            className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"
+                                            title="Remove segment"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {segments.length < 5 && (
+                                    <button
+                                        type="button"
+                                        onClick={addSegment}
+                                        className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800"
+                                    >
+                                        <Plus size={14} />
+                                        Add segment
+                                    </button>
+                                )}
+                            </div>
+                        </FormRow>
+                    )}
+
+                    <SaveButton
+                        processing={logoStyleProcessing}
+                        label="Save Navbar Style"
+                        onClick={submitLogoStyle}
+                    />
+                </div>
+            </Section>
+
+            {/* ── Business Information ──────────────────────────────────── */}
             <Section
                 title="Business Information"
                 description="Core details about your business."
@@ -449,12 +772,11 @@ function BusinessTab({ settings }: Props) {
                             className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                     </FormRow>
-                    <div onClick={submit}>
-                        <SaveButton
-                            processing={form.processing}
-                            label="Save Business Info"
-                        />
-                    </div>
+                    <SaveButton
+                        processing={form.processing}
+                        label="Save Business Info"
+                        onClick={submit}
+                    />
                 </div>
             </Section>
         </div>
@@ -462,7 +784,7 @@ function BusinessTab({ settings }: Props) {
 }
 
 // ─── Currency Tab ─────────────────────────────────────────────────────────────
-function CurrencyTab({ settings }: Props) {
+function CurrencyTab({ settings }: TabProps) {
     const c = settings.currency ?? {};
 
     const form = useForm({
@@ -557,19 +879,18 @@ function CurrencyTab({ settings }: Props) {
                         />
                     </div>
                 </FormRow>
-                <div onClick={submit}>
-                    <SaveButton
-                        processing={form.processing}
-                        label="Save Currency Settings"
-                    />
-                </div>
+                <SaveButton
+                    processing={form.processing}
+                    label="Save Currency Settings"
+                    onClick={submit}
+                />
             </div>
         </Section>
     );
 }
 
 // ─── Tax Tab ──────────────────────────────────────────────────────────────────
-function TaxTab({ settings }: Props) {
+function TaxTab({ settings }: TabProps) {
     const t = settings.tax ?? {};
 
     const form = useForm({
@@ -642,19 +963,18 @@ function TaxTab({ settings }: Props) {
                     </div>
                 )}
 
-                <div onClick={submit}>
-                    <SaveButton
-                        processing={form.processing}
-                        label="Save Tax Settings"
-                    />
-                </div>
+                <SaveButton
+                    processing={form.processing}
+                    label="Save Tax Settings"
+                    onClick={submit}
+                />
             </div>
         </Section>
     );
 }
 
 // ─── Notification Tab ─────────────────────────────────────────────────────────
-function NotificationTab({ settings }: Props) {
+function NotificationTab({ settings }: TabProps) {
     const n = settings.notification ?? {};
 
     const form = useForm({
@@ -731,12 +1051,11 @@ function NotificationTab({ settings }: Props) {
                     description="Notify when a new expense is logged"
                 />
 
-                <div onClick={submit}>
-                    <SaveButton
-                        processing={form.processing}
-                        label="Save Notification Settings"
-                    />
-                </div>
+                <SaveButton
+                    processing={form.processing}
+                    label="Save Notification Settings"
+                    onClick={submit}
+                />
             </div>
         </Section>
     );

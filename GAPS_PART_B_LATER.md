@@ -24,7 +24,7 @@
 
 ## SPRINT 5 — Admin Polish
 
-### 1.2 Dynamic Navbar Logo (Should Fix — depends on 1.1)
+### 1.2 Dynamic Navbar Logo | ✅ Done |
 
 ```
 business_settings keys:

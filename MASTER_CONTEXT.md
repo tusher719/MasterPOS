@@ -43,8 +43,8 @@
 
 ## Current Status
 
-- Current Step: Sprint 5 — Item 1.2 — Dynamic Navbar Logo (Next)
-- Last Completed: Item 3.8 — Product Planning Task Manager ✅
+- Current Step: Sprint 5 — Item 1.3 — Admin Panel Theme Per-User (Next)
+- Last Completed: Item 1.2 — Dynamic Navbar Logo ✅
 
 ## Financial Domain Overview
 
@@ -124,6 +124,7 @@
 | 8.2         | Staff Performance Report                            | ✅     |
 | 8.3         | Pre-Order/Booking System                            | ✅     |
 | 3.8         | Product Planning Task Manager                       | ✅     |
+| 1.2         | Dynamic Navbar Logo                                 | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -139,7 +140,6 @@
 
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
-| 1.2  | Dynamic Navbar Logo               | Should Fix   |
 | 1.3  | Admin Panel Theme (per-user)      | Should Fix   |
 | 1.4  | Global Trash Bin Page             | Should Fix   |
 | 1.6  | Dynamic Notifications             | Should Fix   |

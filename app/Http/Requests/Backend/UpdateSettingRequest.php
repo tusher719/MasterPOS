@@ -15,11 +15,13 @@ class UpdateSettingRequest extends FormRequest
     {
         return match ($this->input('group')) {
             'business' => [
-                'group'            => 'required|string',
-                'business_name'    => 'required|string|max:255',
-                'business_email'   => 'nullable|email|max:255',
-                'business_phone'   => 'nullable|string|max:50',
-                'business_address' => 'nullable|string|max:500',
+                'group'               => 'required|string',
+                'business_name'       => 'sometimes|required|string|max:255',
+                'business_email'      => 'nullable|email|max:255',
+                'business_phone'      => 'nullable|string|max:50',
+                'business_address'    => 'nullable|string|max:500',
+                'logo_type'           => 'sometimes|in:image,text,both',
+                'logo_text_segments'  => 'sometimes|nullable|string',
             ],
             'currency' => [
                 'group'             => 'required|string',

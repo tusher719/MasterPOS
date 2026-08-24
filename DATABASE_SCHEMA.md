@@ -241,6 +241,16 @@ is_active(bool default true), timestamps, deleted_at
 Note: opening_balance = historical balance before using this POS only.
 Positive = customer owes business. Negative = business owes customer.
 
+### business_settings additions (Item 1.2)
+
+logo_type (varchar default 'text' — enum: image/text/both)
+logo_image_path (varchar nullable — canonical navbar image path)
+logo_text_segments (text nullable — JSON array: [{text, color}], max 5 segments)
+
+Note: logo_image_path is the canonical key for navbar rendering.
+business_logo key kept for PDF backward compat (public_path() in Blade templates).
+logo_type='both' renders image + text side by side in navbar.
+
 ---
 
 ## Step 09 — Sales

@@ -2,6 +2,59 @@
 
 ---
 
+[v2.42 — Item 1.2] — Dynamic Navbar Logo — 2026-08-24
+
+New Migration (1)
+2026_08_24_023309_seed_navbar_logo_settings:
+logo_type (default: 'text'), logo_image_path (default: null),
+logo_text_segments (default: Master+POS JSON array) — all group: business
+Backward compat: if business_logo already exists → copied to logo_image_path,
+logo_type auto-flipped to 'image'
+
+Updated Files (5)
+SettingController.php (uploadLogo):
+Checks logo_image_path first then business_logo for old file deletion;
+Saves to BOTH logo_image_path (new canonical) AND business_logo
+(backward compat for PDF Blade templates using public_path());
+Calls SettingsService::invalidate() after upload for immediate cache refresh;
+index(): builds logo_image_path_url full URL for settings page preview;
+Inertia render key changed from 'settings' to 'pageSettings' to avoid
+conflict with globally shared flat settings map
+
+UpdateSettingRequest.php:
+business group: business_name changed to 'sometimes|required' to allow
+logo-only saves without sending business info fields;
+Added logo_type (sometimes|in:image,text,both) and
+logo_text_segments (sometimes|nullable|string) validation rules
+
+Settings/Index.tsx:
+Props renamed pageSettings → destructured as settings internally;
+TabProps interface added for sub-component type safety;
+NavbarLogoPreview component: both mode renders image + text side by side;
+Display Type selector: 2 buttons → 3 buttons (Image Only / Text Only / Image+Text);
+Image hint and Text segment builder conditionally shown for 'both' mode;
+logoStyleForm useForm removed → replaced with logoStyleProcessing useState +
+window.axios.post() to bypass Inertia useForm transform() void return issue;
+submitLogoStyle: saves via axios, reloads page after 800ms so globally shared
+settings prop updates navbar without manual cache:clear;
+resolveLogoUrl(): checks logo_image_path_url first, then raw path fallback
+
+AuthenticatedLayout.tsx:
+NavbarLogo component added (replaces hardcoded business_name span): - logo_type='both' → image + text side by side - logo_type='image' → image only - logo_type='text' → colored text segments - fallback → business_name plain text (indigo-600)
+parseSegments() helper extracted (safe JSON parse, returns empty array on fail)
+Sidebar header: hardcoded span replaced with <NavbarLogo settings={settings} />
+
+Business Rules Established
+logo_image_path is the canonical key for navbar; business_logo kept for PDF compat
+logo_type supports three values: image / text / both
+both mode: image rendered at max-h-7 max-w-[36px], text segments alongside
+Segment limit: max 5, min 1 — remove disabled at 1 segment
+Save auto-reloads page after 800ms toast delay — no manual cache:clear needed
+pageSettings prop name isolates grouped settings from global flat settings map
+window.axios used for logo style save — Inertia useForm.transform() returns void
+
+---
+
 [v2.41 — Item 3.8] — Product Planning Task Manager — 2026-08-24
 
 New Migrations (2)

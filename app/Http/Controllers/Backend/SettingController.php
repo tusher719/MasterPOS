@@ -33,8 +33,15 @@ class SettingController extends Controller
                 . '/storage/' . $settings['business']['business_logo'];
         }
 
+        // Also expose logo_image_path as a full URL for the settings page preview.
+        if (!empty($settings['business']['logo_image_path'])) {
+            $settings['business']['logo_image_path_url'] =
+                request()->getSchemeAndHttpHost() . request()->getBaseUrl()
+                . '/storage/' . $settings['business']['logo_image_path'];
+        }
+
         return Inertia::render('Backend/Settings/Index', [
-            'settings' => $settings,
+            'pageSettings' => $settings,
         ]);
     }
 
@@ -58,22 +65,30 @@ class SettingController extends Controller
 
     public function uploadLogo(UploadLogoRequest $request): RedirectResponse
     {
-        // Remove old logo if exists
-        $oldLogo = BusinessSetting::get('business_logo');
+        // Remove old logo file from disk if exists
+        $oldLogo = BusinessSetting::get('logo_image_path')
+            ?? BusinessSetting::get('business_logo');
+
         if ($oldLogo && Storage::disk('public')->exists($oldLogo)) {
             Storage::disk('public')->delete($oldLogo);
         }
 
         $path = $request->file('logo')->store('logos', 'public');
 
+        // Save to both keys — logo_image_path is the new canonical key,
+        // business_logo kept for backward compat (PDF templates still read it).
         BusinessSetting::set('business_logo', $path, 'business');
+        BusinessSetting::set('logo_image_path', $path, 'business');
+
+        // Force cache clear so NavbarLogo picks up the new path immediately
+        SettingsService::invalidate();
 
         ActivityLogService::log(
             'settings',
             'updated',
             'Business logo updated',
             null,
-            ['key' => 'business_logo']
+            ['key' => 'logo_image_path']
         );
 
         return back()->with('success', 'Business logo updated successfully.');
