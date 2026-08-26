@@ -43,8 +43,14 @@
 
 ## Current Status
 
-- Current Step: Sprint 5 — Item 1.3 — Admin Panel Theme Per-User (Next)
-- Last Completed: Item 1.2 — Dynamic Navbar Logo ✅
+Current Sprint: Sprint 5 — Admin Polish
+Last Completed: Item 1.3 — Admin Panel Theme Per-User ✅
+Next Item: Item 1.4 — Global Trash Bin Page
+
+Sprint 5 Completed:
+
+- Item 1.2 Dynamic Navbar Logo ✅
+- Item 1.3 Admin Panel Theme Per-User ✅
 
 ## Financial Domain Overview
 
@@ -125,6 +131,7 @@
 | 8.3         | Pre-Order/Booking System                            | ✅     |
 | 3.8         | Product Planning Task Manager                       | ✅     |
 | 1.2         | Dynamic Navbar Logo                                 | ✅     |
+| 1.3         | Admin Panel Theme Per-User                          | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -140,7 +147,6 @@
 
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
-| 1.3  | Admin Panel Theme (per-user)      | Should Fix   |
 | 1.4  | Global Trash Bin Page             | Should Fix   |
 | 1.6  | Dynamic Notifications             | Should Fix   |
 | 1.7  | Split Dashboards                  | Should Fix   |

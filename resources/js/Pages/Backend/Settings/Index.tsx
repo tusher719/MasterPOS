@@ -1,5 +1,6 @@
 import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import ThemeTab from "@/Pages/Backend/Settings/_components/ThemeTab";
 import { Head, useForm } from "@inertiajs/react";
 import {
     Bell,
@@ -7,6 +8,7 @@ import {
     DollarSign,
     Info,
     Monitor,
+    Palette,
     Plus,
     Receipt,
     Save,
@@ -52,6 +54,7 @@ const TABS = [
     { id: "currency", label: "Currency", icon: DollarSign },
     { id: "tax", label: "Tax & Billing", icon: Receipt },
     { id: "notification", label: "Notifications", icon: Bell },
+    { id: "theme", label: "My Theme", icon: Palette },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -72,7 +75,18 @@ function parseSegments(raw: string | null | undefined): LogoTextSegment[] {
 
 export default function SettingsIndex({ pageSettings: settings }: Props) {
     useFlashToast();
-    const [activeTab, setActiveTab] = useState<TabId>("business");
+
+    // Check URL param ?tab=theme — from navbar user dropdown "My Theme" link
+    const initialTab = (): TabId => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get("tab") as TabId | null;
+            if (tab && TABS.some((t) => t.id === tab)) return tab;
+        }
+        return "business";
+    };
+
+    const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
     return (
         <AuthenticatedLayout>
@@ -81,10 +95,10 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
             <div className="space-y-5">
                 {/* Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">
+                    <h1 className="text-2xl font-bold text-foreground">
                         Business Settings
                     </h1>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                         Configure your business profile, currency, tax, and
                         notifications
                     </p>
@@ -92,8 +106,8 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
 
                 <div className="grid grid-cols-4 gap-5">
                     {/* Tab sidebar */}
-                    <div className="col-span-1 rounded-lg border border-gray-200 bg-white p-3">
-                        <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <div className="col-span-1 rounded-lg border border-border bg-card p-3">
+                        <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Settings
                         </p>
                         <nav className="space-y-1">
@@ -103,8 +117,8 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                                     onClick={() => setActiveTab(id)}
                                     className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                                         activeTab === id
-                                            ? "bg-indigo-50 text-indigo-700"
-                                            : "text-gray-600 hover:bg-gray-50"
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-foreground hover:bg-muted"
                                     }`}
                                 >
                                     <Icon size={16} />
@@ -114,7 +128,7 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         </nav>
 
                         <div className="mt-4 border-t border-gray-100 pt-4">
-                            <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                            <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Configuration
                             </p>
                             <nav className="space-y-1">
@@ -141,7 +155,7 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                                     <a
                                         key={link.label}
                                         href={link.href}
-                                        className="block rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
+                                        className="block rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     >
                                         {link.label}
                                     </a>
@@ -162,6 +176,7 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         {activeTab === "notification" && (
                             <NotificationTab settings={settings} />
                         )}
+                        {activeTab === "theme" && <ThemeTab />}
                     </div>
                 </div>
             </div>
@@ -597,7 +612,7 @@ function BusinessTab({ settings }: TabProps) {
                                 onClick={() => setLogoType("image")}
                                 className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
                                     logoType === "image"
-                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        ? "border-indigo-600 text-gray-600 hover:bg-gray-50"
                                         : "border-gray-300 text-gray-600 hover:bg-gray-50"
                                 }`}
                             >
@@ -609,7 +624,7 @@ function BusinessTab({ settings }: TabProps) {
                                 onClick={() => setLogoType("text")}
                                 className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
                                     logoType === "text"
-                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        ? "border-indigo-600 text-gray-600 hover:bg-gray-50"
                                         : "border-gray-300 text-gray-600 hover:bg-gray-50"
                                 }`}
                             >
@@ -621,7 +636,7 @@ function BusinessTab({ settings }: TabProps) {
                                 onClick={() => setLogoType("both")}
                                 className={`flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
                                     logoType === "both"
-                                        ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                                        ? "border-indigo-600 text-gray-600 hover:bg-gray-50"
                                         : "border-gray-300 text-gray-600 hover:bg-gray-50"
                                 }`}
                             >

@@ -472,3 +472,37 @@ This keeps the system loosely coupled without over-engineering the current phase
 - Aggregating sale totals per product per partner assignment can be expensive on large datasets
 - Always pre-aggregate with GROUP BY in SQL — never iterate sale rows in PHP
 - Future: consider a pre-calculated period summary table if performance degrades
+
+## Theme Architecture
+
+### CSS Variable System
+
+- All colors stored as RGB triplets: `--background: 255 255 255`
+- Tailwind reads: `rgb(var(--background) / <alpha-value>)`
+- Dark mode: .dark class on <html> overrides variables
+- ThemeProvider injects user-specific overrides via element.style
+
+### Variable Namespacing
+
+- --background/--foreground/--card/--primary/--border → Tailwind colors
+- --radius → Tailwind rounded-lg/md/sm
+- --theme-sidebar-\* → Custom sidebar (hex format)
+- --font-sans → Body font family
+- --font-size-base → Body font size
+- --density-padding/--density-row-height → Spacing (1.20)
+
+### Component Hierarchy
+
+App
+└── MantineProvider (defaultColorScheme:'auto')
+└── ThemeProvider (reads userPreferences, injects CSS vars)
+└── AuthenticatedLayout
+├── Sidebar (--theme-sidebar-\* vars)
+├── Navbar (bg-card border-border)
+└── Main (bg-background)
+
+### Font Loading
+
+- Inter Variable: @fontsource-variable/inter (bundled)
+- Others: Google Fonts CDN, dynamically injected <link> tags
+- loadGoogleFont() checks document.getElementById() before inject

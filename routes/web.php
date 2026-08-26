@@ -44,6 +44,7 @@ use App\Http\Controllers\Backend\SaleController;
 use App\Http\Controllers\Backend\StaffPerformanceReportController;
 use App\Http\Controllers\Backend\SupplierController;
 use App\Http\Controllers\Backend\UnitController;
+use App\Http\Controllers\Backend\UserPreferenceController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -90,6 +91,25 @@ Route::middleware(['auth', 'verified'])
             Route::post('/logo', [SettingController::class, 'uploadLogo'])
                 ->middleware('throttle:10,1')
                 ->name('logo');
+        });
+
+        // ─── User Preferences ────────────────────────────────────────────────────
+        Route::prefix('user/preferences')->name('user.preferences.')->group(function () {
+
+            Route::get('/',               [UserPreferenceController::class, 'show'])
+                ->name('show');
+
+            Route::put('/theme',          [UserPreferenceController::class, 'updateTheme'])
+                ->name('theme.update');
+
+            Route::put('/ui',             [UserPreferenceController::class, 'updateUi'])
+                ->name('ui.update');
+
+            Route::post('/theme/reset',   [UserPreferenceController::class, 'resetTheme'])
+                ->name('theme.reset');
+
+            Route::post('/ui/reset',      [UserPreferenceController::class, 'resetUi'])
+                ->name('ui.reset');
         });
 
         // Payment Methods

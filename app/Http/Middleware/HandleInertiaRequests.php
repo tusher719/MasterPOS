@@ -3,74 +3,64 @@
 namespace App\Http\Middleware;
 
 use App\Services\SettingsService;
+use App\Models\UserPreference;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that is loaded on the first page visit.
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determine the current asset version.
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $request->user(),
+            ],
+            // Ziggy may be installed under either namespace/version, so guard for both.
+            'ziggy' => function () use ($request) {
+                $ziggy = null;
 
+                if (class_exists('Tighten\\Ziggy\\Ziggy')) {
+                    $ziggy = new \Tighten\Ziggy\Ziggy();
+                } elseif (class_exists('Tightenco\\Ziggy\\Ziggy')) {
+                    $ziggy = new \Tightenco\Ziggy\Ziggy();
+                }
+
+                return [
+                    ...($ziggy ? $ziggy->toArray() : []),
+                    'location' => $request->url(),
+                ];
+            },
+            'settings' => fn () => SettingsService::all(),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
             ],
 
-            'auth' => [
-                'user' => $request->user(),
-            ],
+            // Per-user theme + UI preferences
+            'userPreferences' => function () use ($request) {
+                if (! $request->user()) {
+                    return [
+                        'theme' => \App\Models\UserPreference::DEFAULT_THEME,
+                        'ui'    => \App\Models\UserPreference::DEFAULT_UI,
+                    ];
+                }
 
-            // Global notification data for the topbar
-            'notifications' => fn () => $request->user()
-                ? [
-                    'unread_count' => $request->user()->unreadNotifications()->count(),
+                $pref = \App\Models\UserPreference::findOrCreateForUser(
+                    $request->user()->id
+                );
 
-                    'latest' => $request->user()
-                        ->notifications()
-                        ->select([
-                            'id',
-                            'data',
-                            'read_at',
-                            'created_at',
-                        ])
-                        ->latest()
-                        ->limit(8)
-                        ->get()
-                        ->map(fn ($notification) => [
-                            'id'         => $notification->id,
-                            'data'       => $notification->data,
-                            'read_at'    => $notification->read_at,
-                            'created_at' => $notification->created_at->diffForHumans(),
-                        ]),
-                ]
-                : [
-                    'unread_count' => 0,
-                    'latest'       => [],
-                ],
-            // Global settings map — cache-backed, invalidated on every update
-            'settings' => SettingsService::all(),
-        ];
+                return [
+                    'theme' => $pref->getTheme(),
+                    'ui'    => $pref->getUi(),
+                ];
+            },
+        ]);
     }
 }

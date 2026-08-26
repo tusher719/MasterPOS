@@ -1,8 +1,9 @@
-import defaultTheme from "tailwindcss/defaultTheme";
+// tailwind.config.js
 import forms from "@tailwindcss/forms";
 
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: "class",
     content: [
         "./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php",
         "./storage/framework/views/*.php",
@@ -11,42 +12,37 @@ export default {
     ],
     theme: {
         extend: {
-            fontFamily: {
-                sans: ["Figtree", ...defaultTheme.fontFamily.sans],
-            },
             colors: {
-                background: "oklch(var(--background) / <alpha-value>)",
-                foreground: "oklch(var(--foreground) / <alpha-value>)",
+                background: "rgb(var(--background) / <alpha-value>)",
+                foreground: "rgb(var(--foreground) / <alpha-value>)",
                 card: {
-                    DEFAULT: "oklch(var(--card) / <alpha-value>)",
-                    foreground: "oklch(var(--card-foreground) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--card) / <alpha-value>)",
+                    foreground: "rgb(var(--card-foreground) / <alpha-value>)",
                 },
                 primary: {
-                    DEFAULT: "oklch(var(--primary) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--primary) / <alpha-value>)",
                     foreground:
-                        "oklch(var(--primary-foreground) / <alpha-value>)",
+                        "rgb(var(--primary-foreground) / <alpha-value>)",
                 },
                 secondary: {
-                    DEFAULT: "oklch(var(--secondary) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--secondary) / <alpha-value>)",
                     foreground:
-                        "oklch(var(--secondary-foreground) / <alpha-value>)",
+                        "rgb(var(--secondary-foreground) / <alpha-value>)",
                 },
                 muted: {
-                    DEFAULT: "oklch(var(--muted) / <alpha-value>)",
-                    foreground:
-                        "oklch(var(--muted-foreground) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--muted) / <alpha-value>)",
+                    foreground: "rgb(var(--muted-foreground) / <alpha-value>)",
                 },
                 accent: {
-                    DEFAULT: "oklch(var(--accent) / <alpha-value>)",
-                    foreground:
-                        "oklch(var(--accent-foreground) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+                    foreground: "rgb(var(--accent-foreground) / <alpha-value>)",
                 },
                 destructive: {
-                    DEFAULT: "oklch(var(--destructive) / <alpha-value>)",
+                    DEFAULT: "rgb(var(--destructive) / <alpha-value>)",
                 },
-                border: "oklch(var(--border) / <alpha-value>)",
-                input: "oklch(var(--input) / <alpha-value>)",
-                ring: "oklch(var(--ring) / <alpha-value>)",
+                border: "rgb(var(--border) / <alpha-value>)",
+                input: "rgb(var(--input) / <alpha-value>)",
+                ring: "rgb(var(--ring) / <alpha-value>)",
             },
             borderRadius: {
                 lg: "var(--radius)",

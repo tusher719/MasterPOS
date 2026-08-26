@@ -2,6 +2,49 @@
 
 ---
 
+## [v2.43] — Item 1.3 — Admin Panel Theme Per-User — 2026-08-26
+
+### New Files
+
+- database/migrations/2026_08_25_000001_create_user_preferences_table.php
+- app/Models/UserPreference.php
+- app/Http/Controllers/Backend/UserPreferenceController.php
+- resources/js/Components/ThemeProvider.tsx
+- resources/js/hooks/useTheme.ts
+- resources/js/Pages/Backend/Settings/\_components/ThemeTab.tsx
+
+### Updated Files
+
+- app/Http/Middleware/HandleInertiaRequests.php
+- routes/web.php
+- resources/js/types/index.d.ts
+- resources/js/Layouts/AuthenticatedLayout.tsx
+- resources/js/Pages/Backend/Settings/Index.tsx
+- tailwind.config.js
+- resources/css/app.css
+
+### Key Changes
+
+- Per-user theme stored in user_preferences table (theme_json + ui_json)
+- Dark/Light/System mode toggle — html.dark class
+- 9 color presets + custom color picker
+- 10 font families with live preview
+- Border radius live preview
+- Sidebar color, width, behavior settings
+- CSS variable system: RGB triplets for Tailwind compatibility
+- MantineProvider defaultColorScheme: 'auto'
+
+### Critical Rules Added
+
+- --radius (not --border-radius) for Tailwind rounded-\* compatibility
+- --theme-sidebar-_ prefix (not --sidebar-_ — shadcn conflict)
+- Triple font override: CSS var + html.style + body.style
+- tailwind.config.js: darkMode:'class', colors rgb(var(--X)/<alpha-value>)
+- app.css: html/body font-family: var(--font-sans) !important
+- Light mode: html.dark removed synchronously in updateTheme before RAF
+
+---
+
 [v2.42 — Item 1.2] — Dynamic Navbar Logo — 2026-08-24
 
 New Migration (1)

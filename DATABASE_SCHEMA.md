@@ -823,3 +823,33 @@ Indexes: task_id, status
 | order_tasks | assignment_type | assigned, open |
 | order_tasks | status | pending, claimed, in_progress, ready, converted_to_sale, cancelled |
 | pre_orders | status | pending, confirmed, ready, delivered, cancelled |
+
+## user_preferences
+
+| Column     | Type      | Notes                               |
+| ---------- | --------- | ----------------------------------- |
+| id         | bigint    | PK                                  |
+| user_id    | bigint    | FK users, unique, cascade delete    |
+| theme_json | json      | nullable, merged with DEFAULT_THEME |
+| ui_json    | json      | nullable, merged with DEFAULT_UI    |
+| created_at | timestamp |                                     |
+| updated_at | timestamp |                                     |
+
+DEFAULT_THEME: {
+primary_color: '#4F46E5',
+sidebar_color: '#111827',
+font_size: 'medium',
+font_family: 'inter',
+mode: 'system',
+border_radius: 'medium',
+preset: 'indigo'
+}
+
+DEFAULT_UI: {
+sidebar_collapsed: false,
+sidebar_width: 'normal',
+density: 'comfortable',
+card_style: 'flat',
+sidebar_behavior: 'fixed',
+reduce_motion: false
+}

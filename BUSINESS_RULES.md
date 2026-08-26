@@ -717,3 +717,32 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Save auto-reloads page (800ms delay) so globally shared settings prop refreshes
 - Settings page uses pageSettings Inertia prop (not settings) to avoid conflict with global flat map
 - window.axios.post() used for logo style save — useForm.transform() returns void in Inertia
+
+## Theme System Rules
+
+1. theme*json/ui_json always merged with DEFAULT*\* on read
+   → Frontend never receives null/missing keys
+
+2. Primary color stored as RGB triplet in CSS var
+   → Tailwind bg-primary/10, text-primary etc work automatically
+
+3. Sidebar uses --theme-sidebar-_ CSS vars
+   → Avoids conflict with shadcn's --sidebar-_ variables
+
+4. Dark mode: html.dark class controlled by ThemeProvider
+   → MantineProvider defaultColorScheme:'auto' follows this class
+   → body/cards/navbar dark automatically via Tailwind .dark variants
+
+5. Font family: triple override required
+   → CSS var: root.style.setProperty('--font-sans', value)
+   → HTML: root.style.fontFamily = value
+   → Body: document.body.style.fontFamily = value
+   (Tailwind static font-sans class would otherwise override)
+
+6. Sidebar width/density/card-style: visual-only in Item 1.3
+   → Full apply in Item 1.20 Dark Mode
+
+7. Destructive buttons always red — never use primary color
+8. Unsaved changes show amber banner with Discard + Save
+9. Toast: "Theme preferences saved successfully." on save
+10. Reset: axios.post() to theme.reset endpoint → toast

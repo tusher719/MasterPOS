@@ -927,3 +927,51 @@ sales additions: pixel_event_id (varchar unique nullable)
 - Mantine: selective only — dates, carousel, tiptap, charts (Rule 11)
 - Financial domains stay independent (BUSINESS_RULES.md Section 1)
 - No paid services in Phase 1
+
+---
+
+## Item 1.20 — Full Dark Mode (deferred from Item 1.3)
+
+Status: Pending
+Depends on: Item 1.3 ✅
+
+What needs to be done:
+
+1. All existing pages — replace hardcoded Tailwind colors:
+   bg-white → bg-card
+   text-gray-800/900 → text-foreground
+   text-gray-500/400 → text-muted-foreground
+   border-gray-200 → border-border
+   bg-gray-50/100 → bg-muted
+   hover:bg-gray-50 → hover:bg-muted
+
+2. Table rows: bg-white → bg-card, hover:bg-gray-50 → hover:bg-muted
+
+3. Modal/dialog backgrounds: bg-white → bg-card
+
+4. Input fields: bg-white → bg-input text-foreground
+
+5. Density system: --density-padding apply to tables/cards
+   density: compact → 8px padding, comfortable → 12px, spacious → 16px
+
+6. Card style system:
+   flat → border-border shadow-none
+   bordered → border-border shadow-none (same as flat)
+   elevated → shadow-md border-0
+
+7. Sidebar width: already applied via AuthenticatedLayout
+   (sidebar_width reads from ui state — done in 1.3)
+
+8. Sidebar behavior 'hover': mouseover expand — needs CSS/JS logic
+
+Files to update (approx 100+):
+
+- All pages under resources/js/Pages/Backend/
+- Shared components
+- Modal components
+
+### Standing Rule (from Item 1.3)
+
+All NEW files/components must use semantic Tailwind classes:
+bg-card, text-foreground, border-border, bg-muted etc
+Never hardcode: bg-white, text-gray-800, border-gray-200

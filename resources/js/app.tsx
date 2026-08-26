@@ -11,6 +11,17 @@ import "@mantine/dates/styles.css";
 import "@mantine/dropzone/styles.css";
 import "@mantine/nprogress/styles.css";
 
+// After — MantineProvider defaultColorScheme change করো:
+import "../css/app.css";
+import "./bootstrap";
+
+import "@mantine/carousel/styles.css";
+import "@mantine/code-highlight/styles.css";
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/dropzone/styles.css";
+import "@mantine/nprogress/styles.css";
+
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
@@ -30,7 +41,8 @@ createInertiaApp({
 
         root.render(
             <>
-                <MantineProvider defaultColorScheme="light">
+                {/* auto — Mantine follows html.dark class */}
+                <MantineProvider defaultColorScheme="auto">
                     <App {...props} />
                 </MantineProvider>
 
@@ -40,7 +52,6 @@ createInertiaApp({
     },
 
     progress: {
-        // color: "#4B5563",
         color: "#4f46e5",
     },
 });
