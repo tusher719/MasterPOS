@@ -44,13 +44,9 @@
 ## Current Status
 
 Current Sprint: Sprint 5 — Admin Polish
-Last Completed: Item 1.3 — Admin Panel Theme Per-User ✅
-Next Item: Item 1.4 — Global Trash Bin Page
 
-Sprint 5 Completed:
-
-- Item 1.2 Dynamic Navbar Logo ✅
-- Item 1.3 Admin Panel Theme Per-User ✅
+- Last Completed: Item 1.3 — Admin Panel Theme Per-User ✅
+- Next Item: Item 1.4 — Global Trash Bin Page
 
 ## Financial Domain Overview
 
@@ -132,6 +128,7 @@ Sprint 5 Completed:
 | 3.8         | Product Planning Task Manager                       | ✅     |
 | 1.2         | Dynamic Navbar Logo                                 | ✅     |
 | 1.3         | Admin Panel Theme Per-User                          | ✅     |
+| 1.6         | Dynamic Notifications                               | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -148,7 +145,6 @@ Sprint 5 Completed:
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
 | 1.4  | Global Trash Bin Page             | Should Fix   |
-| 1.6  | Dynamic Notifications             | Should Fix   |
 | 1.7  | Split Dashboards                  | Should Fix   |
 | 1.8  | Live Login Status                 | Should Fix   |
 | 1.9  | Global Search Ctrl+K              | Should Fix   |

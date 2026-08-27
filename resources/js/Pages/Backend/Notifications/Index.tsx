@@ -1,14 +1,14 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, router, usePage } from "@inertiajs/react";
+import { Notification } from "@/types/notification";
+import { Head, router } from "@inertiajs/react";
 import {
     Bell,
     CheckCheck,
-    Trash2,
     Package,
-    ShoppingCart,
     Receipt,
+    ShoppingCart,
+    Trash2,
 } from "lucide-react";
-import { Notification } from "@/types/notification";
 
 interface PaginatedNotifications {
     data: Notification[];
@@ -166,7 +166,14 @@ export default function NotificationsIndex({
                                     key={n.id}
                                     className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-gray-50 ${
                                         !n.read_at ? "bg-indigo-50/30" : ""
-                                    }`}
+                                    } ${n.data.url ? "cursor-pointer" : ""}`}
+                                    onClick={() => {
+                                        if (n.data.url) {
+                                            if (!n.read_at)
+                                                handleMarkRead(n.id);
+                                            router.visit(n.data.url);
+                                        }
+                                    }}
                                 >
                                     {/* Unread dot */}
                                     <div className="mt-2 flex w-2 shrink-0 justify-center">
@@ -218,7 +225,10 @@ export default function NotificationsIndex({
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex shrink-0 items-center gap-1">
+                                    <div
+                                        className="flex shrink-0 items-center gap-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         {!n.read_at && (
                                             <button
                                                 onClick={() =>

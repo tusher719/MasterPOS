@@ -8,9 +8,9 @@ class LowStockNotification extends Notification
 {
     public function __construct(
         protected string $productName,
-        protected float $currentQty,
-        protected float $threshold,
-        protected int $productId
+        protected float  $currentQty,
+        protected float  $threshold,
+        protected int    $productId
     ) {}
 
     public function via(object $notifiable): array
@@ -26,7 +26,7 @@ class LowStockNotification extends Notification
             'icon'         => 'package',
             'module'       => 'product',
             'reference_id' => $this->productId,
-            'url'          => '/backend/products/' . $this->productId . '/edit',
+            'url'          => route('backend.products.edit', $this->productId),
         ];
     }
 }

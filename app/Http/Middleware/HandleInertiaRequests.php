@@ -22,6 +22,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+
             // Ziggy may be installed under either namespace/version, so guard for both.
             'ziggy' => function () use ($request) {
                 $ziggy = null;
@@ -37,7 +38,9 @@ class HandleInertiaRequests extends Middleware
                     'location' => $request->url(),
                 ];
             },
+
             'settings' => fn () => SettingsService::all(),
+
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),
@@ -47,18 +50,48 @@ class HandleInertiaRequests extends Middleware
             'userPreferences' => function () use ($request) {
                 if (! $request->user()) {
                     return [
-                        'theme' => \App\Models\UserPreference::DEFAULT_THEME,
-                        'ui'    => \App\Models\UserPreference::DEFAULT_UI,
+                        'theme' => UserPreference::DEFAULT_THEME,
+                        'ui'    => UserPreference::DEFAULT_UI,
                     ];
                 }
 
-                $pref = \App\Models\UserPreference::findOrCreateForUser(
+                $pref = UserPreference::findOrCreateForUser(
                     $request->user()->id
                 );
 
                 return [
                     'theme' => $pref->getTheme(),
                     'ui'    => $pref->getUi(),
+                ];
+            },
+
+            // Bell dropdown — unread count + latest 8 notifications
+            'notifications' => function () use ($request) {
+                if (! $request->user()) {
+                    return [
+                        'unread_count' => 0,
+                        'latest'       => [],
+                    ];
+                }
+
+                return [
+                    'unread_count' => $request->user()
+                        ->unreadNotifications()
+                        ->count(),
+                    'latest' => $request->user()
+                        ->notifications()
+                        ->latest()
+                        ->take(8)
+                        ->get()
+                        ->map(fn ($n) => [
+                            'id'         => $n->id,
+                            'data'       => $n->data,
+                            'read_at'    => $n->read_at,
+                            'created_at' => $n->created_at
+                                ? $n->created_at->diffForHumans()
+                                : null,
+                        ])
+                        ->toArray(),
                 ];
             },
         ]);

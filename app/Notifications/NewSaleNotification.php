@@ -26,7 +26,7 @@ class NewSaleNotification extends Notification
             'icon'         => 'shopping-cart',
             'module'       => 'sale',
             'reference_id' => $this->saleId,
-            'url'          => '/backend/sales/' . $this->saleId,
+            'url'          => route('backend.pos.sales.show', $this->saleId),
         ];
     }
 }

@@ -2,6 +2,71 @@
 
 ---
 
+## [v2.44 — Item 1.6] — Dynamic Notifications — 2026-08-27
+
+### Updated Files (10)
+
+- app/Notifications/LowStockNotification.php:
+  hardcoded URL `/backend/products/{id}/edit` →
+  route('backend.products.edit', $this->productId)
+
+- app/Notifications/NewExpenseNotification.php:
+  hardcoded URL `/backend/expenses/{id}` →
+  route('backend.expenses.show', $this->expenseId)
+
+- app/Notifications/NewSaleNotification.php:
+  url already used route() — confirmed correct ✅
+
+- resources/js/types/index.d.ts:
+  PageProps generic <T> removed — replaced with index signature
+  [key: string]: unknown for .d.ts compatibility
+
+- resources/js/types/notification.ts:
+  url field changed from required string → optional url?: string
+  (old notifications may not have url in data JSON)
+
+- resources/js/Layouts/AuthenticatedLayout.tsx:
+  NotificationBell: handleNotificationClick() added —
+  marks notification as read + router.visit(n.data.url) on row click;
+  action buttons wrapped in onClick e.stopPropagation() to prevent
+  row click firing on delete/mark-read button press;
+  cursor-pointer added when notification has url
+
+- app/Http/Controllers/Backend/NotificationController.php:
+  index() already existed — no change needed ✅
+
+- resources/js/Pages/Backend/Notifications/Index.tsx:
+  import fixed: @/types/notification (not @/types);
+  notification row onClick added — mark read + router.visit(url);
+  actions div wrapped in e.stopPropagation()
+
+- app/Http/Middleware/HandleInertiaRequests.php:
+  notifications key added to share() —
+  unread_count: unreadNotifications()->count(),
+  latest: latest 8 notifications mapped with
+  id/data/read_at/created_at(diffForHumans())
+
+- routes/web.php:
+  GET /backend/notifications route added →
+  NotificationController@index (name: notifications.index)
+
+### Business Rules Established
+
+- Notification data.url must always use named Laravel routes —
+  never hardcoded paths (APP_URL changes break hardcoded URLs)
+- notifications shared globally on every Inertia response via
+  HandleInertiaRequests — bell dropdown reads props.notifications
+- NotificationController::index() uses notificationList prop name —
+  never notifications (would collide with globally shared prop)
+- Clicking a notification row marks it as read AND navigates to url
+  in a single action — two separate router calls (post + visit)
+- Action buttons (mark read, delete) use e.stopPropagation() —
+  prevents row click from firing when clicking action buttons
+- url is optional in NotificationData — old notifications without
+  url still display correctly, just not clickable
+
+---
+
 ## [v2.43] — Item 1.3 — Admin Panel Theme Per-User — 2026-08-26
 
 ### New Files

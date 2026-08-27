@@ -4,7 +4,7 @@ export interface NotificationData {
     icon: string;
     module: string;
     reference_id: number;
-    url: string;
+    url?: string;
 }
 
 export interface Notification {

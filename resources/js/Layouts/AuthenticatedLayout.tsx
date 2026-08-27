@@ -519,16 +519,33 @@ function NotificationBell() {
             {},
             { preserveScroll: true },
         );
+
     const handleMarkAllRead = () =>
         router.post(
             route("backend.notifications.read-all"),
             {},
             { preserveScroll: true },
         );
+
     const handleDelete = (id: string) =>
         router.delete(route("backend.notifications.destroy", id), {
             preserveScroll: true,
         });
+
+    // Click on a notification row — mark read + navigate to url
+    const handleNotificationClick = (n: Notification) => {
+        if (!n.read_at) {
+            router.post(
+                route("backend.notifications.read", n.id),
+                {},
+                { preserveScroll: true },
+            );
+        }
+        if (n.data.url) {
+            setDropdownOpen(false);
+            router.visit(n.data.url);
+        }
+    };
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -577,16 +594,29 @@ function NotificationBell() {
                             notifShared.latest.map((n: Notification) => (
                                 <div
                                     key={n.id}
-                                    className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 ${!n.read_at ? "bg-indigo-50/40" : ""}`}
+                                    className={`flex items-start gap-3 px-4 py-3 transition-colors ${
+                                        n.data.url
+                                            ? "cursor-pointer hover:bg-gray-50"
+                                            : ""
+                                    } ${!n.read_at ? "bg-indigo-50/40" : ""}`}
+                                    onClick={() => handleNotificationClick(n)}
                                 >
                                     <div
-                                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${!n.read_at ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-400"}`}
+                                        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                                            !n.read_at
+                                                ? "bg-indigo-100 text-indigo-600"
+                                                : "bg-gray-100 text-gray-400"
+                                        }`}
                                     >
                                         {getNotificationIcon(n.data.icon)}
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p
-                                            className={`text-xs font-medium leading-snug ${!n.read_at ? "text-gray-800" : "text-gray-600"}`}
+                                            className={`text-xs font-medium leading-snug ${
+                                                !n.read_at
+                                                    ? "text-gray-800"
+                                                    : "text-gray-600"
+                                            }`}
                                         >
                                             {n.data.title}
                                         </p>
@@ -597,7 +627,10 @@ function NotificationBell() {
                                             {n.created_at}
                                         </p>
                                     </div>
-                                    <div className="flex shrink-0 flex-col gap-1">
+                                    <div
+                                        className="flex shrink-0 flex-col gap-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         {!n.read_at && (
                                             <button
                                                 onClick={() =>

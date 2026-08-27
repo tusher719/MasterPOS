@@ -7,8 +7,8 @@ use Illuminate\Notifications\Notification;
 class NewExpenseNotification extends Notification
 {
     public function __construct(
-        protected int $expenseId,
-        protected float $amount,
+        protected int    $expenseId,
+        protected float  $amount,
         protected string $categoryName,
         protected string $note
     ) {}
@@ -26,7 +26,7 @@ class NewExpenseNotification extends Notification
             'icon'         => 'receipt',
             'module'       => 'expense',
             'reference_id' => $this->expenseId,
-            'url'          => '/backend/expenses/' . $this->expenseId,
+            'url'          => route('backend.expenses.show', $this->expenseId),
         ];
     }
 }
