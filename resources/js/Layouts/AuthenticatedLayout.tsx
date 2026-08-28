@@ -60,16 +60,22 @@ interface NavItem {
 // ─── Navigation structure ─────────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
     {
-        label: "Dashboard",
+        label: "Dashboards",
         icon: LayoutDashboard,
-        href: "dashboard",
-        active: "dashboard*",
-    },
-    {
-        label: "Backend Dashboard",
-        icon: Gauge,
-        href: "backend.dashboard.index",
-        active: "backend.dashboard*",
+        children: [
+            {
+                label: "Overview",
+                icon: Gauge,
+                href: "backend.dashboard.index",
+                active: "backend.dashboard*",
+            },
+            {
+                label: "Sales & Analytics",
+                icon: ShoppingCart,
+                href: "dashboard",
+                active: "dashboard",
+            },
+        ],
     },
     {
         label: "User Management",

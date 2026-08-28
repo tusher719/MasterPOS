@@ -568,3 +568,16 @@ exists. Do not attempt these without test coverage:
 - Backend validation: 'in:confirmed,out_for_delivery' on status field
 - Frontend: BulkStatusModal shows only these two options as card selectors
 - Each sale in bulk update gets its own SaleStatusHistory row
+
+### My Theme — Per-User Theme Preservation Rule
+
+- Every new page/component must use semantic Tailwind classes only:
+  bg-card, text-foreground, border-border, bg-muted, text-muted-foreground
+- NEVER hardcode: bg-white, text-gray-800, border-gray-200, bg-gray-50
+  (these break dark mode and custom theme colors)
+- CSS variables injected by ThemeProvider — always use them via Tailwind
+- New modals: bg-card border-border (not bg-white border-gray-200)
+- New table rows: bg-card hover:bg-muted (not bg-white hover:bg-gray-50)
+- New inputs: bg-input text-foreground border-border
+- Item 1.20 (Full Dark Mode) will audit all existing files — new files
+  must be written correctly from the start to reduce that audit scope

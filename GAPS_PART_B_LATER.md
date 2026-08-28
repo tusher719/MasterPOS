@@ -75,7 +75,7 @@ theme_json: { primary_color, bg_image_url, font_family, font_size, mode: 'light'
 
 ---
 
-### 1.7 Split Backend Dashboard into Module Dashboards (Should Fix)
+### 1.7 Split Backend Dashboard into Module Dashboards | ✅ Done |
 
 - /dashboard stays as overview (existing)
 - New: /dashboard/inventory, /dashboard/investments, /dashboard/sales

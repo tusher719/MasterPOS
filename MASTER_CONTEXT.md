@@ -129,6 +129,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.2         | Dynamic Navbar Logo                                 | ✅     |
 | 1.3         | Admin Panel Theme Per-User                          | ✅     |
 | 1.6         | Dynamic Notifications                               | ✅     |
+| 1.7         | Split Dashboards                                    | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -145,7 +146,6 @@ Current Sprint: Sprint 5 — Admin Polish
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
 | 1.4  | Global Trash Bin Page             | Should Fix   |
-| 1.7  | Split Dashboards                  | Should Fix   |
 | 1.8  | Live Login Status                 | Should Fix   |
 | 1.9  | Global Search Ctrl+K              | Should Fix   |
 | 1.10 | Audit Trail Viewer UI             | Should Fix   |

@@ -43,8 +43,11 @@ use App\Http\Controllers\Backend\ReportController;
 use App\Http\Controllers\Backend\SaleController;
 use App\Http\Controllers\Backend\StaffPerformanceReportController;
 use App\Http\Controllers\Backend\SupplierController;
+use App\Http\Controllers\Backend\SalesDashboardController;
 use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\Backend\UserPreferenceController;
+use App\Http\Controllers\Backend\InventoryDashboardController;
+use App\Http\Controllers\Backend\InvestmentDashboardController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -59,9 +62,12 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard/sales/data',       [SalesDashboardController::class,      'data'])->name('dashboard.sales.data');
+    Route::get('/dashboard/inventory/data',   [InventoryDashboardController::class,  'data'])->name('dashboard.inventory.data');
+    Route::get('/dashboard/investments/data', [InvestmentDashboardController::class, 'data'])->name('dashboard.investments.data');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -194,7 +200,6 @@ Route::middleware(['auth', 'verified'])
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
-
         Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
             ->name('notifications.unread-count');
 
