@@ -15,6 +15,7 @@ use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\ExpenseController;
+use App\Http\Controllers\Backend\GlobalSearchController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentFundUsageController;
@@ -656,6 +657,9 @@ Route::middleware(['auth', 'verified'])
             Route::put('/{productPlanningTask}',                [ProductPlanningTaskController::class, 'update'])->name('update');
             Route::delete('/{productPlanningTask}',             [ProductPlanningTaskController::class, 'destroy'])->name('destroy');
         });
+
+        // ── Sprint 5 — Global Search ──────────────────────────────────────────────
+        Route::get('search', [GlobalSearchController::class, 'search'])->name('search');
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint
         // Paste this INSIDE the backend auth middleware group, before resource routes.

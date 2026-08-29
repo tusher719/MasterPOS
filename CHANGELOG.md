@@ -2,6 +2,65 @@
 
 ---
 
+## [v2.47 — Item 1.9] — Global Search Ctrl+K — 2026-08-29
+
+### New Files (3)
+
+- `app/Http/Controllers/Backend/GlobalSearchController.php`:
+  search() — GET /backend/search?q=...; MIN_LENGTH=2, PER_CATEGORY=5;
+  6 modules permission-gated: product.view (products), customer.view (customers),
+  supplier.view (suppliers), sale.view (sales), investment.view (investments),
+  partners.view (partners); each returns {id, title, subtitle, url, type} array;
+  empty array returned for queries under 2 chars — no DB hit
+
+- `resources/js/Components/GlobalSearch/GlobalSearchModal.tsx`:
+  Debounced search (300ms); category-grouped results with icon headers;
+  keyboard navigation (↑↓ arrows + Enter to navigate, Escape to close);
+  activeIdx tracks highlighted row across all flattened results;
+  Recent Searches: localStorage key mbs_recent_searches, max 8 pills,
+  per-pill remove + Clear All; empty state, loading spinner, tip state;
+  footer keyboard hint bar; backdrop click closes; z-[100]
+
+- `resources/js/Components/GlobalSearch/index.ts`:
+  Barrel export for GlobalSearchModal
+
+### Updated Files (2)
+
+- `routes/web.php`:
+  GlobalSearchController import added;
+  Route::get('search', ...) added inside backend prefix group
+  (name: backend.search) — before delete-preview route
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  useCallback added to react imports;
+  GlobalSearchModal import added;
+  searchOpen state + handleSearchOpen useCallback added to InnerLayout;
+  Ctrl+K / Cmd+K keyboard listener (useEffect, cleaned up on unmount);
+  Search trigger button added to navbar left side — responsive width:
+  w-[180px] sm:w-[240px] md:w-[320px] lg:w-[400px];
+  Command + Search icons added to lucide imports;
+  GlobalSearchModal rendered inside main div below page content
+
+### Bug Fix (1)
+
+- GlobalSearchController: permission names corrected from plural to singular —
+  products.view → product.view, customers.view → customer.view,
+  suppliers.view → supplier.view (confirmed via tinker Permission::pluck('name'))
+
+### Business Rules Established
+
+- Global search covers 6 modules — only modules the user has permission to view
+  are searched; no results from unauthorized modules ever returned
+- MIN_LENGTH = 2 chars before any DB query fires
+- PER_CATEGORY = 5 results max per module
+- Recent searches stored client-side (localStorage) — never sent to server
+- Ctrl+K opens modal from anywhere in the backend (layout-level listener)
+- Search modal z-index: z-[100] — above all other modals and overlays
+- Permission names are singular (product.view not products.view) —
+  matches Spatie seeder naming convention used throughout the project
+
+---
+
 ## [v2.46 — Item 1.8] — Live Login Status — 2026-08-29
 
 ### New Files (1)

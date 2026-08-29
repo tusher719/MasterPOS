@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.8 — Live Login Status ✅
-- Next Item: Item 1.9 — Global Search Ctrl+K
+- Last Completed: Item 1.9 — Global Search Ctrl+K ✅
+- Next Item: Item 1.4 — Global Trash Bin Page
 
 ## Financial Domain Overview
 
@@ -131,6 +131,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.6         | Dynamic Notifications                               | ✅     |
 | 1.7         | Split Dashboards                                    | ✅     |
 | 1.8         | Live Login Status                                   | ✅     |
+| 1.9         | Global Search Ctrl+K                                | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -146,7 +147,6 @@ Current Sprint: Sprint 5 — Admin Polish
 
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
-| 1.4  | Global Trash Bin Page             | Should Fix   |
 | 1.9  | Global Search Ctrl+K              | Should Fix   |
 | 1.10 | Audit Trail Viewer UI             | Should Fix   |
 | 1.11 | PDF/Print Branding                | Should Fix   |
@@ -161,6 +161,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 2.1  | Staff Email Verification Banner   | Must Fix     |
 | 2.2  | Default Role Assignment           | Must Fix     |
 | 2.3  | Optional 2FA                      | Nice to Have |
+| 1.4  | Global Trash Bin Page             | Should Fix   |
 
 ### Sprint 6 — Product/Inventory Extras
 

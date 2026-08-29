@@ -1,5 +1,6 @@
 // resources/js/Layouts/AuthenticatedLayout.tsx
 
+import { GlobalSearchModal } from "@/Components/GlobalSearch";
 import ThemeProvider from "@/Components/ThemeProvider";
 import useFlashToast from "@/hooks/useFlashToast";
 import { useTheme } from "@/hooks/useTheme";
@@ -15,6 +16,7 @@ import {
     ChevronDown,
     ChevronRight,
     ClipboardList,
+    Command,
     CreditCard,
     FileText,
     Gauge,
@@ -28,6 +30,7 @@ import {
     PieChart,
     Receipt,
     ScrollText,
+    Search,
     Settings2,
     Shield,
     ShieldAlert,
@@ -43,6 +46,7 @@ import {
 import {
     ElementType,
     PropsWithChildren,
+    useCallback,
     useEffect,
     useRef,
     useState,
@@ -433,8 +437,8 @@ function NavLeaf({
     // Text colors based on sidebar background
     const textBase = sidebarIsLight ? "text-gray-600" : "text-gray-300";
     const textActive = sidebarIsLight ? "text-indigo-700" : "text-white";
-    const bgActive = sidebarIsLight ? "bg-indigo-50" : "bg-white/10";
-    const bgHover = sidebarIsLight ? "hover:bg-gray-100" : "hover:bg-white/7";
+    const bgActive = sidebarIsLight ? "bg-indigo-50" : "bg-card/10";
+    const bgHover = sidebarIsLight ? "hover:bg-gray-100" : "hover:bg-card/7";
     const textDisabled = sidebarIsLight ? "text-gray-400" : "text-gray-500";
 
     if (!implemented) {
@@ -480,8 +484,8 @@ function NavGroup({
 
     const textBase = sidebarIsLight ? "text-gray-600" : "text-gray-300";
     const textActive = sidebarIsLight ? "text-indigo-700" : "text-white";
-    const bgHover = sidebarIsLight ? "hover:bg-gray-100" : "hover:bg-white/7";
-    const borderColor = sidebarIsLight ? "border-gray-200" : "border-white/10";
+    const bgHover = sidebarIsLight ? "hover:bg-gray-100" : "hover:bg-card/7";
+    const borderColor = sidebarIsLight ? "border-border" : "border-white/10";
 
     if (collapsed) {
         return (
@@ -867,6 +871,21 @@ function InnerLayout({ children }: PropsWithChildren) {
     const { ui, toggleSidebarCollapsed } = useTheme();
 
     const [collapsed, setCollapsed] = useState(ui.sidebar_collapsed ?? false);
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    // Ctrl+K / Cmd+K — open global search from anywhere
+    const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+                e.preventDefault();
+                handleSearchOpen();
+            }
+        };
+        document.addEventListener("keydown", handler);
+        return () => document.removeEventListener("keydown", handler);
+    }, [handleSearchOpen]);
 
     // Sync collapse state with saved preference on mount
     useEffect(() => {
@@ -993,7 +1012,26 @@ function InnerLayout({ children }: PropsWithChildren) {
             <div className="flex flex-1 flex-col overflow-hidden">
                 {/* Navbar */}
                 <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
-                    <div />
+                    {/* Search trigger button — left side of navbar */}
+                    <button
+                        onClick={handleSearchOpen}
+                        className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground
+                            w-[180px] sm:w-[240px] md:w-[320px] lg:w-[400px]"
+                    >
+                        <Search size={15} />
+                        <span className="flex-1 text-left hidden sm:block">
+                            Search...
+                        </span>
+                        <span className="hidden items-center gap-0.5 sm:flex ml-auto">
+                            <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+                                <Command size={9} className="inline" />
+                            </kbd>
+                            <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+                                K
+                            </kbd>
+                        </span>
+                    </button>
+
                     <div className="flex items-center gap-3">
                         <NotificationBell />
                         <UserDropdown auth={auth} />
@@ -1004,6 +1042,12 @@ function InnerLayout({ children }: PropsWithChildren) {
                 <main className="flex-1 overflow-y-auto p-6 bg-background">
                     {children}
                 </main>
+
+                {/* Global Search Modal — rendered at layout level, always available */}
+                <GlobalSearchModal
+                    isOpen={searchOpen}
+                    onClose={() => setSearchOpen(false)}
+                />
             </div>
         </div>
     );
