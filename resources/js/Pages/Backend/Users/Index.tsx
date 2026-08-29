@@ -1,12 +1,77 @@
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import DataTable from "@/Components/shared/DataTable";
 import Modal from "@/Components/shared/Modal";
-import { Head, router, useForm } from "@inertiajs/react";
-import { PaginatedUsers, User } from "@/types/user";
-import { FormEvent, useState } from "react";
-import { Plus, Pencil, Archive, Search } from "lucide-react";
-import { toast } from "sonner";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { confirmAction } from "@/lib/confirm";
+import { PaginatedUsers, User } from "@/types/user";
+import { Head, router, useForm } from "@inertiajs/react";
+import { Archive, Pencil, Plus, Search } from "lucide-react";
+import { FormEvent, useState } from "react";
+
+// ─── Presence helpers ────────────────────────────────────────────────────────
+
+type PresenceStatus = "online" | "away" | "offline";
+
+function getPresence(lastSeenAt: string | null): PresenceStatus {
+    if (!lastSeenAt) return "offline";
+    const diffMinutes = (Date.now() - new Date(lastSeenAt).getTime()) / 60000;
+    if (diffMinutes <= 5) return "online";
+    if (diffMinutes <= 30) return "away";
+    return "offline";
+}
+
+function formatLastSeen(lastSeenAt: string | null): string {
+    if (!lastSeenAt) return "Never";
+    const diffMinutes = Math.floor(
+        (Date.now() - new Date(lastSeenAt).getTime()) / 60000,
+    );
+    if (diffMinutes < 1) return "Active now";
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+}
+
+// Ring colors match image: green=online, amber=away, gray=offline
+function getRingClass(status: PresenceStatus): string {
+    // ring-4 without offset — thicker ring visible directly on avatar edge
+    if (status === "online") return "ring-2 ring-green-400";
+    if (status === "away") return "ring-2 ring-amber-400";
+    return "ring-2 ring-gray-500";
+}
+
+function getLabelClass(status: PresenceStatus): string {
+    if (status === "online") return "text-[11px] font-medium text-green-600";
+    if (status === "away") return "text-[11px] font-medium text-amber-500";
+    return "text-[11px] font-medium text-muted-foreground";
+}
+
+// ─── PresenceAvatar component ─────────────────────────────────────────────────
+
+function PresenceAvatar({ user }: { user: User }) {
+    const status = getPresence(user.last_seen_at);
+    const lastSeenLabel = formatLastSeen(user.last_seen_at);
+
+    return (
+        <div className="flex items-center gap-3">
+            {/* Avatar with presence ring — "Status on the ring" pattern */}
+            <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-indigo-600 bg-card ${getRingClass(status)}`}
+            >
+                {user.name.charAt(0)}
+            </div>
+
+            <div>
+                <p className="font-medium text-foreground">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+                {/* Last seen label below email */}
+                <p className={getLabelClass(status)}>{lastSeenLabel}</p>
+            </div>
+        </div>
+    );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Index({
     users,
@@ -16,6 +81,8 @@ export default function Index({
     users: PaginatedUsers;
     roles: string[];
     filters: { search?: string };
+    // serverNow passed from controller but we use client Date.now() for simplicity
+    serverNow?: string;
 }) {
     const [search, setSearch] = useState(filters.search ?? "");
     const [showModal, setShowModal] = useState(false);
@@ -93,10 +160,10 @@ export default function Index({
             <div className="space-y-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Users
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             Manage all admin/staff users
                         </p>
                     </div>
@@ -111,13 +178,13 @@ export default function Index({
                 <form onSubmit={handleSearch} className="relative max-w-xs">
                     <Search
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     />
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search by name..."
-                        className="w-full rounded-lg border-gray-300 py-2 pl-9 text-sm shadow-sm"
+                        className="w-full rounded-lg border-border bg-input py-2 pl-9 text-sm text-foreground shadow-sm"
                     />
                 </form>
 
@@ -125,21 +192,8 @@ export default function Index({
                     columns={[
                         {
                             header: "Name",
-                            accessor: (u) => (
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
-                                        {u.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-800">
-                                            {u.name}
-                                        </p>
-                                        <p className="text-xs text-gray-400">
-                                            {u.email}
-                                        </p>
-                                    </div>
-                                </div>
-                            ),
+                            // PresenceAvatar handles ring + last seen label
+                            accessor: (u) => <PresenceAvatar user={u} />,
                         },
                         { header: "Phone", accessor: (u) => u.phone ?? "-" },
                         {
@@ -171,13 +225,13 @@ export default function Index({
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => openEdit(u)}
-                                        className="text-indigo-600 hover:text-indigo-800"
+                                        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
                                     >
                                         <Pencil size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(u)}
-                                        className="text-red-500 hover:text-red-700"
+                                        className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
                                     >
                                         <Archive size={16} />
                                     </button>
@@ -197,13 +251,13 @@ export default function Index({
             >
                 <form onSubmit={submit} className="space-y-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                             Name
                         </label>
                         <input
                             value={data.name}
                             onChange={(e) => setData("name", e.target.value)}
-                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                            className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                         />
                         {errors.name && (
                             <p className="text-xs text-red-600">
@@ -213,14 +267,14 @@ export default function Index({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                             Email
                         </label>
                         <input
                             type="email"
                             value={data.email}
                             onChange={(e) => setData("email", e.target.value)}
-                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                            className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                         />
                         {errors.email && (
                             <p className="text-xs text-red-600">
@@ -230,13 +284,13 @@ export default function Index({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                             Phone
                         </label>
                         <input
                             value={data.phone}
                             onChange={(e) => setData("phone", e.target.value)}
-                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                            className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                         />
                         {errors.phone && (
                             <p className="text-xs text-red-600">
@@ -246,10 +300,10 @@ export default function Index({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                             Password{" "}
                             {editingUser && (
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-muted-foreground">
                                     (Leave blank to keep unchanged)
                                 </span>
                             )}
@@ -260,7 +314,7 @@ export default function Index({
                             onChange={(e) =>
                                 setData("password", e.target.value)
                             }
-                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                            className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                         />
                         {errors.password && (
                             <p className="text-xs text-red-600">
@@ -271,7 +325,7 @@ export default function Index({
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-medium text-foreground">
                                 Role
                             </label>
                             <select
@@ -279,7 +333,7 @@ export default function Index({
                                 onChange={(e) =>
                                     setData("role", e.target.value)
                                 }
-                                className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                             >
                                 {roles.map((r) => (
                                     <option key={r} value={r}>
@@ -289,7 +343,7 @@ export default function Index({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-medium text-foreground">
                                 Status
                             </label>
                             <select
@@ -297,7 +351,7 @@ export default function Index({
                                 onChange={(e) =>
                                     setData("status", e.target.value)
                                 }
-                                className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                                className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground"
                             >
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
@@ -309,7 +363,7 @@ export default function Index({
                         <button
                             type="button"
                             onClick={() => setShowModal(false)}
-                            className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                            className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
                         >
                             Cancel
                         </button>

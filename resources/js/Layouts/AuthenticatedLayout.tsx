@@ -49,12 +49,49 @@ import {
 } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface AuthUser {
+    id?: number | string;
+    name?: string;
+    email?: string;
+}
+
+interface AuthData {
+    user?: AuthUser;
+}
+
+interface ThemeSettings {
+    logo_type?: "text" | "image" | "both";
+    logo_text_segments?: string;
+    logo_image_path?: string;
+    business_name?: string;
+    sidebar_color?: string;
+}
+
+interface PageProps {
+    auth?: AuthData;
+    settings?: ThemeSettings;
+    notifications?: NotificationShared;
+}
+
 interface NavItem {
     label: string;
     icon: ElementType;
     href?: string;
     active?: string;
     children?: NavItem[];
+}
+
+interface LogoSegment {
+    text: string;
+    color?: string;
+}
+
+interface NavbarLogoProps {
+    settings?: ThemeSettings;
+}
+
+interface UserDropdownProps {
+    auth?: AuthData;
 }
 
 // ─── Navigation structure ─────────────────────────────────────────────────────
@@ -557,7 +594,7 @@ function NotificationBell() {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
-                className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
                 <Bell size={20} />
                 {notifShared.unread_count > 0 && (
@@ -570,9 +607,9 @@ function NotificationBell() {
             </button>
 
             {dropdownOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                        <span className="text-sm font-semibold text-gray-800">
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-border bg-card shadow-lg">
+                    <div className="flex items-center justify-between border-b border-border  px-4 py-3">
+                        <span className="text-sm font-semibold text-foreground">
                             Notifications
                             {notifShared.unread_count > 0 && (
                                 <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
@@ -591,9 +628,9 @@ function NotificationBell() {
                         )}
                     </div>
 
-                    <div className="max-h-80 divide-y divide-gray-50 overflow-y-auto">
+                    <div className="max-h-80 divide-y divide-border overflow-y-auto">
                         {notifShared.latest.length === 0 ? (
-                            <div className="py-8 text-center text-sm text-gray-400">
+                            <div className="py-8 text-center text-sm text-muted-foreground">
                                 No notifications yet
                             </div>
                         ) : (
@@ -602,7 +639,7 @@ function NotificationBell() {
                                     key={n.id}
                                     className={`flex items-start gap-3 px-4 py-3 transition-colors ${
                                         n.data.url
-                                            ? "cursor-pointer hover:bg-gray-50"
+                                            ? "cursor-pointer hover:bg-muted/50"
                                             : ""
                                     } ${!n.read_at ? "bg-indigo-50/40" : ""}`}
                                     onClick={() => handleNotificationClick(n)}
@@ -611,7 +648,7 @@ function NotificationBell() {
                                         className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                                             !n.read_at
                                                 ? "bg-indigo-100 text-indigo-600"
-                                                : "bg-gray-100 text-gray-400"
+                                                : "bg-muted text-muted-foreground"
                                         }`}
                                     >
                                         {getNotificationIcon(n.data.icon)}
@@ -621,15 +658,15 @@ function NotificationBell() {
                                             className={`text-xs font-medium leading-snug ${
                                                 !n.read_at
                                                     ? "text-gray-800"
-                                                    : "text-gray-600"
+                                                    : "text-muted-foreground"
                                             }`}
                                         >
                                             {n.data.title}
                                         </p>
-                                        <p className="mt-0.5 truncate text-xs text-gray-400">
+                                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
                                             {n.data.message}
                                         </p>
-                                        <p className="mt-1 text-[10px] text-gray-300">
+                                        <p className="mt-1 text-[10px] text-muted-foreground/60">
                                             {n.created_at}
                                         </p>
                                     </div>
@@ -661,7 +698,7 @@ function NotificationBell() {
                         )}
                     </div>
 
-                    <div className="border-t border-gray-100 px-4 py-2.5">
+                    <div className="border-t border-border px-4 py-2.5">
                         <Link
                             href={route("backend.notifications.index")}
                             className="block text-center text-xs font-medium text-indigo-600 hover:text-indigo-800"
@@ -746,12 +783,13 @@ function NavbarLogo({ settings }: { settings: any }) {
 }
 
 // ─── User Dropdown ────────────────────────────────────────────────────────────
-function UserDropdown({ auth }: { auth: any }) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+
+function UserDropdown({ auth }: UserDropdownProps) {
+    const [open, setOpen] = useState<boolean>(false);
+    const ref = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        const handler = (e: MouseEvent) => {
+        const handler = (e: globalThis.MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node))
                 setOpen(false);
         };
@@ -763,10 +801,15 @@ function UserDropdown({ auth }: { auth: any }) {
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground transition hover:bg-muted"
             >
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
-                    {auth?.user?.name?.charAt(0)}
+                    {auth?.user?.name
+                        ?.split(" ")
+                        .map((word: string) => word.charAt(0))
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
                 </div>
                 <span className="hidden font-medium sm:block">
                     {auth?.user?.name}
@@ -775,12 +818,12 @@ function UserDropdown({ auth }: { auth: any }) {
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    <div className="border-b border-gray-100 px-4 py-3">
-                        <p className="truncate text-sm font-medium text-gray-800">
+                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-border bg-card shadow-lg">
+                    <div className="border-b border-border px-4 py-3">
+                        <p className="truncate text-sm font-medium text-foreground">
                             {auth?.user?.name}
                         </p>
-                        <p className="truncate text-xs text-gray-400">
+                        <p className="truncate text-xs text-muted-foreground">
                             {auth?.user?.email}
                         </p>
                     </div>
@@ -791,7 +834,7 @@ function UserDropdown({ auth }: { auth: any }) {
                             href={
                                 route("backend.settings.index") + "?tab=theme"
                             }
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
                             onClick={() => setOpen(false)}
                         >
                             <Palette size={15} />
@@ -799,7 +842,7 @@ function UserDropdown({ auth }: { auth: any }) {
                         </Link>
                     </div>
 
-                    <div className="border-t border-gray-100 py-1">
+                    <div className="border-t border-border py-1">
                         <Link
                             href={route("logout")}
                             method="post"

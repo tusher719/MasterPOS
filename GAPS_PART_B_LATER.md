@@ -84,7 +84,7 @@ theme_json: { primary_color, bg_image_url, font_family, font_size, mode: 'light'
 
 ---
 
-### 1.8 Live Login / Active Status (Should Fix)
+### 1.8 Live Login / Active Status ✅ Done
 
 ```
 users additions: last_seen_at (timestamp nullable)

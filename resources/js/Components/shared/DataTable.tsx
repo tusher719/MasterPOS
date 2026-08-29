@@ -24,37 +24,37 @@ export default function DataTable<T>({
     links,
 }: DataTableProps<T>) {
     return (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/50">
                     <tr>
                         {columns.map((col, i) => (
                             <th
                                 key={i}
-                                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                             >
                                 {col.header}
                             </th>
                         ))}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border">
                     {data.length === 0 ? (
                         <tr>
                             <td
                                 colSpan={columns.length}
-                                className="px-4 py-6 text-center text-sm text-gray-400"
+                                className="px-4 py-6 text-center text-sm text-muted-foreground"
                             >
-                                কোনো তথ্য পাওয়া যায়নি
+                                No records found
                             </td>
                         </tr>
                     ) : (
                         data.map((row, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
+                            <tr key={i} className="hover:bg-muted/40">
                                 {columns.map((col, j) => (
                                     <td
                                         key={j}
-                                        className="px-4 py-3 text-sm text-gray-700"
+                                        className="px-4 py-3 text-sm text-foreground"
                                     >
                                         {col.accessor(row)}
                                     </td>
@@ -66,7 +66,7 @@ export default function DataTable<T>({
             </table>
 
             {links && links.length > 3 && (
-                <div className="flex flex-wrap gap-1 border-t border-gray-100 px-4 py-3">
+                <div className="flex flex-wrap gap-1 border-t border-border px-4 py-3">
                     {links.map((link, i) => (
                         <Link
                             key={i}
@@ -75,7 +75,7 @@ export default function DataTable<T>({
                             className={`rounded px-3 py-1 text-sm ${
                                 link.active
                                     ? "bg-indigo-600 text-white"
-                                    : "text-gray-600 hover:bg-gray-100"
+                                    : "text-foreground hover:bg-muted"
                             } ${!link.url ? "pointer-events-none opacity-40" : ""}`}
                             dangerouslySetInnerHTML={{ __html: link.label }}
                         />

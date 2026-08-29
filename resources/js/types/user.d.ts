@@ -12,6 +12,8 @@ export interface User {
     avatar: string | null;
     roles: Role[];
     created_at: string;
+    // Nullable — null means user has never been seen after this feature was added
+    last_seen_at: string | null;
 }
 
 export interface PaginatedUsers {

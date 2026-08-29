@@ -46,6 +46,8 @@ subject_type(nullable), subject_id(bigint nullable), properties(json nullable), 
 
 roles, permissions, model_has_roles, model_has_permissions, role_has_permissions
 
+last_seen_at (timestamp nullable) — after remember_token
+
 ---
 
 ## Step 03 — Settings

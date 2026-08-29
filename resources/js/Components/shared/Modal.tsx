@@ -29,19 +29,22 @@ export default function Modal({
             <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div
-                    className={`w-full ${widths[maxWidth]} rounded-xl bg-white shadow-xl`}
+                    className={`w-full ${widths[maxWidth]} rounded-xl border border-border bg-card shadow-xl`}
                 >
-                    <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                        <h2 className="text-base font-semibold text-gray-800">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                        <h2 className="text-base font-semibold text-foreground">
                             {title}
                         </h2>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                             <X size={18} />
                         </button>
                     </div>
+
+                    {/* Body */}
                     <div className="px-5 py-4">{children}</div>
                 </div>
             </div>

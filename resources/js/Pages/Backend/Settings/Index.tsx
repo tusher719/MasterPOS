@@ -127,7 +127,7 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                             ))}
                         </nav>
 
-                        <div className="mt-4 border-t border-gray-100 pt-4">
+                        <div className="mt-4 border-t border-border pt-4">
                             <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Configuration
                             </p>
@@ -195,13 +195,13 @@ function Section({
     children: React.ReactNode;
 }) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <div className="mb-5 border-b border-gray-100 pb-4">
-                <h2 className="text-base font-semibold text-gray-800">
+        <div className="rounded-lg border border-border bg-card p-5">
+            <div className="mb-5 border-b border-border pb-4">
+                <h2 className="text-base font-semibold text-foreground">
                     {title}
                 </h2>
                 {description && (
-                    <p className="mt-0.5 text-sm text-gray-500">
+                    <p className="mt-0.5 text-sm text-muted-foreground">
                         {description}
                     </p>
                 )}
@@ -225,7 +225,7 @@ function FormRow({
 }) {
     return (
         <div className="grid grid-cols-3 items-start gap-4">
-            <label className="pt-2 text-sm font-medium text-gray-700">
+            <label className="pt-2 text-sm font-medium text-foreground">
                 {label}
                 {required && <span className="ml-0.5 text-red-500">*</span>}
             </label>
@@ -260,7 +260,7 @@ function Field({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             maxLength={maxLength}
-            className={`w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${className}`}
+            className={`w-full rounded-md border-border bg-input text-sm text-foreground shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${className}`}
         />
     );
 }
@@ -278,7 +278,7 @@ function SelectField({
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            className="w-full rounded-md border-border bg-input text-sm text-foreground shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         >
             {options.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -301,11 +301,13 @@ function Toggle({
     description?: string;
 }) {
     return (
-        <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-            <div>
-                <p className="text-sm font-medium text-gray-700">{label}</p>
+        <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+            <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">{label}</p>
                 {description && (
-                    <p className="text-xs text-gray-400">{description}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {description}
+                    </p>
                 )}
             </div>
             <button
@@ -364,12 +366,13 @@ function NavbarLogoPreview({
     businessName: string;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <Monitor size={14} className="shrink-0 text-gray-400" />
-            <span className="text-xs text-gray-400">Navbar preview:</span>
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted p-4">
+            <span className="text-xs text-muted-foreground">
+                Navbar preview:
+            </span>
 
             {/* Simulated sidebar header */}
-            <div className="flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 shadow-sm">
+            <div className="flex h-9 items-center rounded-md border border-border bg-card px-3 shadow-sm">
                 {logoType === "both" ? (
                     <div className="flex items-center gap-1.5">
                         {logoImageUrl && (
@@ -685,7 +688,7 @@ function BusinessTab({ settings }: TabProps) {
                                             }
                                             placeholder={`Segment ${i + 1}`}
                                             maxLength={20}
-                                            className="flex-1 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            className="flex-1 rounded-md border-border bg-input text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         />
                                         <div className="flex items-center gap-1.5 rounded-md border border-gray-300 px-2 py-1.5">
                                             <input
@@ -784,7 +787,7 @@ function BusinessTab({ settings }: TabProps) {
                             }
                             placeholder="Shop address..."
                             rows={3}
-                            className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-md border-border bg-input text-sm text-foreground shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                     </FormRow>
                     <SaveButton
@@ -832,11 +835,11 @@ function CurrencyTab({ settings }: TabProps) {
         >
             <div className="space-y-4">
                 {/* Live preview */}
-                <div className="flex items-center gap-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                     <Info size={14} className="shrink-0 text-indigo-500" />
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground ">
                         Preview:{" "}
-                        <strong className="text-gray-800">{preview()}</strong>
+                        <strong className="text-foreground">{preview()}</strong>
                     </span>
                 </div>
 
@@ -959,7 +962,7 @@ function TaxTab({ settings }: TabProps) {
                                     onChange={(e) =>
                                         form.setData("tax_rate", e.target.value)
                                     }
-                                    className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="w-full rounded-md border-border bg-input text-sm text-foreground shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 />
                                 <span className="text-sm text-gray-400">%</span>
                             </div>
@@ -1036,8 +1039,8 @@ function NotificationTab({ settings }: TabProps) {
                         description="Notify when product stock falls below threshold"
                     />
                     {lowStockEnabled && (
-                        <div className="ml-4 flex items-center gap-3 rounded-md border border-dashed border-gray-200 px-4 py-2">
-                            <label className="shrink-0 text-sm text-gray-600">
+                        <div className="ml-4 flex items-center gap-3 rounded-md border border-dashed border-border px-4 py-2">
+                            <label className="shrink-0 text-sm text-muted-foreground">
                                 Threshold (units)
                             </label>
                             <input
@@ -1051,7 +1054,7 @@ function NotificationTab({ settings }: TabProps) {
                                         e.target.value,
                                     )
                                 }
-                                className="w-24 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="w-24 rounded-md border-border bg-input text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             />
                         </div>
                     )}

@@ -2,9 +2,7 @@ import axios from "axios";
 import { AlertTriangle, Loader2, ShieldAlert, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DeleteEntityType =
     | "investment"
@@ -33,19 +31,13 @@ interface PreviewData {
 }
 
 interface Props {
-    /** Entity type slug — matches backend resolveModel() */
     entityType: DeleteEntityType;
-    /** Entity primary key */
     entityId: number;
-    /** Called when user confirms delete */
     onConfirm: () => void;
-    /** Called when modal closes (cancel or backdrop) */
     onClose: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ConfirmDeleteModal({
     entityType,
@@ -57,7 +49,6 @@ export default function ConfirmDeleteModal({
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(false);
 
-    // Fetch dependency preview from backend
     useEffect(() => {
         setLoading(true);
         setFetchError(false);
@@ -76,7 +67,6 @@ export default function ConfirmDeleteModal({
 
     const hasBlockingDeps =
         preview?.dependencies.some((d) => d.blocking) ?? false;
-
     const canDelete = preview?.can_delete && !hasBlockingDeps;
 
     // Close on Escape
@@ -95,18 +85,18 @@ export default function ConfirmDeleteModal({
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="mx-4 w-full max-w-md rounded-lg border border-border bg-card shadow-xl">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <div className="flex items-center justify-between border-b border-border px-5 py-4">
                     <div className="flex items-center gap-2">
                         <Trash2 className="h-5 w-5 text-red-500" />
-                        <h2 className="text-base font-semibold text-gray-800">
+                        <h2 className="text-base font-semibold text-foreground">
                             Confirm Delete
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -118,7 +108,7 @@ export default function ConfirmDeleteModal({
                     {loading && (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
-                            <span className="ml-2 text-sm text-gray-500">
+                            <span className="ml-2 text-sm text-muted-foreground">
                                 Checking dependencies…
                             </span>
                         </div>
@@ -137,7 +127,7 @@ export default function ConfirmDeleteModal({
                     {!loading && !fetchError && preview && (
                         <div className="space-y-4">
                             {/* Entity label */}
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm text-foreground">
                                 You are about to delete{" "}
                                 <span className="font-medium">
                                     {preview.entity_label}
@@ -148,20 +138,20 @@ export default function ConfirmDeleteModal({
                             {/* Dependencies table */}
                             {preview.dependencies.length > 0 && (
                                 <div>
-                                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                         Related Records
                                     </p>
-                                    <div className="divide-y divide-gray-100 rounded-md border border-gray-200">
+                                    <div className="divide-y divide-border rounded-md border border-border">
                                         {preview.dependencies.map((dep, i) => (
                                             <div
                                                 key={i}
                                                 className="flex items-center justify-between px-3 py-2"
                                             >
-                                                <span className="text-sm text-gray-700">
+                                                <span className="text-sm text-foreground">
                                                     {dep.label}
                                                 </span>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-medium text-gray-900">
+                                                    <span className="text-sm font-medium text-foreground">
                                                         {dep.count.toLocaleString()}
                                                     </span>
                                                     {dep.blocking ? (
@@ -169,7 +159,7 @@ export default function ConfirmDeleteModal({
                                                             Blocking
                                                         </span>
                                                     ) : (
-                                                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                                                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                                             Preserved
                                                         </span>
                                                     )}
@@ -215,10 +205,10 @@ export default function ConfirmDeleteModal({
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
                     <button
                         onClick={onClose}
-                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
                     >
                         Cancel
                     </button>

@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.3 — Admin Panel Theme Per-User ✅
-- Next Item: Item 1.4 — Global Trash Bin Page
+- Last Completed: Item 1.8 — Live Login Status ✅
+- Next Item: Item 1.9 — Global Search Ctrl+K
 
 ## Financial Domain Overview
 
@@ -130,6 +130,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.3         | Admin Panel Theme Per-User                          | ✅     |
 | 1.6         | Dynamic Notifications                               | ✅     |
 | 1.7         | Split Dashboards                                    | ✅     |
+| 1.8         | Live Login Status                                   | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -146,7 +147,6 @@ Current Sprint: Sprint 5 — Admin Polish
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
 | 1.4  | Global Trash Bin Page             | Should Fix   |
-| 1.8  | Live Login Status                 | Should Fix   |
 | 1.9  | Global Search Ctrl+K              | Should Fix   |
 | 1.10 | Audit Trail Viewer UI             | Should Fix   |
 | 1.11 | PDF/Print Branding                | Should Fix   |

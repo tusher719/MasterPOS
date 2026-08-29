@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \App\Http\Middleware\ValidateSortColumn::class,
+            \App\Http\Middleware\UpdateLastSeen::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

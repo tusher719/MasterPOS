@@ -28,6 +28,8 @@ class UserController extends Controller
             'users' => $users,
             'roles' => \Spatie\Permission\Models\Role::pluck('name'),
             'filters' => request()->only('search'),
+            // Pass current time so frontend can compute relative "X min ago" without clock skew
+            'serverNow' => now()->toISOString(),
         ]);
     }
 

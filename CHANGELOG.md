@@ -2,6 +2,170 @@
 
 ---
 
+## [v2.46 — Item 1.8] — Live Login Status — 2026-08-29
+
+### New Files (1)
+
+- `database/migrations/2026_08_29_000001_add_last_seen_at_to_users_table.php`:
+  last_seen_at (timestamp nullable) added to users table — after remember_token column
+
+### New Files (1)
+
+- `app/Http/Middleware/UpdateLastSeen.php`:
+  Throttled last_seen_at update — Cache gate (60s TTL) prevents DB write on every request;
+  only updates once per minute per authenticated user via forceFill()->save()
+
+### Updated Files (8)
+
+- `bootstrap/app.php`:
+  UpdateLastSeen::class appended to web middleware stack (after ValidateSortColumn)
+
+- `config/app.php`:
+  timezone changed from 'UTC' → 'Asia/Dhaka' — fixes "6h ago" display issue
+
+- `app/Http/Controllers/Backend/UserController.php`:
+  index(): serverNow prop added (now()->toISOString()) for frontend clock reference
+
+- `app/Http/Controllers/Backend/LoginHistoryController.php`:
+  with('user:id,name,email') → with('user:id,name,email,last_seen_at') — presence data
+
+- `resources/js/types/user.d.ts`:
+  last_seen_at: string | null added to User interface
+
+- `resources/js/Pages/Backend/Users/Index.tsx`:
+  Full replace — PresenceAvatar component with presence ring (green/amber/gray);
+  getRingClass() static string function (Tailwind purge-safe);
+  getLabelClass() for "Active now" / "Xm ago" / "Never" label;
+  formatLastSeen() + getPresence() helpers;
+  My Theme semantic classes throughout (bg-card, text-foreground, border-border etc.)
+
+- `resources/js/Pages/Backend/LoginHistories/Index.tsx`:
+  Full replace — PresenceAvatar with ring; 30s axios polling for live last_seen_at refresh;
+  "Live" animated badge in header; Presence legend; same getRingClass() purge-safe pattern;
+  My Theme semantic classes throughout
+
+- `resources/js/Components/shared/DataTable.tsx`:
+  bg-white → bg-card, border-gray-200 → border-border, divide-gray-_ → divide-border,
+  bg-gray-50 → bg-muted/50, hover:bg-gray-50 → hover:bg-muted/40,
+  text-gray-_ → text-foreground/text-muted-foreground
+
+- `resources/js/Components/shared/Modal.tsx`:
+  bg-white → bg-card, border-gray-_ → border-border,
+  text-gray-_ → text-foreground/text-muted-foreground, close button → hover:bg-muted
+
+- `resources/js/Components/shared/ConfirmDeleteModal.tsx`:
+  bg-white → bg-card, border-gray-_ → border-border,
+  bg-gray-100 → bg-muted, Cancel button → bg-card border-border hover:bg-muted,
+  text-gray-_ → text-foreground/text-muted-foreground
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  NotificationBell: dropdown bg-white → bg-card, border-gray-_ → border-border,
+  hover:bg-gray-50 → hover:bg-muted/50, text-gray-_ → text-foreground/muted-foreground;
+  UserDropdown: same semantic class pattern throughout
+
+### Business Rules Established
+
+- last_seen_at updated at most once per minute per user (Cache TTL gate)
+- Presence thresholds: online = ≤5 min, away = 5–30 min, offline = >30 min
+- Ring uses static full-string classes (getRingClass) — never dynamic concatenation (Tailwind purge-safe)
+- LoginHistories polls every 30s via axios — silent fail on error (stale data acceptable)
+- timezone: Asia/Dhaka — all now() calls produce BD time
+- My Theme rule: all new shared components use semantic classes only (bg-card, border-border etc.)
+
+---
+
+## [v2.45 — Item 1.7] — Split Dashboards — 2026-08-29
+
+### New Files (7)
+
+- `app/Http/Controllers/Backend/SalesDashboardController.php`:
+  data() — period-aware JSON endpoint; kpis (revenue/count/aov/due/cod with prev-period comparison),
+  charts (daily/monthly trend with revenue+count+due), order_status breakdown,
+  payment_status breakdown, payment_methods breakdown, delivery_types breakdown,
+  top_products (top 10 by revenue with profit), top_customers (top 10 by spend),
+  recent_sales (last 15 in period), hourly_trend (≤7 day ranges only)
+
+- `app/Http/Controllers/Backend/InventoryDashboardController.php`:
+  data() — period-aware JSON endpoint; kpis (inventory_value/total_sku/active_products/
+  out_of_stock/low_stock/category_count — all-time snapshot), low_stock list (20),
+  out_of_stock list (20), never_sold list (15), top_moving (qty sold in period),
+  slow_moving (least sold in period), by_category (stock value per category),
+  stock_movements (recent 20 in period), purchase_trend (daily/monthly)
+
+- `app/Http/Controllers/Backend/InvestmentDashboardController.php`:
+  data() — period-aware JSON endpoint; kpis (active_investment/investor_count/
+  total_distributed/period_distributed/pending_distributions/total_withdrawn/partner_count),
+  capital_summary (per investor from investor_capital_balances with unlock status),
+  profit_summary (draft/approved/distributed count + net_profit + distributable in period),
+  investments_list (all with type + capital + profit balance joins),
+  distributions_list (last 15 in period), capital_trend (credit/debit from ledger),
+  distribution_trend (daily/monthly), partner_balances (from partner_profit_balances)
+
+- `resources/js/Pages/Dashboard/_components/SharedComponents.tsx`:
+  Exports: PeriodType, PeriodParams, PERIOD_OPTIONS, fmt(), fmtShort(), fmtLabel(),
+  ChangeBadge, KpiCard, SectionCard (with optional action slot), SimpleBar,
+  StatusBadge, Skeleton (grid-based animated placeholder), ChartTooltipBox,
+  PeriodFilter (Today/This Week/This Month/This Year/Custom with date range inputs)
+
+- `resources/js/Pages/Dashboard/_components/SalesTab.tsx`:
+  RevenueTrendChart — AreaChart (revenue + due, dual area, gradient fill, daily/monthly);
+  OrderStatusChart — horizontal BarChart with per-status color Cell;
+  PaymentMethodChart — vertical BarChart with color Cell + legend rows with % share;
+  SalesTab — KPI row (4 cards) + trend chart (full width) + 2-col grid (status + methods)
+    - 2-col grid (top products + top customers) + recent sales table
+
+- `resources/js/Pages/Dashboard/_components/InventoryTab.tsx`:
+  CategoryStockChart — vertical BarChart with per-category color Cell + legend rows;
+  TopMovingChart — horizontal BarChart (qty sold) with tooltip (qty+revenue+stock);
+  LowStockList — progress bar per product (stock/threshold ratio);
+  OutOfStockList — compact list with category + sale price;
+  InventoryTab — KPI row (4 cards) + 2-col charts + 2-col lists
+
+- `resources/js/Pages/Dashboard/_components/InvestmentsTab.tsx`:
+  DistributionTrendChart — AreaChart (distributed amount, amber gradient);
+  CapitalComparisonChart — grouped BarChart (deposited/withdrawn/balance per investor);
+  InvestorCapitalCards — per-investor card with 3-col stats + unlock progress bar;
+  PartnerBalanceList — per-partner earned/pending bar rows;
+  DistributionsTable — period distributions table with status badge;
+  InvestmentsTab — KPI row (4 cards) + period summary pills (5 stats) + 2-col charts
+    - 2-col (investor cards + partner balances) + distributions table
+
+### Updated Files (3)
+
+- `resources/js/Pages/Dashboard.tsx`:
+  Full replace — now a clean hub (tab state + fetch logic only, ~130 lines);
+  TABS config array with routeName per tab; fetchData() with URLSearchParams;
+  handlePeriodChange() clears current tab data on period switch (shows skeleton);
+  tab bar: 3 buttons with active color/bg per tab; Retry button in error state;
+  footer link to backend.dashboard.index; imports 3 tab components + SharedComponents
+
+- `routes/web.php`:
+  Old plain `/dashboard` route replaced with middleware group containing:
+  GET /dashboard → Inertia::render('Dashboard') (name: dashboard),
+  GET /dashboard/sales/data → SalesDashboardController@data (name: dashboard.sales.data),
+  GET /dashboard/inventory/data → InventoryDashboardController@data (name: dashboard.inventory.data),
+  GET /dashboard/investments/data → InvestmentDashboardController@data (name: dashboard.investments.data);
+  3 use imports added at top of file
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  NAV_ITEMS: "Dashboard" + "Backend Dashboard" two separate items replaced with
+  "Dashboards" group containing Overview (backend.dashboard.index) +
+  Sales & Analytics (dashboard) children
+
+### Business Rules Established
+
+- /dashboard is now a 3-tab hub — Sales / Inventory / Investments
+- Each tab fetches its own dedicated JSON endpoint with period params
+- Tab change triggers re-fetch; period change clears current tab data first (shows skeleton)
+- /backend/dashboard (DashboardController) is completely unchanged — full analytics still there
+- SalesDashboardController hourly_trend only computed for ≤7 day ranges (today/this_week)
+- InventoryDashboardController kpis are all-time snapshot (not period-filtered) — inventory state doesn't change by period
+- InvestmentDashboardController capital_summary reads from investor_capital_balances — includes unlocked_amount/locked_amount columns added in Gap 4.1
+- Route names: dashboard.sales.data / dashboard.inventory.data / dashboard.investments.data
+  — all under auth+verified middleware, no backend prefix
+
+---
+
 ## [v2.44 — Item 1.6] — Dynamic Notifications — 2026-08-27
 
 ### Updated Files (10)

@@ -10,7 +10,7 @@ class LoginHistoryController extends Controller
 {
     public function index()
     {
-        $histories = LoginHistory::with('user:id,name,email')
+        $histories = LoginHistory::with('user:id,name,email,last_seen_at')
             ->latest('logged_in_at')
             ->paginate(15);
 
