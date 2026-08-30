@@ -829,13 +829,26 @@ class SaleController extends Controller
     {
         $all = SettingsService::all();
 
+        // logo_image_path is the canonical key from Item 1.2.
+        // business_logo kept as fallback for old installs.
+        $logoRaw = $all['logo_image_path'] ?? $all['business_logo'] ?? null;
+
+        // Resolve to absolute filesystem path for dompdf.
+        $logoPath = null;
+        if ($logoRaw) {
+            $relative = ltrim($logoRaw, '/');
+            $relative = preg_replace('#^storage/#', '', $relative);
+            $full     = public_path('storage/' . $relative);
+            $logoPath = file_exists($full) ? $full : null;
+        }
+
         return [
-            'business_name'     => $all['business_name']    ?? config('app.name'),
-            'email'             => $all['business_email']   ?? null,
-            'phone'             => $all['business_phone']   ?? null,
-            'address'           => $all['business_address'] ?? null,
-            'logo'              => $all['business_logo']    ?? null,
-            'currency_symbol'   => $all['currency_symbol']  ?? '৳',
+            'business_name'     => $all['business_name']     ?? config('app.name'),
+            'email'             => $all['business_email']    ?? null,
+            'phone'             => $all['business_phone']    ?? null,
+            'address'           => $all['business_address']  ?? null,
+            'logo_path'         => $logoPath, // absolute path for dompdf
+            'currency_symbol'   => $all['currency_symbol']   ?? '৳',
             'currency_position' => $all['currency_position'] ?? 'before',
             'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
         ];

@@ -116,10 +116,11 @@ users additions: last_seen_at (timestamp nullable)
 
 ---
 
-### 1.11 PDF/Print Branding (Should Fix — depends on 1.1 + 1.2)
+### 1.11 PDF/Print Branding | ✅ Done |
 
-- Audit all PDF Blade templates (Invoice, Investor Statement, Partner Statement, Reports)
-- Replace hardcoded logo paths with dynamic settings value
+- Audited all PDF Blade templates (Invoice, Investor Statement, Partner Statement, Reports)
+- logo_image_path canonical key; business_logo fallback; logo_path resolved filesystem path
+- file_exists() guard everywhere; dompdf requirement met
 
 ---
 

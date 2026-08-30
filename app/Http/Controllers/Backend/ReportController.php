@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -476,11 +477,33 @@ class ReportController extends Controller
         // PDF
         $view = "pdf.report_{$this->typeToView($type)}";
         $pdf  = Pdf::loadView($view, array_merge($data, [
-            'from' => $from,
-            'to'   => $to,
+            'from'      => $from,
+            'to'        => $to,
+            'logo_path' => $this->resolveLogoPath(),
         ]))->setPaper('a4', 'landscape');
 
         return $pdf->download("{$filename}.pdf");
+    }
+
+    /**
+     * Resolve business logo to an absolute filesystem path for dompdf.
+     * logo_image_path is the canonical key from Item 1.2.
+     * business_logo kept as fallback for old installs.
+     */
+    private function resolveLogoPath(): ?string
+    {
+        $all     = SettingsService::all();
+        $logoRaw = $all['logo_image_path'] ?? $all['business_logo'] ?? null;
+
+        if (! $logoRaw) {
+            return null;
+        }
+
+        $relative = ltrim($logoRaw, '/');
+        $relative = preg_replace('#^storage/#', '', $relative);
+        $full     = public_path('storage/' . $relative);
+
+        return file_exists($full) ? $full : null;
     }
 
     // ─── Export helpers ─────────────────────────────────────────────────────────

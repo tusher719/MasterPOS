@@ -7,6 +7,7 @@ use App\Models\BusinessSetting;
 use App\Models\Investment;
 use App\Models\Partner;
 use App\Models\ProfitDistributionItem;
+use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -402,14 +403,18 @@ class InvestorStatementController extends Controller
 
     private function resolveLogoPath(): ?string
     {
-        $setting = BusinessSetting::where('key', 'logo')->first();
-        if (!$setting || !$setting->value) {
+        $all     = SettingsService::all();
+        $logoRaw = $all['logo_image_path'] ?? $all['business_logo'] ?? null;
+
+        if (! $logoRaw) {
             return null;
         }
 
-        $path = public_path('storage/' . $setting->value);
+        $relative = ltrim($logoRaw, '/');
+        $relative = preg_replace('#^storage/#', '', $relative);
+        $full     = public_path('storage/' . $relative);
 
-        return file_exists($path) ? $path : null;
+        return file_exists($full) ? $full : null;
     }
 
     private function partnerTypeLabel(Partner $partner): string

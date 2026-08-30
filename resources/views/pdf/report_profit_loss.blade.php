@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'DejaVu Sans', sans-serif;
@@ -21,17 +26,20 @@
             border-bottom: 2px solid #4f46e5;
             margin-bottom: 14px;
         }
+
         .header-left .company {
             font-size: 16px;
             font-weight: 700;
             color: #4f46e5;
         }
+
         .header-left .report-title {
             font-size: 12px;
             font-weight: 600;
             color: #374151;
             margin-top: 2px;
         }
+
         .header-right {
             text-align: right;
             color: #6b7280;
@@ -45,8 +53,14 @@
             gap: 16px;
             padding: 0 20px;
         }
-        .col-main  { flex: 2; }
-        .col-side  { flex: 1; }
+
+        .col-main {
+            flex: 2;
+        }
+
+        .col-side {
+            flex: 1;
+        }
 
         /* ── Section ── */
         .section {
@@ -55,6 +69,7 @@
             margin-bottom: 10px;
             overflow: hidden;
         }
+
         .section-head {
             background: #f3f4f6;
             padding: 6px 10px;
@@ -65,7 +80,10 @@
             letter-spacing: 0.05em;
             border-bottom: 1px solid #e5e7eb;
         }
-        .section-body { padding: 0 10px; }
+
+        .section-body {
+            padding: 0 10px;
+        }
 
         /* ── Statement rows ── */
         .stmt-row {
@@ -76,13 +94,38 @@
             border-bottom: 1px solid #f9fafb;
             font-size: 9px;
         }
-        .stmt-row:last-child { border-bottom: none; }
-        .stmt-label         { color: #374151; }
-        .stmt-label.muted   { color: #9ca3af; font-size: 8px; }
-        .stmt-label.bold    { font-weight: 700; color: #111827; }
-        .stmt-value         { font-weight: 600; color: #111827; }
-        .stmt-value.neg     { color: #dc2626; }
-        .stmt-value.muted   { color: #9ca3af; font-weight: 400; }
+
+        .stmt-row:last-child {
+            border-bottom: none;
+        }
+
+        .stmt-label {
+            color: #374151;
+        }
+
+        .stmt-label.muted {
+            color: #9ca3af;
+            font-size: 8px;
+        }
+
+        .stmt-label.bold {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .stmt-value {
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .stmt-value.neg {
+            color: #dc2626;
+        }
+
+        .stmt-value.muted {
+            color: #9ca3af;
+            font-weight: 400;
+        }
 
         /* ── Result boxes ── */
         .result-box {
@@ -90,26 +133,49 @@
             padding: 10px 12px;
             margin-bottom: 10px;
         }
-        .result-box.green { background: #f0fdf4; border: 2px solid #86efac; }
-        .result-box.red   { background: #fef2f2; border: 2px solid #fca5a5; }
+
+        .result-box.green {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+        }
+
+        .result-box.red {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+        }
+
         .result-label {
             font-size: 9px;
             font-weight: 700;
             color: #374151;
             margin-bottom: 3px;
         }
+
         .result-value {
             font-size: 15px;
             font-weight: 700;
         }
-        .result-value.green { color: #15803d; }
-        .result-value.red   { color: #b91c1c; }
+
+        .result-value.green {
+            color: #15803d;
+        }
+
+        .result-value.red {
+            color: #b91c1c;
+        }
+
         .result-margin {
             font-size: 8px;
             margin-top: 2px;
         }
-        .result-margin.green { color: #16a34a; }
-        .result-margin.red   { color: #dc2626; }
+
+        .result-margin.green {
+            color: #16a34a;
+        }
+
+        .result-margin.red {
+            color: #dc2626;
+        }
 
         /* ── KPI row (top) ── */
         .kpi-row {
@@ -118,6 +184,7 @@
             padding: 0 20px;
             margin-bottom: 14px;
         }
+
         .kpi-box {
             flex: 1;
             border: 1px solid #e5e7eb;
@@ -125,11 +192,30 @@
             padding: 8px 10px;
             border-left: 3px solid #4f46e5;
         }
-        .kpi-box.green  { border-left-color: #16a34a; }
-        .kpi-box.red    { border-left-color: #dc2626; }
-        .kpi-box.blue   { border-left-color: #2563eb; }
-        .kpi-label { font-size: 8px; color: #6b7280; margin-bottom: 2px; }
-        .kpi-value { font-size: 11px; font-weight: 700; color: #111827; }
+
+        .kpi-box.green {
+            border-left-color: #16a34a;
+        }
+
+        .kpi-box.red {
+            border-left-color: #dc2626;
+        }
+
+        .kpi-box.blue {
+            border-left-color: #2563eb;
+        }
+
+        .kpi-label {
+            font-size: 8px;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+
+        .kpi-value {
+            font-size: 11px;
+            font-weight: 700;
+            color: #111827;
+        }
 
         /* ── Category table (sidebar) ── */
         .cat-row {
@@ -139,9 +225,19 @@
             border-bottom: 1px solid #f3f4f6;
             font-size: 9px;
         }
-        .cat-row:last-child { border-bottom: none; }
-        .cat-name  { color: #374151; }
-        .cat-total { font-weight: 700; color: #dc2626; }
+
+        .cat-row:last-child {
+            border-bottom: none;
+        }
+
+        .cat-name {
+            color: #374151;
+        }
+
+        .cat-total {
+            font-weight: 700;
+            color: #dc2626;
+        }
 
         /* ── Ratio boxes ── */
         .ratio-box {
@@ -150,9 +246,22 @@
             padding: 8px 10px;
             margin-bottom: 8px;
         }
-        .ratio-label { font-size: 8px; color: #6b7280; }
-        .ratio-value { font-size: 13px; font-weight: 700; margin: 2px 0; }
-        .ratio-sub   { font-size: 8px; color: #9ca3af; }
+
+        .ratio-label {
+            font-size: 8px;
+            color: #6b7280;
+        }
+
+        .ratio-value {
+            font-size: 13px;
+            font-weight: 700;
+            margin: 2px 0;
+        }
+
+        .ratio-sub {
+            font-size: 8px;
+            color: #9ca3af;
+        }
 
         /* ── Note box ── */
         .note-box {
@@ -177,13 +286,17 @@
         }
     </style>
 </head>
+
 <body>
 
     {{-- Header --}}
     <div class="header">
         <div class="header-left">
+            @if (!empty($logo_path))
+                <img src="{{ $logo_path }}" alt="Logo" style="height:32px; margin-bottom:4px; display:block;">
+            @endif
             <div class="company">{{ config('app.name', 'Master POS') }}</div>
-            <div class="report-title">Profit & Loss Statement</div>
+            <div class="report-title">Sales Report</div>
         </div>
         <div class="header-right">
             <div>Period: {{ $from }} — {{ $to }}</div>
@@ -193,12 +306,12 @@
 
     {{-- KPI row --}}
     @php
-        $isProfit   = $summary['net_profit'] >= 0;
-        $grossProfit= $summary['gross_profit'];
-        $netProfit  = $summary['net_profit'];
-        $revenue    = $summary['revenue'];
-        $expenses   = $summary['total_expenses'];
-        $cogs       = $summary['cogs'];
+        $isProfit = $summary['net_profit'] >= 0;
+        $grossProfit = $summary['gross_profit'];
+        $netProfit = $summary['net_profit'];
+        $revenue = $summary['revenue'];
+        $expenses = $summary['total_expenses'];
+        $cogs = $summary['cogs'];
     @endphp
 
     <div class="kpi-row">
@@ -347,7 +460,8 @@
             {{-- Ratio boxes --}}
             <div class="ratio-box">
                 <div class="ratio-label">Expense Ratio</div>
-                <div class="ratio-value" style="color: {{ $revenue > 0 && ($expenses / $revenue) < 0.5 ? '#16a34a' : '#d97706' }};">
+                <div class="ratio-value"
+                    style="color: {{ $revenue > 0 && $expenses / $revenue < 0.5 ? '#16a34a' : '#d97706' }};">
                     {{ $revenue > 0 ? round(($expenses / $revenue) * 100) . '%' : '—' }}
                 </div>
                 <div class="ratio-sub">Expenses as % of revenue</div>
@@ -374,9 +488,11 @@
 
     {{-- Footer --}}
     <div class="footer">
-        <span>{{ config('app.name', 'Master POS') }} — Profit & Loss Statement ({{ $from }} to {{ $to }})</span>
+        <span>{{ config('app.name', 'Master POS') }} — Profit & Loss Statement ({{ $from }} to
+            {{ $to }})</span>
         <span>Generated by {{ auth()->user()->name ?? 'System' }}</span>
     </div>
 
 </body>
+
 </html>

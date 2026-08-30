@@ -2,6 +2,64 @@
 
 ---
 
+## [v2.49 — Item 1.11] — PDF/Print Branding — 2026-08-30
+
+### Updated Files (9)
+
+- `app/Http/Controllers/Backend/InvoiceController.php`:
+  resolveBusinessProfile() rewritten — logo_image_path (Item 1.2 canonical key)
+  read via SettingsService::all(); business_logo kept as fallback for old installs;
+  logo resolved to absolute filesystem path via public_path() + file_exists() guard;
+  key renamed logo → logo_path in returned array; dead code block after return removed;
+  BusinessSetting import removed (no longer needed)
+
+- `resources/views/pdf/invoice.blade.php`:
+  logo → logo_path in watermark block and header logo block;
+  public_path('storage/' . ...) call removed — logo_path already contains
+  resolved filesystem path
+
+- `app/Http/Controllers/Backend/InvestorStatementController.php`:
+  resolveLogoPath() rewritten — was querying BusinessSetting::where('key','logo')
+  (wrong key, does not exist); now uses SettingsService::all() with
+  logo_image_path → business_logo fallback chain + file_exists() guard;
+  BusinessSetting import removed; SettingsService import added
+
+- `resources/views/pdf/investor-statement.blade.php`: No change needed ✅
+  (already used $logo_path correctly — controller fix sufficient)
+
+- `resources/views/pdf/partner-statement.blade.php`: No change needed ✅
+  (already used $logo_path correctly — controller fix sufficient)
+
+- `app/Http/Controllers/Backend/SaleController.php`:
+  resolveBusinessProfile() — same fix as InvoiceController;
+  logo → logo_path key; logo_image_path → business_logo fallback;
+  filesystem resolve with file_exists() guard
+
+- `resources/views/pdf/delivery-slip.blade.php`:
+  logo → logo_path; public_path() call removed; broken ltrim('/storage/') logic
+  removed — logo_path already contains resolved filesystem path
+
+- `app/Http/Controllers/Backend/ReportController.php`:
+  resolveLogoPath() private helper added (same pattern as InvestorStatementController);
+  logo_path passed to all PDF export views via array_merge in export();
+  SettingsService import added
+
+- `resources/views/pdf/report_sales.blade.php`,
+  `report_purchases.blade.php`, `report_profit_loss.blade.php`,
+  `report_expenses.blade.php`, `report_inventory.blade.php`,
+  `report_customer_ledger.blade.php`:
+  logo block added to header-left — @if ($logo_path) img tag before company name div
+
+### Business Rules Established
+
+- logo_image_path is the canonical settings key for PDF branding (Item 1.2)
+- business_logo retained as fallback — old installs without re-upload still work
+- logo_path in all PDF view data = resolved absolute filesystem path (dompdf requirement)
+- file_exists() guard on every logo resolve — missing file returns null gracefully
+- All PDF templates now show dynamic business logo when configured
+
+---
+
 ## [v2.48 — Item 1.10] — Audit Trail Viewer UI — 2026-08-30
 
 ### New Files (3)

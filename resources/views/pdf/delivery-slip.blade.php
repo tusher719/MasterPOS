@@ -242,8 +242,8 @@
     {{-- ── Header ── --}}
     <div class="header">
         <div>
-            @if (!empty($business['logo']))
-                <img src="{{ public_path('storage/' . ltrim($business['logo'], '/storage/')) }}" alt="Logo"
+            @if (!empty($business['logo_path']))
+                <img src="{{ $business['logo_path'] }}" alt="Logo"
                     style="height:36px; margin-bottom:4px; display:block;">
             @endif
             <div class="business-name">{{ $business['business_name'] }}</div>

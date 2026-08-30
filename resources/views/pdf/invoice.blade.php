@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -112,10 +113,30 @@
             letter-spacing: 0.5px;
         }
 
-        .badge-paid    { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-        .badge-partial { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-        .badge-due     { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-        .badge-voided  { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; margin-left: 4px; }
+        .badge-paid {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-partial {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-due {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-voided {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            margin-left: 4px;
+        }
 
         /* ── Bill To / Payment Info (table-based) ── */
         .meta-row-table {
@@ -173,8 +194,13 @@
             color: #6b7280;
         }
 
-        table.items-table thead th.left  { text-align: left; }
-        table.items-table thead th.right { text-align: right; }
+        table.items-table thead th.left {
+            text-align: left;
+        }
+
+        table.items-table thead th.right {
+            text-align: right;
+        }
 
         table.items-table tbody tr {
             border-bottom: 1px solid #f3f4f6;
@@ -187,11 +213,29 @@
             vertical-align: middle;
         }
 
-        table.items-table tbody td.right  { text-align: right; }
-        table.items-table tbody td.mono   { font-family: DejaVu Sans Mono, monospace; font-size: 10px; color: #9ca3af; }
-        table.items-table tbody td.muted  { color: #9ca3af; }
-        table.items-table tbody td.bold   { font-weight: 600; color: #1f2937; }
-        table.items-table tbody td.index  { color: #9ca3af; width: 24px; }
+        table.items-table tbody td.right {
+            text-align: right;
+        }
+
+        table.items-table tbody td.mono {
+            font-family: DejaVu Sans Mono, monospace;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        table.items-table tbody td.muted {
+            color: #9ca3af;
+        }
+
+        table.items-table tbody td.bold {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        table.items-table tbody td.index {
+            color: #9ca3af;
+            width: 24px;
+        }
 
         /* ── Totals (table-based instead of flex) ── */
         .totals-outer {
@@ -217,8 +261,14 @@
             border: none;
         }
 
-        .totals-table .label { color: #6b7280; }
-        .totals-table .value { text-align: right; color: #374151; }
+        .totals-table .label {
+            color: #6b7280;
+        }
+
+        .totals-table .value {
+            text-align: right;
+            color: #374151;
+        }
 
         .totals-table .grand-total td {
             border-top: 2px solid #e5e7eb;
@@ -228,9 +278,18 @@
             color: #1f2937;
         }
 
-        .totals-table .paid-row td   { color: #16a34a; }
-        .totals-table .due-row td    { color: #dc2626; font-weight: 600; }
-        .totals-table .discount-row .value { color: #dc2626; }
+        .totals-table .paid-row td {
+            color: #16a34a;
+        }
+
+        .totals-table .due-row td {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .totals-table .discount-row .value {
+            color: #dc2626;
+        }
 
         .note-box {
             margin-top: 24px;
@@ -268,12 +327,13 @@
         }
     </style>
 </head>
+
 <body>
 
     @php
-        $symbol   = $business['currency_symbol'] ?? '৳';
+        $symbol = $business['currency_symbol'] ?? '৳';
         // DejaVu Sans (dompdf's font) has no Bengali glyphs — fall back to
-        // an ASCII-safe label so the PDF doesn't show tofu/box characters.
+// an ASCII-safe label so the PDF doesn't show tofu/box characters.
         if ($symbol === '৳') {
             $symbol = 'Tk ';
         }
@@ -286,9 +346,9 @@
     @endphp
 
     {{-- ── Watermark Logo (center, transparent) ── --}}
-    @if (!empty($business['logo']))
+    @if (!empty($business['logo_path']))
         <div class="watermark">
-            <img src="{{ public_path('storage/' . $business['logo']) }}" alt="">
+            <img src="{{ $business['logo_path'] }}" alt="">
         </div>
     @endif
 
@@ -298,12 +358,8 @@
         <table class="header-table">
             <tr>
                 <td style="width:55%;">
-                    @if (!empty($business['logo']))
-                        <img
-                            src="{{ public_path('storage/' . $business['logo']) }}"
-                            alt="Logo"
-                            class="business-logo"
-                        />
+                    @if (!empty($business['logo_path']))
+                        <img src="{{ $business['logo_path'] }}" alt="Logo" class="business-logo" />
                     @endif
                     <div class="business-name">{{ $business['business_name'] }}</div>
                     <div class="business-meta">
@@ -325,10 +381,10 @@
                         Date: <span>{{ \Carbon\Carbon::parse($sale->sale_date)->format('d M Y') }}</span>
                     </div>
                     @php
-                        $badgeClass = match($sale->payment_status) {
-                            'paid'    => 'badge-paid',
+                        $badgeClass = match ($sale->payment_status) {
+                            'paid' => 'badge-paid',
                             'partial' => 'badge-partial',
-                            default   => 'badge-due',
+                            default => 'badge-due',
                         };
                     @endphp
                     <div class="badge-wrap">
@@ -361,7 +417,9 @@
                                 {{ $sale->customer->address }}<br>
                             @endif
                             @if ($sale->customer->city)
-                                {{ $sale->customer->city }}@if ($sale->customer->country), {{ $sale->customer->country }}@endif
+                                {{ $sale->customer->city }}@if ($sale->customer->country)
+                                    , {{ $sale->customer->country }}
+                                @endif
                             @endif
                         </div>
                     @else
@@ -381,7 +439,7 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th class="left"  style="width:24px">#</th>
+                    <th class="left" style="width:24px">#</th>
                     <th class="left">Item</th>
                     <th class="left">SKU</th>
                     <th class="right" style="width:50px">Qty</th>
@@ -487,4 +545,5 @@
     </div>
 
 </body>
+
 </html>

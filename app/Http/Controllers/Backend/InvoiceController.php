@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use App\Models\BusinessSetting;
 use App\Models\Sale;
 use App\Services\SettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -113,43 +112,44 @@ class InvoiceController extends Controller
     }
 
     /**
-     * Build a flat business profile array from the key-value
-     * business_settings store (groups: business, currency).
+     * Build a flat business profile array for PDF templates.
+     *
+     * logo_image_path is the canonical key introduced in Item 1.2.
+     * business_logo is kept as fallback for old installs.
+     * logo_path in the returned array is a resolved filesystem path
+     * (required by dompdf — it cannot load images from URLs).
      */
     private function resolveBusinessProfile(): array
     {
-        $all = SettingsService::all(); // cache-backed
+        $all = SettingsService::all();
 
-        $logoPath = $all['business_logo'] ?? null;
+        // Prefer the Item 1.2 canonical key; fall back to legacy business_logo.
+        $logoRaw = $all['logo_image_path'] ?? $all['business_logo'] ?? null;
+
+        // Resolve to an absolute filesystem path for dompdf.
+        // Strip any /storage/ prefix that may have been stored in settings.
+        $logoPath = null;
+        if ($logoRaw) {
+            $relative = ltrim($logoRaw, '/');
+            $relative = preg_replace('#^storage/#', '', $relative);
+            $full     = public_path('storage/' . $relative);
+            $logoPath = file_exists($full) ? $full : null;
+        }
 
         return [
             'business_name'     => $all['business_name']     ?? config('app.name'),
             'email'             => $all['business_email']    ?? null,
             'phone'             => $all['business_phone']    ?? null,
             'address'           => $all['business_address']  ?? null,
-            'logo'              => $logoPath,
+            'logo_path'         => $logoPath, // absolute path for dompdf
             'currency_symbol'   => $all['currency_symbol']   ?? '৳',
             'currency_position' => $all['currency_position'] ?? 'before',
             'decimal_places'    => (int) ($all['decimal_places'] ?? 2),
-        ];
-
-        $logoPath = $business['business_logo'] ?? null;
-
-        return [
-            'business_name'     => $business['business_name'] ?? config('app.name'),
-            'email'             => $business['business_email'] ?? null,
-            'phone'             => $business['business_phone'] ?? null,
-            'address'           => $business['business_address'] ?? null,
-            'logo'              => $logoPath,
-            'currency_symbol'   => $currency['currency_symbol'] ?? '৳',
-            'currency_position' => $currency['currency_position'] ?? 'before',
-            'decimal_places'    => (int) ($currency['decimal_places'] ?? 2),
         ];
     }
 
     /**
      * Check if current authenticated user has a given permission.
-     * Falls back to calling ->can() if hasPermissionTo() is not available.
      */
     private function userHasPermission(string $permission): bool
     {
