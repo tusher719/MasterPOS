@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.9 — Global Search Ctrl+K ✅
-- Next Item: Item 1.4 — Global Trash Bin Page
+- Last Completed: Item 1.10 — Audit Trail Viewer UI ✅
+- Next Item: Item 1.11 — PDF/Print Branding
 
 ## Financial Domain Overview
 
@@ -132,6 +132,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.7         | Split Dashboards                                    | ✅     |
 | 1.8         | Live Login Status                                   | ✅     |
 | 1.9         | Global Search Ctrl+K                                | ✅     |
+| 1.10        | Audit Trail Viewer UI                               | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -147,8 +148,6 @@ Current Sprint: Sprint 5 — Admin Polish
 
 | #    | Item                              | Priority     |
 | ---- | --------------------------------- | ------------ |
-| 1.9  | Global Search Ctrl+K              | Should Fix   |
-| 1.10 | Audit Trail Viewer UI             | Should Fix   |
 | 1.11 | PDF/Print Branding                | Should Fix   |
 | 1.14 | Fallback / 404 Pages (3 surfaces) | Should Fix   |
 | 1.15 | App Launcher Popup (Quick Links)  | Nice to Have |

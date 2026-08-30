@@ -2,6 +2,72 @@
 
 ---
 
+## [v2.48 — Item 1.10] — Audit Trail Viewer UI — 2026-08-30
+
+### New Files (3)
+
+- `app/Http/Controllers/Backend/AuditTrailController.php`:
+  index() — GET /backend/audit-trail; abort_unless Gate::allows('audit_trail.view');
+  6 filters: search (description LIKE), module, action, user_id, date_from, date_to;
+  paginate(50) withQueryString(); dynamic filter options from DB distinct values;
+  users loaded via withTrashed() — deleted users logs still visible;
+  renders Backend/AuditTrail/Index with logs/modules/actions/users/filters props
+
+- `resources/js/Pages/Backend/AuditTrail/Index.tsx`:
+  Filter panel: search input (Enter to apply), module select, action select,
+  user select, AppDateRangeInput with DEFAULT_PERIOD_PRESETS, Apply + Clear buttons;
+  Paginated table: Timestamp / User / Module / Action / Description / Subject columns;
+  ActionBadge: color-coded (create=green, update=blue, delete=red, restore=amber, approve=indigo);
+  ModuleBadge: muted bg with Activity icon;
+  Row click → DetailModal; safe meta fallback (meta ?? {}) prevents undefined crash;
+  Prev/Next pagination with current/last page display;
+  My Theme semantic classes throughout (bg-card, text-foreground, border-border etc.)
+
+- `resources/js/Pages/Backend/AuditTrail/_components/DetailModal.tsx`:
+  Meta grid: Timestamp / User / Module / Action (4 cards);
+  Description block; Subject block with model name + ID;
+  Navigate button — SUBJECT_ROUTE_MAP maps model name → named route;
+  shown only when mapping exists and subject_id present;
+  PropertiesBlock: detects old/attributes keys → diff view (Before/After columns,
+  changed rows amber highlight, unchanged rows plain); flat key-value fallback
+  for non-diff properties; Escape key closes modal; max-h-[70vh] overflow-y-auto;
+  onClose() called before router.visit() on navigate
+
+### Updated Files (2)
+
+- `routes/web.php`:
+  ActivityLogController import → AuditTrailController import;
+  Route::get('activity-logs') → Route::get('audit-trail') name: audit-trail.index
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  Audit & Logs nav group: "Activity Log" entry updated to "Audit Trail"
+  with href: backend.audit-trail.index, active: backend.audit-trail.\*
+
+### Permission (Tinker — no seeder file)
+
+- audit_trail.view permission created and assigned to Admin role via tinker
+- forgetCachedPermissions() called after assignment
+
+### Business Rules Established
+
+- Audit Trail is read-only — no mutations, no separate policy needed
+- Gate::allows('audit_trail.view') pattern used (consistent with ReportController)
+- Row click opens DetailModal — no separate page/route needed (Option B — modal only)
+- subject_type is full Laravel class string (App\Models\Product) —
+  model name extracted via split('\\').pop() for display and route mapping
+- SUBJECT_ROUTE_MAP in DetailModal maps 13 model names to named routes;
+  unmapped models show subject info without navigate button
+- PropertiesBlock detects old/attributes structure for update diffs;
+  falls back to flat key-value for create/delete/other actions
+- Dynamic module/action dropdowns populated from DB distinct values —
+  no hardcoded enum list needed
+- meta safe fallback (meta ?? {}) required — Inertia paginator serialization
+  can differ; never destructure meta directly without fallback
+- Activity Log nav entry kept in sidebar (old ActivityLogController still exists);
+  Audit Trail is the new primary viewer at /backend/audit-trail
+
+---
+
 ## [v2.47 — Item 1.9] — Global Search Ctrl+K — 2026-08-29
 
 ### New Files (3)

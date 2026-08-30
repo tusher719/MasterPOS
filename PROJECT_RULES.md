@@ -201,6 +201,9 @@
 - Sales/Show.tsx uses statusHistories relation (orderByDesc) — most recent entry
   shown at top of timeline with indigo dot; older entries gray dot
 
+- Inertia paginator meta must always use safe fallback: `meta ?? {}` —
+  never destructure meta directly; serialization can differ across Laravel versions
+
 ---
 
 ## 9. PDF Rules

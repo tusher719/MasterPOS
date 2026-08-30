@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Backend\ActivityLogController;
+use App\Http\Controllers\Backend\AuditTrailController;
 use App\Http\Controllers\Backend\CapitalLedgerController;
 use App\Http\Controllers\Backend\CapitalWithdrawalController;
 use App\Http\Controllers\Backend\CustomerController;
@@ -90,6 +91,7 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('login-histories', [LoginHistoryController::class, 'index'])->name('login-histories.index');
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail.index');
 
         // Business Settings
         Route::prefix('settings')->name('settings.')->group(function () {

@@ -97,7 +97,7 @@ users additions: last_seen_at (timestamp nullable)
 
 ---
 
-### 1.9 Global Search Ctrl+K — Backend (Should Fix)
+### 1.9 Global Search Ctrl+K — Backend ✅ Done
 
 - Glassmorphism style, scoped to: Products, Customers, Suppliers, Sales (by reference_no), Investments, Partners
 - Debounced, keyboard-navigable, category-grouped results
@@ -108,7 +108,7 @@ users additions: last_seen_at (timestamp nullable)
 
 ---
 
-### 1.10 Audit Trail Viewer UI (Should Fix)
+### 1.10 Audit Trail Viewer UI ✅ Done
 
 - activity_logs table already exists — only viewer page missing
 - Filterable by module / action / user / date range

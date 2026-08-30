@@ -152,6 +152,12 @@ const NAV_ITEMS: NavItem[] = [
                 href: "backend.activity-logs.index",
                 active: "backend.activity-logs.*",
             },
+            {
+                label: "Audit Trail",
+                icon: ClipboardList,
+                href: "backend.audit-trail.index",
+                active: "backend.audit-trail.*",
+            },
         ],
     },
     {

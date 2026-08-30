@@ -160,7 +160,7 @@ export default function AppDateRangeInput({
         setPickState("idle");
     }
 
-    function handleDayClick(date: Date) {
+    function handleDayClick(date: string) {
         const formatted = dayjs(date).format("YYYY-MM-DD");
 
         if (pickState === "idle" || pickState === "picking_start") {
@@ -188,7 +188,7 @@ export default function AppDateRangeInput({
         setPickState("idle");
     }
 
-    function getDayProps(date: Date) {
+    function getDayProps(date: string) {
         const formatted = dayjs(date).format("YYYY-MM-DD");
         const isFriday = dayjs(date).day() === 5;
         const isToday = formatted === TODAY;

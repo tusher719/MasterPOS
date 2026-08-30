@@ -33,9 +33,10 @@ export default function AppDateInput({
 }: Props) {
     const [opened, setOpened] = useState(false);
 
-    function getDayProps(date: Date) {
-        const formatted = dayjs(date).format("YYYY-MM-DD");
-        const isFriday = dayjs(date).day() === 5;
+    function getDayProps(date: string) {
+        const parsedDate = dayjs(date);
+        const formatted = parsedDate.format("YYYY-MM-DD");
+        const isFriday = parsedDate.day() === 5;
         const isToday = formatted === TODAY;
         const isSelected = formatted === value;
 
