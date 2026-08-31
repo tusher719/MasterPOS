@@ -143,7 +143,7 @@ Rule for all future work — not a single feature:
 
 ---
 
-### 1.14 Fallback / 404 Pages — 3 Surfaces (Should Fix)
+### 1.14 Fallback / 404 Pages — 3 Surfaces | ✅ Done |
 
 | Surface             | Layout Used                       |
 | ------------------- | --------------------------------- |

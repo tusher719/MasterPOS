@@ -2,6 +2,41 @@
 
 ---
 
+## [v2.50 — Item 1.14] — Fallback / 404 Pages — 2026-08-31
+
+### New Files (3)
+
+- `bootstrap/app.php`:
+  withExceptions() block added — NotFoundHttpException (404) +
+  MethodNotAllowedHttpException (405) both handled;
+  resolveSurface() helper detects surface from URL path:
+  /backend/pos/_ → 'pos', /backend/_ → 'backend', else → 'public';
+  JSON requests (expectsJson()) return null — default Laravel JSON error handling;
+  404/405 both render same branded pages per surface
+
+- `resources/js/Pages/Error/NotFound.tsx`:
+  Backend + POS 404/405 page — wraps AuthenticatedLayout;
+  surface prop: 'backend' → "Back to Dashboard" + "Go Back" buttons;
+  surface prop: 'pos' → "Back to POS Terminal" button only;
+  Bengali subtitle: "এই পাতাটি খুঁজে পাওয়া যায়নি";
+  AlertTriangle icon (amber), Error 404 badge, semantic theme classes throughout
+
+- `resources/js/Pages/Error/PublicNotFound.tsx`:
+  Public 404/405 page — standalone, no AuthenticatedLayout, no auth required;
+  Used for storefront, welcome page, any non-backend URL;
+  hardcoded Tailwind (bg-gray-50, bg-white) — no theme dependency;
+  "Back to Home" (/) + "Go Back" buttons; Master Business Suite branding footer
+
+### Business Rules Established
+
+- 404 and 405 errors both render branded error pages — raw Symfony error page never shown
+- Surface detection uses URL prefix matching — /backend/pos wins over /backend (checked first)
+- JSON/API requests bypass branded pages — return null to preserve default Laravel behavior
+- POS 404 uses AuthenticatedLayout (no separate POS layout exists)
+- Public 404 uses hardcoded Tailwind colors (not semantic) — no ThemeProvider dependency for guest pages
+
+---
+
 ## [v2.49 — Item 1.11] — PDF/Print Branding — 2026-08-30
 
 ### Updated Files (9)

@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.11 — PDF/Print Branding ✅
-- Next Item: Item 1.14 — Fallback / 404 Pages (3 surfaces)
+- Last Completed: Item 1.14 — Fallback / 404 Pages ✅
+- Next Item: Item 1.15 — App Launcher Popup (Quick Links)
 
 ## Financial Domain Overview
 
@@ -134,6 +134,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.9         | Global Search Ctrl+K                                | ✅     |
 | 1.10        | Audit Trail Viewer UI                               | ✅     |
 | 1.11        | PDF/Print Branding                                  | ✅     |
+| 1.14        | Fallback / 404 Pages (3 surfaces)                   | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
