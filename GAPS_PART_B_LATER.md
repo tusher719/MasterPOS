@@ -157,7 +157,7 @@ Rule for all future work — not a single feature:
 
 ---
 
-### 1.15 Navbar App Launcher Popup — Quick Links Grid (Nice to Have)
+### 1.15 Navbar App Launcher Popup — Quick Links Grid | ✅ Done |
 
 ```
 quick_links: id, label, icon (lucide-react icon name), route_name,

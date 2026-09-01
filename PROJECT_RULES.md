@@ -584,3 +584,11 @@ exists. Do not attempt these without test coverage:
 - New inputs: bg-input text-foreground border-border
 - Item 1.20 (Full Dark Mode) will audit all existing files — new files
   must be written correctly from the start to reduce that audit scope
+
+### App Launcher Rules (Item 1.15)
+
+- AppLauncherModal shortcut: Ctrl+. (Ctrl+K already used by Global Search)
+- ICON_MAP in AppLauncherModal and QuickLinksTab must be kept in sync — add new icons to both files
+- quickLinks (role-filtered) and allQuickLinks (all) both shared via HandleInertiaRequests globally
+- Quick Links tab in Settings uses id: 'quick-links' — must match TABS array in Settings/Index.tsx
+- Sidebar "Home" entry in Dashboards group → backend.quick-links.index

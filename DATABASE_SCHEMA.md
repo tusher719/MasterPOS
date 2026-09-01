@@ -814,6 +814,22 @@ Indexes: task_id, status
 | product_planning_tasks | status | pending, in_progress, done, cancelled |
 | product_planning_task_items | status | pending, ready, cancelled |
 
+### Sprint 5 — Quick Links (Item 1.15)
+
+### quick_links
+
+id, label (varchar), icon (varchar — lucide-react icon name e.g. "Package"),
+route_name (varchar — Laravel named route e.g. "backend.products.index"),
+sort_order (smallint unsigned default 0),
+is_active (bool default true),
+visible_to_roles (JSON nullable — null = visible to everyone),
+timestamps
+
+Note: QuickLink::scopeActive() orders by sort_order.
+Note: isVisibleToRoles(array $roleNames) returns true when visible_to_roles is null (everyone).
+Note: quickLinks prop in HandleInertiaRequests = role-filtered active links for AppLauncherModal.
+Note: allQuickLinks prop = all links ordered by sort_order for Settings QuickLinksTab.
+
 ### 6. Enum Reference — add rows
 
 | fraud_flags | reason | no_answer, refused_delivery, multiple_returns, fake_order, failed_validation, ip_limit_exceeded, low_success_ratio, other |

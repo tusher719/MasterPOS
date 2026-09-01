@@ -50,6 +50,7 @@ use App\Http\Controllers\Backend\UnitController;
 use App\Http\Controllers\Backend\UserPreferenceController;
 use App\Http\Controllers\Backend\InventoryDashboardController;
 use App\Http\Controllers\Backend\InvestmentDashboardController;
+use App\Http\Controllers\Backend\QuickLinkController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -662,6 +663,18 @@ Route::middleware(['auth', 'verified'])
 
         // ── Sprint 5 — Global Search ──────────────────────────────────────────────
         Route::get('search', [GlobalSearchController::class, 'search'])->name('search');
+
+        // ── Sprint 5 — Quick Links ────────────────────────────────────────────────
+        // reorder + nav declared BEFORE wildcard {quickLink} to prevent swallowing
+        Route::prefix('quick-links')->name('quick-links.')->group(function () {
+            Route::get('/nav',        [QuickLinkController::class, 'nav'])->name('nav');
+            Route::post('/reorder',   [QuickLinkController::class, 'reorder'])->name('reorder');
+            Route::get('/',           [QuickLinkController::class, 'index'])->name('index');
+            Route::post('/',          [QuickLinkController::class, 'store'])->name('store');
+            Route::put('/{quickLink}',[QuickLinkController::class, 'update'])->name('update');
+            Route::delete('/{quickLink}', [QuickLinkController::class, 'destroy'])->name('destroy');
+        });
+
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint
         // Paste this INSIDE the backend auth middleware group, before resource routes.

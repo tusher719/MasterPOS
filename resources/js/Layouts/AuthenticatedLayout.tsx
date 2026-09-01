@@ -1,5 +1,6 @@
 // resources/js/Layouts/AuthenticatedLayout.tsx
 
+import { AppLauncherModal } from "@/Components/AppLauncher";
 import { GlobalSearchModal } from "@/Components/GlobalSearch";
 import ThemeProvider from "@/Components/ThemeProvider";
 import useFlashToast from "@/hooks/useFlashToast";
@@ -20,6 +21,7 @@ import {
     CreditCard,
     FileText,
     Gauge,
+    Grid2x2,
     History,
     Landmark,
     LayoutDashboard,
@@ -104,6 +106,12 @@ const NAV_ITEMS: NavItem[] = [
         label: "Dashboards",
         icon: LayoutDashboard,
         children: [
+            {
+                label: "Home",
+                icon: Grid2x2,
+                href: "backend.quick-links.index",
+                active: "backend.quick-links.*",
+            },
             {
                 label: "Overview",
                 icon: Gauge,
@@ -878,6 +886,7 @@ function InnerLayout({ children }: PropsWithChildren) {
 
     const [collapsed, setCollapsed] = useState(ui.sidebar_collapsed ?? false);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [launcherOpen, setLauncherOpen] = useState(false);
 
     // Ctrl+K / Cmd+K — open global search from anywhere
     const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
@@ -887,6 +896,10 @@ function InnerLayout({ children }: PropsWithChildren) {
             if ((e.ctrlKey || e.metaKey) && e.key === "k") {
                 e.preventDefault();
                 handleSearchOpen();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === ".") {
+                e.preventDefault();
+                setLauncherOpen(true);
             }
         };
         document.addEventListener("keydown", handler);
@@ -1018,25 +1031,36 @@ function InnerLayout({ children }: PropsWithChildren) {
             <div className="flex flex-1 flex-col overflow-hidden">
                 {/* Navbar */}
                 <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
-                    {/* Search trigger button — left side of navbar */}
-                    <button
-                        onClick={handleSearchOpen}
-                        className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground
+                    <div className="flex items-center gap-2">
+                        {/* App Launcher button */}
+                        <button
+                            onClick={() => setLauncherOpen(true)}
+                            className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                            title="Quick Links (Ctrl+.)"
+                        >
+                            <Grid2x2 size={20} />
+                        </button>
+
+                        {/* Search trigger button */}
+                        <button
+                            onClick={handleSearchOpen}
+                            className="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground
                             w-[180px] sm:w-[240px] md:w-[320px] lg:w-[400px]"
-                    >
-                        <Search size={15} />
-                        <span className="flex-1 text-left hidden sm:block">
-                            Search...
-                        </span>
-                        <span className="hidden items-center gap-0.5 sm:flex ml-auto">
-                            <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
-                                <Command size={9} className="inline" />
-                            </kbd>
-                            <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
-                                K
-                            </kbd>
-                        </span>
-                    </button>
+                        >
+                            <Search size={15} />
+                            <span className="flex-1 text-left hidden sm:block">
+                                Search...
+                            </span>
+                            <span className="hidden items-center gap-0.5 sm:flex ml-auto">
+                                <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+                                    <Command size={9} className="inline" />
+                                </kbd>
+                                <kbd className="rounded border border-border bg-card px-1.5 py-0.5 text-[10px]">
+                                    K
+                                </kbd>
+                            </span>
+                        </button>
+                    </div>
 
                     <div className="flex items-center gap-3">
                         <NotificationBell />
@@ -1053,6 +1077,10 @@ function InnerLayout({ children }: PropsWithChildren) {
                 <GlobalSearchModal
                     isOpen={searchOpen}
                     onClose={() => setSearchOpen(false)}
+                />
+                <AppLauncherModal
+                    isOpen={launcherOpen}
+                    onClose={() => setLauncherOpen(false)}
                 />
             </div>
         </div>

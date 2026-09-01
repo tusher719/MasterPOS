@@ -29,6 +29,7 @@ use App\Models\ProductPlanningTask;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
 use App\Models\Purchase;
+use App\Models\QuickLink;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
@@ -56,6 +57,7 @@ use App\Policies\ProductCategoryPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
+use App\Policies\QuickLinkPolicy;
 use App\Policies\SalePolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\SupplierPolicy;
@@ -152,5 +154,8 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Sprint 4 — Product Planning Tasks ───────────────────────────────────
         Gate::policy(ProductPlanningTask::class, ProductCategoryPolicy::class);
+
+        // ─── Sprint 5 — Quick Links ───────────────────────────────────────────────
+        Gate::policy(QuickLink::class, QuickLinkPolicy::class);
     }
 }

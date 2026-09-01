@@ -2,6 +2,110 @@
 
 ---
 
+## [v2.51 — Item 1.15] — App Launcher Popup (Quick Links Grid) — 2026-09-01
+
+### New Migration (1)
+
+- `2026_08_31_151252_create_quick_links_table.php`:
+  quick_links table: id, label, icon (lucide-react name), route_name,
+  sort_order (smallint unsigned default 0), is_active (bool default true),
+  visible_to_roles (JSON nullable), timestamps;
+  7 default rows seeded: Products, Customers, Sales History, Investments,
+  Reports, Notifications, Expenses
+
+### New Files (9)
+
+- `app/Models/QuickLink.php`:
+  scopeActive() — active links ordered by sort_order;
+  isVisibleToRoles(array $roleNames) — null visible_to_roles = everyone;
+  routeExists() — Route::has() guard
+
+- `app/Policies/QuickLinkPolicy.php`:
+  viewAny/create/edit/delete — no model parameter (Rule 3);
+  delete() reuses edit permission
+
+- `database/seeders/QuickLinkSeeder.php`:
+  quick_link.view/create/edit permissions;
+  Admin all 3; Staff + Moderator view only
+
+- `app/Http/Controllers/Backend/QuickLinkController.php`:
+  nav() — JSON endpoint for AppLauncherModal (role-filtered active links);
+  index() — View All page with search filter;
+  store/update/destroy — CRUD;
+  reorder() — bulk sort_order update via window.axios.post()
+
+- `resources/js/Components/AppLauncher/AppLauncherModal.tsx`:
+  ICON_MAP registry (21 icons); 3-col grid of LinkTile components;
+  search filter input; View All button → backend.quick-links.index;
+  Ctrl+. shortcut hint in footer; backdrop click closes; z-[90];
+  reads quickLinks from usePage().props (globally shared)
+
+- `resources/js/Components/AppLauncher/index.ts`:
+  Barrel export for AppLauncherModal
+
+- `resources/js/Pages/Backend/QuickLinks/Index.tsx`:
+  View All page — active/inactive sections; responsive grid cols-2→6;
+  "Manage in Settings" button for editors; search bar with router.get;
+  inactive links shown only to editors; empty state with Add button
+
+- `resources/js/Pages/Backend/Settings/_components/QuickLinksTab.tsx`:
+  LinkForm with IconPicker dropdown (21 icons, 5-col grid);
+  LinkRow with ChevronUp/Down reorder buttons;
+  inline edit form renders below the row being edited;
+  optimistic reorder: local state update + window.axios.post(reorder);
+  Add Link button at top; View All link at bottom
+
+- `app/Http/Middleware/HandleInertiaRequests.php`:
+  quickLinks: role-filtered active links array (for AppLauncherModal);
+  allQuickLinks: all links ordered by sort_order (for QuickLinksTab);
+  both use lazy fn() evaluation
+
+### Updated Files (5)
+
+- `routes/web.php`:
+  QuickLinkController import added;
+  quick-links prefix group: nav + reorder BEFORE wildcard {quickLink};
+  routes: GET nav, POST reorder, GET index, POST store, PUT update, DELETE destroy
+
+- `app/Providers/AppServiceProvider.php`:
+  QuickLink + QuickLinkPolicy imports added;
+  Gate::policy(QuickLink::class, QuickLinkPolicy::class) registered under Sprint 5 block
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  AppLauncherModal import added from @/Components/AppLauncher;
+  Grid2x2 icon imported from lucide-react;
+  launcherOpen state added;
+  Ctrl+. keyboard listener added alongside existing Ctrl+K listener;
+  Grid2x2 launcher button added to navbar left (before search bar);
+  search bar + launcher button wrapped in flex div;
+  AppLauncherModal rendered alongside GlobalSearchModal at bottom of layout
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  QuickLinksTab import added;
+  Grid2x2 icon imported from lucide-react;
+  TABS array: { id: 'quick-links', label: 'Quick Links', icon: Grid2x2 } added;
+  TabId type auto-includes 'quick-links' via typeof TABS inference;
+  {activeTab === 'quick-links' && <QuickLinksTab />} added to content panel
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx` (NAV_ITEMS):
+  Dashboards group: "Home" child added as first item
+  (label: 'Home', icon: Grid2x2, href: 'backend.quick-links.index',
+  active: 'backend.quick-links.\*')
+
+### Business Rules Established
+
+- quickLinks prop (HandleInertiaRequests) = role-filtered active links — never all links
+- allQuickLinks prop = all links (active + inactive) — only used in Settings QuickLinksTab
+- visible_to_roles = null means link is visible to everyone — never empty array
+- Reorder is optimistic: local state updates immediately, backend syncs async
+- ICON_MAP must be identical in AppLauncherModal and QuickLinksTab — add to both when adding new icons
+- AppLauncher z-index: z-[90] — below GlobalSearch (z-[100]) but above page content
+- Ctrl+. shortcut: AppLauncher (Ctrl+K already used by GlobalSearch)
+- Settings tab id must be 'quick-links' — matches URL param ?tab=quick-links pattern
+- QuickLinkController.reorder() endpoint: POST /backend/quick-links/reorder (declared BEFORE {quickLink} wildcard)
+
+---
+
 ## [v2.50 — Item 1.14] — Fallback / 404 Pages — 2026-08-31
 
 ### New Files (3)

@@ -1,11 +1,13 @@
 import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import ThemeTab from "@/Pages/Backend/Settings/_components/ThemeTab";
+import QuickLinksTab from "@/Pages/Backend/Settings/_components/QuickLinksTab";
 import { Head, useForm } from "@inertiajs/react";
 import {
     Bell,
     Building2,
     DollarSign,
+    Grid2X2,
     Info,
     Monitor,
     Palette,
@@ -55,6 +57,7 @@ const TABS = [
     { id: "tax", label: "Tax & Billing", icon: Receipt },
     { id: "notification", label: "Notifications", icon: Bell },
     { id: "theme", label: "My Theme", icon: Palette },
+    { id: "quick-links", label: "Quick Links", icon: Grid2X2 },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -177,6 +180,7 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                             <NotificationTab settings={settings} />
                         )}
                         {activeTab === "theme" && <ThemeTab />}
+                        {activeTab === "quick-links" && <QuickLinksTab />}
                     </div>
                 </div>
             </div>
