@@ -184,7 +184,7 @@ UI (grid of icons with labels):
 
 ---
 
-### 1.16 System Status Pages (Should Fix)
+### 1.16 System Status Pages | ✅ Done |
 
 ```
 business_settings additions:

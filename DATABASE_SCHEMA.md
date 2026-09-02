@@ -253,6 +253,13 @@ Note: logo_image_path is the canonical key for navbar rendering.
 business_logo key kept for PDF backward compat (public_path() in Blade templates).
 logo_type='both' renders image + text side by side in navbar.
 
+### business_settings additions (Item 1.16)
+
+maintenance_mode_enabled (bool stored as string 'true'/'false' default 'false')
+maintenance_message (text — shown on maintenance page)
+coming_soon_mode_enabled (bool stored as string 'true'/'false' default 'false')
+coming_soon_message (text — shown on coming soon page)
+
 ---
 
 ## Step 09 — Sales

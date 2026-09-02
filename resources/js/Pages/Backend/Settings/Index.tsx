@@ -2,8 +2,10 @@ import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import ThemeTab from "@/Pages/Backend/Settings/_components/ThemeTab";
 import QuickLinksTab from "@/Pages/Backend/Settings/_components/QuickLinksTab";
+import SystemStatusTab from "@/Pages/Backend/Settings/_components/SystemStatusTab";
 import { Head, useForm } from "@inertiajs/react";
 import {
+    AlertTriangle,
     Bell,
     Building2,
     DollarSign,
@@ -48,6 +50,7 @@ interface Props {
         currency?: SettingsGroup;
         tax?: SettingsGroup;
         notification?: SettingsGroup;
+        system?: SettingsGroup;
     };
 }
 
@@ -58,6 +61,7 @@ const TABS = [
     { id: "notification", label: "Notifications", icon: Bell },
     { id: "theme", label: "My Theme", icon: Palette },
     { id: "quick-links", label: "Quick Links", icon: Grid2X2 },
+    { id: "system-status", label: "System Status", icon: AlertTriangle },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -181,6 +185,9 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         )}
                         {activeTab === "theme" && <ThemeTab />}
                         {activeTab === "quick-links" && <QuickLinksTab />}
+                        {activeTab === "system-status" && (
+                            <SystemStatusTab settings={settings} />
+                        )}
                     </div>
                 </div>
             </div>

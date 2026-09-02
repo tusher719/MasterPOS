@@ -2,6 +2,100 @@
 
 ---
 
+## [v2.52 — Item 1.16] — System Status Pages — 2026-09-01
+
+### New Migration (1)
+
+- `2026_09_01_000001_seed_system_status_settings.php`:
+  4 business_settings keys seeded: maintenance_mode_enabled (default 'false'),
+  maintenance_message, coming_soon_mode_enabled (default 'false'), coming_soon_message;
+  updateOrInsert() pattern — safe to run on existing installs
+
+### New Files (6)
+
+- `app/Http/Middleware/CheckMaintenanceMode.php`:
+  Reads maintenance_mode_enabled from SettingsService cache;
+  Super Admin (hasRole('Admin')) always bypasses;
+  JSON requests → 503 JSON response;
+  All others → Inertia::render('Maintenance/MaintenancePage') HTTP 503
+
+- `app/Http/Middleware/CheckComingSoon.php`:
+  Reads coming_soon_mode_enabled from SettingsService cache;
+  JSON requests → 503 JSON response;
+  All others → Inertia::render('Maintenance/ComingSoonPage') HTTP 503;
+  Not applied to any route yet — will be applied to storefront group in Sprint 8
+
+- `resources/js/Pages/Maintenance/MaintenancePage.tsx`:
+  Standalone public page (no AuthenticatedLayout, no auth required);
+  Amber color scheme, spinning Settings icon, Bengali subtitle;
+  Shows maintenance_message from props;
+  "Go to Admin Login" link → /login
+
+- `resources/js/Pages/Maintenance/ComingSoonPage.tsx`:
+  Standalone public page;
+  Indigo gradient bg, Sparkles icon, bouncing dots animation;
+  Shows coming_soon_message from props
+
+- `resources/js/Pages/Error/ServerError.tsx`:
+  Branded 500 error page — surface prop determines layout;
+  backend/pos → AuthenticatedLayout with "Back to Dashboard" + "Try Again";
+  public → standalone page with "Back to Home" + "Try Again";
+  AlertOctagon icon, red color scheme
+
+- `resources/js/Components/OfflineOverlay.tsx`:
+  Fixed bottom banner — amber styling, WifiOff icon;
+  navigator.onLine + window offline/online event listeners;
+  Dismissable (per-session state); auto-shows again on next offline event;
+  Mounted at AuthenticatedLayout level — covers all backend/POS pages
+
+- `resources/js/Pages/Backend/Settings/_components/SystemStatusTab.tsx`:
+  Two sections: Maintenance Mode + Coming Soon Mode;
+  Toggle + message textarea per section;
+  Maintenance toggle uses amber color (visual warning);
+  Active maintenance warning banner shown when enabled;
+  Saves via window.axios.post() → backend.settings.update (group: system);
+  Page reloads after 600ms to refresh SettingsService cache
+
+### Updated Files (5)
+
+- `bootstrap/app.php`:
+  500 handler added after MethodNotAllowedHttpException handler;
+  Catches \Throwable with status >= 500;
+  JSON requests bypass — default Laravel behavior preserved;
+  Renders Error/ServerError with surface prop
+
+- `bootstrap/app.php` (withMiddleware):
+  middleware->alias() block added:
+  'maintenance' → CheckMaintenanceMode::class;
+  'coming.soon' → CheckComingSoon::class
+
+- `routes/web.php`:
+  backend route group middleware updated:
+  ['auth', 'verified'] → ['auth', 'verified', 'maintenance']
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  OfflineOverlay import added;
+  <OfflineOverlay /> rendered after AppLauncherModal inside InnerLayout
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  SystemStatusTab import added;
+  AlertTriangle icon imported;
+  TABS array: { id: 'system-status', label: 'System Status', icon: AlertTriangle } added;
+  Props interface: system?: SettingsGroup added to pageSettings;
+  {activeTab === 'system-status' && <SystemStatusTab settings={settings} />} added
+
+### Business Rules Established
+
+- maintenance_mode_enabled controls backend + POS access — Super Admin always bypasses
+- coming_soon_mode_enabled controls storefront only — backend/POS completely unaffected
+- Both middleware use SettingsService cache — zero DB query overhead per request
+- BusinessSettingObserver auto-invalidates cache on save — no manual cache:clear needed
+- 500 error pages surface-aware: backend surface uses AuthenticatedLayout, public uses standalone
+- OfflineOverlay is client-side only — no server involvement, no backend changes needed
+- String 'true'/'false' storage pattern consistent with existing boolean settings in business_settings
+
+---
+
 ## [v2.51 — Item 1.15] — App Launcher Popup (Quick Links Grid) — 2026-09-01
 
 ### New Migration (1)

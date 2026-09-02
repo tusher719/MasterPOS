@@ -746,3 +746,37 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 8. Unsaved changes show amber banner with Discard + Save
 9. Toast: "Theme preferences saved successfully." on save
 10. Reset: axios.post() to theme.reset endpoint → toast
+
+## 31. System Status Rules (Item 1.16)
+
+### Maintenance Mode
+
+- `maintenance_mode_enabled = true` → all backend and POS routes show MaintenancePage (HTTP 503)
+- Super Admin (role: 'Admin') always bypasses maintenance mode — never locked out
+- Non-Admin authenticated staff see maintenance page immediately on next request
+- JSON/API requests return `{"message": "Service Unavailable"}` HTTP 503 — no Inertia page
+- Controlled via Settings → System Status tab (admin only)
+- `CheckMaintenanceMode` middleware applied to backend route group only
+
+### Coming Soon Mode
+
+- `coming_soon_mode_enabled = true` → public website (storefront) shows ComingSoonPage (HTTP 503)
+- Backend and POS routes are completely unaffected
+- `CheckComingSoon` middleware will be applied to storefront routes in Sprint 8
+- Middleware is registered and ready — no code change needed when storefront arrives
+
+### 500 Error Page
+
+- Any unhandled server exception (5xx) renders `Error/ServerError` branded page
+- Surface detection: `/backend/pos/*` → pos, `/backend/*` → backend, else → public
+- Backend/POS surface: uses AuthenticatedLayout
+- Public surface: standalone page, no auth required
+- JSON requests bypass branded page — default Laravel JSON error handling preserved
+
+### Offline Overlay
+
+- `OfflineOverlay` component lives in `AuthenticatedLayout` — active on all backend/POS pages
+- Uses `navigator.onLine` + `window.addEventListener('offline'/'online')` — no backend involvement
+- Bottom banner: amber styling, dismissable per session (dismissed state resets on reconnect)
+- When connection restores, overlay auto-hides
+- Public storefront offline handling deferred to Sprint 8 (storefront layout)

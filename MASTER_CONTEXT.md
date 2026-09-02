@@ -21,7 +21,7 @@
 ## Project Identity
 
 - **Name:** Master Business Suite
-- **Version:** v2.33
+- **Version:** v2.52
 - **Path:** D:/xampp/htdocs/Laravel_12/MasterPOS
 - **Environment:** Windows 10, XAMPP, Git Bash
 
@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.14 — Fallback / 404 Pages ✅
-- Next Item: Item 1.15 — App Launcher Popup (Quick Links)
+- Last Completed: Item 1.16 — System Status Pages ✅
+- Next Item: Item 1.17 — Privacy Policy & Terms Pages
 
 ## Financial Domain Overview
 
@@ -135,6 +135,8 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.10        | Audit Trail Viewer UI                               | ✅     |
 | 1.11        | PDF/Print Branding                                  | ✅     |
 | 1.14        | Fallback / 404 Pages (3 surfaces)                   | ✅     |
+| 1.15        | App Launcher Popup (Quick Links)                    | ✅     |
+| 1.16        | System Status Pages                                 | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -148,20 +150,17 @@ Current Sprint: Sprint 5 — Admin Polish
 
 ### Sprint 5 — Admin Polish
 
-| #    | Item                              | Priority     |
-| ---- | --------------------------------- | ------------ |
-| 1.14 | Fallback / 404 Pages (3 surfaces) | Should Fix   |
-| 1.15 | App Launcher Popup (Quick Links)  | Nice to Have |
-| 1.16 | System Status Pages               | Should Fix   |
-| 1.17 | Privacy Policy & Terms Pages      | Should Fix   |
-| 1.18 | Dynamic Navbar Badges             | Nice to Have |
-| 1.19 | Nested/Collapsible Navigation     | Nice to Have |
-| 1.20 | Dark Mode (two separate toggles)  | Should Fix   |
-| 1.21 | Universal Image Upload Preview    | Should Fix   |
-| 2.1  | Staff Email Verification Banner   | Must Fix     |
-| 2.2  | Default Role Assignment           | Must Fix     |
-| 2.3  | Optional 2FA                      | Nice to Have |
-| 1.4  | Global Trash Bin Page             | Should Fix   |
+| #    | Item                             | Priority     |
+| ---- | -------------------------------- | ------------ |
+| 1.17 | Privacy Policy & Terms Pages     | Should Fix   |
+| 1.18 | Dynamic Navbar Badges            | Nice to Have |
+| 1.19 | Nested/Collapsible Navigation    | Nice to Have |
+| 1.20 | Dark Mode (two separate toggles) | Should Fix   |
+| 1.21 | Universal Image Upload Preview   | Should Fix   |
+| 2.1  | Staff Email Verification Banner  | Must Fix     |
+| 2.2  | Default Role Assignment          | Must Fix     |
+| 2.3  | Optional 2FA                     | Nice to Have |
+| 1.4  | Global Trash Bin Page            | Should Fix   |
 
 ### Sprint 6 — Product/Inventory Extras
 

@@ -15,12 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \App\Http\Middleware\SecurityHeaders::class,
-            \App\Http\Middleware\ValidateSortColumn::class,
-            \App\Http\Middleware\UpdateLastSeen::class,
-        ]);
+    $middleware->web(append: [
+        \App\Http\Middleware\HandleInertiaRequests::class,
+        \App\Http\Middleware\SecurityHeaders::class,
+        \App\Http\Middleware\ValidateSortColumn::class,
+        \App\Http\Middleware\UpdateLastSeen::class,
+    ]);
+
+    // Route middleware aliases — applied selectively per route group
+    $middleware->alias([
+        'maintenance' => \App\Http\Middleware\CheckMaintenanceMode::class,
+        'coming.soon' => \App\Http\Middleware\CheckComingSoon::class,
+    ]);
 
         $middleware->validateCsrfTokens(except: [
             // No exemptions — POS sales use Inertia (auto CSRF), not raw axios
@@ -67,6 +73,20 @@ return Application::configure(basePath: dirname(__DIR__))
             return Inertia::render('Error/NotFound', ['surface' => $surface])
                 ->toResponse($request)
                 ->setStatusCode(405);
+        });
+
+        // 500 — Internal Server Error (and other unhandled exceptions)
+        $exceptions->render(function (\Throwable $e, Request $request) use ($resolveSurface) {
+            // Only handle 500-level errors — let Laravel handle the rest normally
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            if ($status < 500) return null;
+            if ($request->expectsJson()) return null;
+
+            $surface = $resolveSurface($request->getPathInfo());
+
+            return Inertia::render('Error/ServerError', ['surface' => $surface])
+                ->toResponse($request)
+                ->setStatusCode($status);
         });
 
     })->create();

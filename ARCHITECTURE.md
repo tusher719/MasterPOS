@@ -506,3 +506,33 @@ App
 - Inter Variable: @fontsource-variable/inter (bundled)
 - Others: Google Fonts CDN, dynamically injected <link> tags
 - loadGoogleFont() checks document.getElementById() before inject
+
+## 15. System Status Architecture (Item 1.16)
+
+### Middleware-Based Status Control
+
+Two middleware classes handle system status:
+
+- `CheckMaintenanceMode` — applied to backend route group; reads `maintenance_mode_enabled` from SettingsService cache; Super Admin role bypasses via `hasRole('Admin')` check
+- `CheckComingSoon` — registered and aliased but not yet applied to any route group; will be applied to storefront routes in Sprint 8
+
+Both middleware use `SettingsService::all()` (cache-backed) — no DB query on every request.
+
+### Why Middleware Instead of Global Middleware
+
+Global middleware (applied to all requests) would affect JSON/API routes and could interfere with auth flows. Route-group-level middleware allows surgical application:
+
+- Maintenance: backend group only → staff locked out, admin passes through
+- Coming Soon: storefront group only → backend/POS completely unaffected
+
+### Surface Detection Pattern
+
+The same `$resolveSurface()` helper (introduced in Item 1.14 for 404 pages) is reused for 500 error pages. Pattern: URL prefix matching, `/backend/pos` checked before `/backend`.
+
+### Offline Detection
+
+Client-side only — `navigator.onLine` API + window events. No server involvement. `OfflineOverlay` mounted at `AuthenticatedLayout` level so it covers all backend/POS pages without being added to individual pages.
+
+### Settings Storage
+
+Status flags stored as string `'true'`/`'false'` in `business_settings` (consistent with existing boolean settings like `tax_enabled`, `notify_on_sale`). SettingsService cache is invalidated automatically via `BusinessSettingObserver` on every save — no manual cache:clear needed after toggle.

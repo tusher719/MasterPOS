@@ -65,7 +65,7 @@ Route::get('/', function () {
     ]);
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'maintenance'])->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/dashboard/sales/data',       [SalesDashboardController::class,      'data'])->name('dashboard.sales.data');
     Route::get('/dashboard/inventory/data',   [InventoryDashboardController::class,  'data'])->name('dashboard.inventory.data');
@@ -78,7 +78,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'maintenance'])
     ->prefix('backend')
     ->name('backend.')
     ->group(function () {

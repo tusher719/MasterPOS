@@ -2,6 +2,7 @@
 
 import { AppLauncherModal } from "@/Components/AppLauncher";
 import { GlobalSearchModal } from "@/Components/GlobalSearch";
+import OfflineOverlay from "@/Components/OfflineOverlay";
 import ThemeProvider from "@/Components/ThemeProvider";
 import useFlashToast from "@/hooks/useFlashToast";
 import { useTheme } from "@/hooks/useTheme";
@@ -1082,6 +1083,7 @@ function InnerLayout({ children }: PropsWithChildren) {
                     isOpen={launcherOpen}
                     onClose={() => setLauncherOpen(false)}
                 />
+                <OfflineOverlay />
             </div>
         </div>
     );
