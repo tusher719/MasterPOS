@@ -17,6 +17,7 @@ use App\Models\Investment;
 use App\Models\InvestmentFundUsage;
 use App\Models\InvestmentType;
 use App\Models\InvestorProfitBalance;
+use App\Models\LegalPage;
 use App\Models\OrderTask;
 use App\Models\Partner;
 use App\Models\PartnerProductAssignment;
@@ -44,6 +45,7 @@ use App\Policies\InvestmentPolicy;
 use App\Policies\InvestmentTypePolicy;
 use App\Policies\InvestorProfitBalancePolicy;
 use App\Policies\InvoicePolicy;
+use App\Policies\LegalPagePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\OrderTaskPolicy;
 use App\Policies\PartnerEligibilityPolicy;
@@ -157,5 +159,7 @@ class AppServiceProvider extends ServiceProvider
 
         // ─── Sprint 5 — Quick Links ───────────────────────────────────────────────
         Gate::policy(QuickLink::class, QuickLinkPolicy::class);
+
+        Gate::policy(LegalPage::class, LegalPagePolicy::class);
     }
 }

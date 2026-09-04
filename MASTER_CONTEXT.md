@@ -21,7 +21,7 @@
 ## Project Identity
 
 - **Name:** Master Business Suite
-- **Version:** v2.52
+- **Version:** v2.53
 - **Path:** D:/xampp/htdocs/Laravel_12/MasterPOS
 - **Environment:** Windows 10, XAMPP, Git Bash
 
@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.16 — System Status Pages ✅
-- Next Item: Item 1.17 — Privacy Policy & Terms Pages
+- Last Completed: Item 1.17 — Privacy Policy & Terms Pages ✅
+- Next Item: Item 1.18 — Dynamic Navbar Badges
 
 ## Financial Domain Overview
 
@@ -137,6 +137,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.14        | Fallback / 404 Pages (3 surfaces)                   | ✅     |
 | 1.15        | App Launcher Popup (Quick Links)                    | ✅     |
 | 1.16        | System Status Pages                                 | ✅     |
+| 1.17        | Privacy Policy & Terms Pages                        | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -152,7 +153,6 @@ Current Sprint: Sprint 5 — Admin Polish
 
 | #    | Item                             | Priority     |
 | ---- | -------------------------------- | ------------ |
-| 1.17 | Privacy Policy & Terms Pages     | Should Fix   |
 | 1.18 | Dynamic Navbar Badges            | Nice to Have |
 | 1.19 | Nested/Collapsible Navigation    | Nice to Have |
 | 1.20 | Dark Mode (two separate toggles) | Should Fix   |

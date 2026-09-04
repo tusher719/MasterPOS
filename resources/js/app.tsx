@@ -1,26 +1,17 @@
-import "../css/app.css";
-import "./bootstrap";
-
 import { createInertiaApp } from "@inertiajs/react";
 import { MantineProvider } from "@mantine/core";
 
-import "@mantine/carousel/styles.css";
-import "@mantine/code-highlight/styles.css";
-import "@mantine/core/styles.css";
-import "@mantine/dates/styles.css";
-import "@mantine/dropzone/styles.css";
-import "@mantine/nprogress/styles.css";
-
-// After — MantineProvider defaultColorScheme change করো:
 import "../css/app.css";
 import "./bootstrap";
 
 import "@mantine/carousel/styles.css";
+import "@mantine/charts/styles.css";
 import "@mantine/code-highlight/styles.css";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/dropzone/styles.css";
 import "@mantine/nprogress/styles.css";
+import "@mantine/tiptap/styles.css";
 
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";

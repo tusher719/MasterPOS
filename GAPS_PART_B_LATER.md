@@ -203,22 +203,26 @@ business_settings additions:
 
 ---
 
-### 1.17 Privacy Policy & Terms Pages (Should Fix)
+### 1.17 Privacy Policy & Terms Pages | ✅ Done |
 
-```
 legal_pages: id,
-  type (enum: privacy_policy/terms_conditions),
-  title (varchar),
-  content (rich text — @mantine/tiptap),
-  is_visible (bool default false),
-  updated_by (FK users),
-  updated_at (timestamp),
-  timestamps
-```
+type (enum: privacy_policy/terms_conditions UNIQUE),
+title (varchar),
+content (longText nullable — raw HTML from @mantine/tiptap),
+is_visible (bool default false),
+updated_by (FK users nullable nullOnDelete),
+timestamps
 
-- Admin edits from Settings sub-page
-- is_visible toggle controls footer link + public route
-- Hidden pages return 404 overlay if visited directly
+- Two rows seeded at migration — no create/delete flow
+- Admin edits from Settings → Privacy & Terms tab
+- is_visible toggle controls public route visibility
+- Hidden pages return HTTP 404 — same as non-existent page
+- Public routes: GET /privacy-policy, GET /terms-conditions (outside auth group)
+- Packages: @tiptap/extension-color@3.27.3, @tiptap/extension-text-style@3.27.3
+- RichTextEditor: shouldRerenderOnTransaction:true, StarterKit.configure({link:false}), ColorPicker
+- No sticky toolbar — Settings col-span-3 layout incompatible
+- Legal/Show.tsx: standalone public page, no AuthenticatedLayout, dangerouslySetInnerHTML
+- @tailwindcss/typography installed for prose classes on public page
 
 ---
 

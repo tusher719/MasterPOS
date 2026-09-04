@@ -51,6 +51,7 @@ use App\Http\Controllers\Backend\UserPreferenceController;
 use App\Http\Controllers\Backend\InventoryDashboardController;
 use App\Http\Controllers\Backend\InvestmentDashboardController;
 use App\Http\Controllers\Backend\QuickLinkController;
+use App\Http\Controllers\Backend\LegalPageController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -675,6 +676,13 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             Route::delete('/{quickLink}', [QuickLinkController::class, 'destroy'])->name('destroy');
         });
 
+        // Legal Pages (Settings → Privacy & Terms tab)
+        Route::prefix('legal-pages')->name('legal-pages.')->group(function () {
+            Route::get('/', [LegalPageController::class, 'index'])->name('index');
+            Route::put('/{legalPage}', [LegalPageController::class, 'update'])->name('update');
+            Route::patch('/{legalPage}/toggle-visibility', [LegalPageController::class, 'toggleVisibility'])->name('toggle-visibility');
+        });
+
         // ─────────────────────────────────────────────────────────────────────────────
         // Item 1.5 — Delete Preview endpoint
         // Paste this INSIDE the backend auth middleware group, before resource routes.
@@ -689,6 +697,14 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             ])
             ->whereNumber('id');
     });
+    // Public legal pages — no auth required
+    Route::get('/privacy-policy', [LegalPageController::class, 'show'])
+        ->defaults('slug', 'privacy-policy')
+        ->name('legal.privacy-policy');
+
+    Route::get('/terms-conditions', [LegalPageController::class, 'show'])
+        ->defaults('slug', 'terms-conditions')
+        ->name('legal.terms-conditions');
 
 
 

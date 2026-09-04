@@ -1,14 +1,15 @@
 import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import ThemeTab from "@/Pages/Backend/Settings/_components/ThemeTab";
 import QuickLinksTab from "@/Pages/Backend/Settings/_components/QuickLinksTab";
 import SystemStatusTab from "@/Pages/Backend/Settings/_components/SystemStatusTab";
-import { Head, useForm } from "@inertiajs/react";
+import ThemeTab from "@/Pages/Backend/Settings/_components/ThemeTab";
+import { Head, useForm, usePage } from "@inertiajs/react";
 import {
     AlertTriangle,
     Bell,
     Building2,
     DollarSign,
+    FileText,
     Grid2X2,
     Info,
     Monitor,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import LegalPagesTab from "./_components/LegalPagesTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SettingsGroup {
@@ -52,6 +54,9 @@ interface Props {
         notification?: SettingsGroup;
         system?: SettingsGroup;
     };
+    can: {
+        editLegalPages: boolean;
+    };
 }
 
 const TABS = [
@@ -62,6 +67,7 @@ const TABS = [
     { id: "theme", label: "My Theme", icon: Palette },
     { id: "quick-links", label: "Quick Links", icon: Grid2X2 },
     { id: "system-status", label: "System Status", icon: AlertTriangle },
+    { id: "privacy-terms", label: "Privacy & Terms", icon: FileText },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -82,6 +88,8 @@ function parseSegments(raw: string | null | undefined): LogoTextSegment[] {
 
 export default function SettingsIndex({ pageSettings: settings }: Props) {
     useFlashToast();
+
+    const { can } = usePage().props as unknown as Props;
 
     // Check URL param ?tab=theme — from navbar user dropdown "My Theme" link
     const initialTab = (): TabId => {
@@ -187,6 +195,9 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         {activeTab === "quick-links" && <QuickLinksTab />}
                         {activeTab === "system-status" && (
                             <SystemStatusTab settings={settings} />
+                        )}
+                        {activeTab === "privacy-terms" && (
+                            <LegalPagesTab can={{ edit: can.editLegalPages }} />
                         )}
                     </div>
                 </div>
@@ -363,8 +374,6 @@ function SaveButton({
 }
 
 // ─── Navbar Logo Preview ──────────────────────────────────────────────────────
-/** Renders a miniature sidebar header so the admin can see exactly
- *  how the logo will look before saving. */
 function NavbarLogoPreview({
     logoType,
     logoImageUrl,
@@ -382,7 +391,6 @@ function NavbarLogoPreview({
                 Navbar preview:
             </span>
 
-            {/* Simulated sidebar header */}
             <div className="flex h-9 items-center rounded-md border border-border bg-card px-3 shadow-sm">
                 {logoType === "both" ? (
                     <div className="flex items-center gap-1.5">
@@ -432,11 +440,8 @@ function BusinessTab({ settings }: TabProps) {
     const b = settings.business ?? {};
     const logoInputRef = useRef<HTMLInputElement>(null);
 
-    // Resolve logo image URL — prefer new key, fall back to old key
     const resolveLogoUrl = () => {
-        // Controller builds a full URL for logo_image_path_url
         if (b.logo_image_path_url) return b.logo_image_path_url;
-        // Fallback: build from raw path
         if (b.logo_image_path) {
             return window.location.origin + "/storage/" + b.logo_image_path;
         }
@@ -448,7 +453,6 @@ function BusinessTab({ settings }: TabProps) {
         resolveLogoUrl(),
     );
 
-    // ── Logo type + segments form ──
     const [logoType, setLogoType] = useState<"image" | "text" | "both">(
         (b.logo_type as "image" | "text" | "both") ?? "text",
     );
@@ -456,12 +460,10 @@ function BusinessTab({ settings }: TabProps) {
         parseSegments(b.logo_text_segments),
     );
 
-    // logoStyleForm useForm লাইনটা সরাও — এর বদলে:
     const [logoStyleProcessing, setLogoStyleProcessing] = useState(false);
 
     const logoForm = useForm<{ logo: File | null }>({ logo: null });
 
-    // ── Business info form ──
     const form = useForm({
         group: "business",
         business_name: b.business_name ?? "",
@@ -470,7 +472,6 @@ function BusinessTab({ settings }: TabProps) {
         business_address: b.business_address ?? "",
     });
 
-    // ── Handlers ──
     const submit = () => {
         form.post(route("backend.settings.update"), {
             onSuccess: () => toast.success("Business info saved."),
@@ -491,8 +492,6 @@ function BusinessTab({ settings }: TabProps) {
         });
     };
 
-    // Save logo_type and logo_text_segments together
-    // submitLogoStyle replace করো:
     const submitLogoStyle = () => {
         const segmentsJson = JSON.stringify(segments);
         setLogoStyleProcessing(true);
@@ -505,7 +504,6 @@ function BusinessTab({ settings }: TabProps) {
             })
             .then(() => {
                 toast.success("Navbar logo style saved.");
-                // Reload after short delay so toast is visible before refresh
                 setTimeout(() => window.location.reload(), 800);
             })
             .catch(() => {
@@ -516,7 +514,6 @@ function BusinessTab({ settings }: TabProps) {
             });
     };
 
-    // ── Segment editor helpers ──
     const addSegment = () => {
         if (segments.length >= 5) return;
         setSegments([...segments, { text: "", color: "#4f46e5" }]);
@@ -541,7 +538,6 @@ function BusinessTab({ settings }: TabProps) {
 
     return (
         <div className="space-y-5">
-            {/* ── Logo Upload ───────────────────────────────────────────── */}
             <Section
                 title="Business Logo"
                 description="Displayed on invoices, receipts and reports."
@@ -604,13 +600,11 @@ function BusinessTab({ settings }: TabProps) {
                 </div>
             </Section>
 
-            {/* ── Navbar Logo Style ─────────────────────────────────────── */}
             <Section
                 title="Navbar Logo Style"
                 description="Choose how your logo appears in the sidebar navigation."
             >
                 <div className="space-y-5">
-                    {/* Live preview */}
                     <NavbarLogoPreview
                         logoType={logoType}
                         logoImageUrl={logoPreview}
@@ -618,7 +612,6 @@ function BusinessTab({ settings }: TabProps) {
                         businessName={form.data.business_name}
                     />
 
-                    {/* Type selector */}
                     <FormRow label="Display Type" required>
                         <div className="flex gap-2">
                             <button
@@ -660,7 +653,6 @@ function BusinessTab({ settings }: TabProps) {
                         </div>
                     </FormRow>
 
-                    {/* Image mode hint — shown for image and both modes */}
                     {(logoType === "image" || logoType === "both") && (
                         <div className="flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3">
                             <Info
@@ -675,7 +667,6 @@ function BusinessTab({ settings }: TabProps) {
                         </div>
                     )}
 
-                    {/* Text segment builder — shown for text and both modes */}
                     {(logoType === "text" || logoType === "both") && (
                         <FormRow
                             label="Text Segments"
@@ -752,7 +743,6 @@ function BusinessTab({ settings }: TabProps) {
                 </div>
             </Section>
 
-            {/* ── Business Information ──────────────────────────────────── */}
             <Section
                 title="Business Information"
                 description="Core details about your business."
@@ -845,10 +835,9 @@ function CurrencyTab({ settings }: TabProps) {
             description="Define how amounts are displayed throughout the system."
         >
             <div className="space-y-4">
-                {/* Live preview */}
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
                     <Info size={14} className="shrink-0 text-indigo-500" />
-                    <span className="text-sm text-muted-foreground ">
+                    <span className="text-sm text-muted-foreground">
                         Preview:{" "}
                         <strong className="text-foreground">{preview()}</strong>
                     </span>

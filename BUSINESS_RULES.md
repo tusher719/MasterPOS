@@ -780,3 +780,16 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Bottom banner: amber styling, dismissable per session (dismissed state resets on reconnect)
 - When connection restores, overlay auto-hides
 - Public storefront offline handling deferred to Sprint 8 (storefront layout)
+
+## 32. Legal Pages Rules (Item 1.17)
+
+- Exactly two legal pages exist: Privacy Policy and Terms & Conditions
+- Pages are seeded at migration time — no create or delete flow
+- `is_visible = false` → public route returns HTTP 404 — same as non-existent page
+- Admin can toggle visibility at any time — useful during content editing
+- Content stored as raw HTML from @mantine/tiptap — rendered via dangerouslySetInnerHTML
+  on public page (admin-only input, XSS risk acceptable)
+- `updated_by` filled on every save (update + toggleVisibility) — audit trail preserved
+- Public routes (`/privacy-policy`, `/terms-conditions`) require no authentication
+- Footer links on public Legal/Show.tsx always render — link to the other page
+- @tailwindcss/typography required for `prose` classes on Legal/Show.tsx

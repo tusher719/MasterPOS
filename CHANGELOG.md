@@ -2,6 +2,119 @@
 
 ---
 
+## [v2.53 — Item 1.17] — Privacy Policy & Terms Pages — 2026-09-02
+
+### New Migration (1)
+
+- `2026_09_02_000001_create_legal_pages_table.php`:
+  legal_pages table: id, type (enum: privacy_policy/terms_conditions UNIQUE),
+  title (varchar), content (longText nullable), is_visible (bool default false),
+  updated_by (FK users nullable nullOnDelete), timestamps;
+  Two rows seeded on up(): privacy_policy ('Privacy Policy', hidden) +
+  terms_conditions ('Terms & Conditions', hidden)
+
+### New Files (7)
+
+- `app/Models/LegalPage.php`:
+  fillable: type/title/content/is_visible/updated_by;
+  is_visible cast boolean;
+  updatedBy() BelongsTo with withTrashed();
+  type_label accessor (human-readable label);
+  slug accessor (URL slug: privacy-policy / terms-conditions)
+
+- `app/Policies/LegalPagePolicy.php`:
+  viewAny/edit — no model parameter (Rule 3 pattern);
+  viewAny: legal_page.view; edit: legal_page.edit
+
+- `database/seeders/LegalPageSeeder.php`:
+  legal_page.view + legal_page.edit permissions created;
+  Admin: both; Staff: view only;
+  forgetCachedPermissions() called after assignment
+
+- `app/Http/Controllers/Backend/LegalPageController.php`:
+  index() — GET JSON endpoint for Settings tab; returns both pages with
+  id/type/type_label/slug/title/content/is_visible/updated_by/updated_at;
+  abort_unless legal_page.view;
+  update() — PUT; validates title/content/is_visible; fills updated_by=Auth::id();
+  ActivityLogService::log() on save; abort_unless legal_page.edit;
+  toggleVisibility() — PATCH; flips is_visible; ActivityLogService::log();
+  show() — public route; slug→type map; 404 when unknown slug or is_visible=false;
+  renders Legal/Show with page data
+
+- `resources/js/Pages/Backend/Settings/_components/LegalPagesTab.tsx`:
+  Fetches both pages via fetch(route('backend.legal-pages.index')) on mount;
+  PageEditor sub-component per page:
+  @mantine/tiptap RichTextEditor with shouldRerenderOnTransaction:true;
+  StarterKit.configure({link:false}) + Link from @mantine/tiptap (duplicate fix);
+  Color + TextStyle extensions for ColorPicker;
+  toolbar: bold/italic/underline/strike/clear/highlight/ColorPicker/UnsetColor/
+  h1-h4/lists/sub/sup/link/align/undo/redo;
+  NO sticky toolbar — Settings col-span-3 layout incompatible;
+  title input; is_visible badge in header;
+  "Make public" / "Hide page" toggle button (green/amber);
+  "View public" external link shown when visible;
+  Unsaved changes amber banner with Discard + Save now buttons;
+  Save button in card footer; view-only mode when canEdit=false;
+  meta info: last updated by + diffForHumans timestamp
+
+- `resources/js/Pages/Legal/Show.tsx`:
+  Standalone public page — no AuthenticatedLayout, no auth required;
+  Minimal header with "← Back to Home" + page type label;
+  Page header: icon + type badge + title + last updated date;
+  Content rendered via dangerouslySetInnerHTML with @tailwindcss/typography prose classes;
+  Empty state when content is null;
+  Footer with © year + Privacy Policy + Terms links;
+  Uses route() for footer links (Ziggy — public routes registered)
+
+### Updated Files (4)
+
+- `app/Http/Controllers/Backend/SettingController.php`:
+  Gate import added;
+  index(): can.editLegalPages = Gate::allows('legal_page.edit') added to Inertia props
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  LegalPagesTab import added;
+  FileText icon imported;
+  can prop destructured from usePage().props;
+  Props interface: can.editLegalPages boolean added;
+  TABS array: { id: 'privacy-terms', label: 'Privacy & Terms', icon: FileText } added;
+  {activeTab === 'privacy-terms' && <LegalPagesTab can=... />} added
+
+- `routes/web.php`:
+  LegalPageController import added;
+  backend group: legal-pages prefix group added (index GET/update PUT/toggle-visibility PATCH);
+  public routes added outside auth group:
+  GET /privacy-policy → legal.privacy-policy;
+  GET /terms-conditions → legal.terms-conditions
+
+- `app/Providers/AppServiceProvider.php`:
+  Gate::policy(LegalPage::class, LegalPagePolicy::class) registered under Sprint 5 block
+
+### Packages Installed
+
+- @tiptap/extension-color@3.27.3
+- @tiptap/extension-text-style@3.27.3
+- @tailwindcss/typography (for prose classes on Legal/Show.tsx)
+
+### CSS Addition
+
+- `resources/css/app.css`:
+  --docs-header-height: 64px added to :root block (Mantine tiptap sticky offset variable)
+
+### Business Rules Established
+
+- legal_pages has exactly two rows — seeded at migration; no create/delete flow
+- is_visible = false → public route returns 404; admin toggles at any time
+- toggleVisibility() separate PATCH endpoint — decouples visibility from content save
+- content saved as raw HTML from @mantine/tiptap — dangerouslySetInnerHTML on public page
+- updated_by filled on every save (update + toggleVisibility) — audit trail preserved
+- Public routes outside auth middleware group — no login required to view
+- shouldRerenderOnTransaction:true required for toolbar active states
+- StarterKit.configure({link:false}) prevents duplicate Link extension with @mantine/tiptap
+- No sticky toolbar in LegalPagesTab — Settings col-span-3 scroll context incompatible
+
+---
+
 ## [v2.52 — Item 1.16] — System Status Pages — 2026-09-01
 
 ### New Migration (1)

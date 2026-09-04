@@ -10,6 +10,7 @@ use App\Services\ActivityLogService;
 use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,6 +43,9 @@ class SettingController extends Controller
 
         return Inertia::render('Backend/Settings/Index', [
             'pageSettings' => $settings,
+            'can'          => [
+                'editLegalPages' => Gate::allows('legal_page.edit'),
+            ],
         ]);
     }
 

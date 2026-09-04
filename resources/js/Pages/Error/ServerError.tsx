@@ -29,7 +29,7 @@ export default function ServerError({ surface = "backend" }: Props) {
                         contact support if the problem persists.
                     </p>
                     <div className="mt-8 flex gap-3">
-
+                        <a
                             href="/"
                             className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
                         >

@@ -260,6 +260,21 @@ maintenance_message (text — shown on maintenance page)
 coming_soon_mode_enabled (bool stored as string 'true'/'false' default 'false')
 coming_soon_message (text — shown on coming soon page)
 
+### legal_pages (Item 1.17 — new table)
+
+id, type (enum: privacy_policy/terms_conditions UNIQUE),
+title (varchar), content (longText nullable),
+is_visible (bool default false),
+updated_by (FK users nullable nullOnDelete),
+timestamps
+
+Note: Exactly two rows — seeded at migration time (privacy_policy + terms_conditions).
+Note: No create/delete flow — only update (title/content/is_visible) and toggleVisibility.
+Note: is_visible = false → public route returns 404; admin can toggle at any time.
+Note: content stored as raw HTML from @mantine/tiptap RichTextEditor.
+
+---
+
 ---
 
 ## Step 09 — Sales
@@ -680,6 +695,7 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 | partner_profit_eligibilities      | applies_to            | capital, working, product, all                                    |
 | sale_payments                     | payment_status_manual | pending_verification, verified, rejected                          |
 | sales                             | courier_status        | pending, picked_up, in_transit, delivered, returned, walk_in      |
+| legal_pages                       | type                  | privacy_policy, terms_conditions                                  |
 
 ---
 

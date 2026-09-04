@@ -536,3 +536,41 @@ Client-side only — `navigator.onLine` API + window events. No server involveme
 ### Settings Storage
 
 Status flags stored as string `'true'`/`'false'` in `business_settings` (consistent with existing boolean settings like `tax_enabled`, `notify_on_sale`). SettingsService cache is invalidated automatically via `BusinessSettingObserver` on every save — no manual cache:clear needed after toggle.
+
+## 16. Legal Pages Architecture (Item 1.17)
+
+### Fixed Two-Row Design
+
+`legal_pages` table has exactly two rows seeded at migration time —
+`privacy_policy` and `terms_conditions`. There is no create/delete flow.
+Admin can only update title, content, and visibility. This prevents accidental
+deletion of legal pages and eliminates the need for a separate management index page.
+
+### Visibility Toggle as Separate Endpoint
+
+`toggleVisibility()` is a dedicated PATCH endpoint — separate from `update()`.
+This prevents accidental content overwrite when admin only wants to show/hide
+a page. The two concerns (content editing vs visibility control) are intentionally
+decoupled.
+
+### Public Routes Outside Auth Group
+
+`/privacy-policy` and `/terms-conditions` are registered outside the
+`auth` middleware group — no login required to view. When `is_visible = false`,
+the controller returns `abort(404)` — same behavior as a non-existent page.
+This allows admin to hide pages during content editing without exposing
+a "coming soon" or "under maintenance" message.
+
+### RichTextEditor Setup
+
+`@mantine/tiptap` with `shouldRerenderOnTransaction: true` required for toolbar
+active states to update correctly. `StarterKit.configure({ link: false })` +
+`Link` from `@mantine/tiptap` prevents duplicate Link extension conflict.
+No `sticky` toolbar — Settings page `col-span-3` layout is incompatible with
+Mantine's sticky implementation (content overlaps toolbar).
+
+### CSS Variable
+
+`--docs-header-height: 64px` added to `app.css :root` — matches Mantine tiptap
+docs convention for sticky offset. Used if sticky toolbar is ever re-enabled
+in a compatible layout.
