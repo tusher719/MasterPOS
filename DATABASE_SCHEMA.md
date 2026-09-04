@@ -696,6 +696,7 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 | sale_payments                     | payment_status_manual | pending_verification, verified, rejected                          |
 | sales                             | courier_status        | pending, picked_up, in_transit, delivered, returned, walk_in      |
 | legal_pages                       | type                  | privacy_policy, terms_conditions                                  |
+| feature_announcements             | badge_type            | new, hot, beta, custom                                            |
 
 ---
 
@@ -852,6 +853,27 @@ Note: QuickLink::scopeActive() orders by sort_order.
 Note: isVisibleToRoles(array $roleNames) returns true when visible_to_roles is null (everyone).
 Note: quickLinks prop in HandleInertiaRequests = role-filtered active links for AppLauncherModal.
 Note: allQuickLinks prop = all links ordered by sort_order for Settings QuickLinksTab.
+
+### Sprint 5 — Feature Announcements (Item 1.18)
+
+### feature_announcements
+
+id, label (varchar), route_name (varchar),
+badge_type (enum: new/hot/beta/custom default: new),
+badge_text (varchar nullable — used when badge_type = custom),
+show_until (date — auto-expiry, no cron needed),
+is_active (bool default true),
+timestamps
+Indexes: (is_active, show_until), route_name
+
+Note: scopeVisible() filters is_active=true AND show_until >= today.
+Note: Keyed by route_name in HandleInertiaRequests for O(1) sidebar lookup.
+Note: No soft delete — hard delete only (no restore flow needed).
+Note: No Policy class — FeatureAnnouncementController uses Gate::allows() directly.
+
+### business_settings additions (Item 1.18)
+
+hot_product_order_threshold (int default 10 — future use: "Hot" badge on Website products)
 
 ### 6. Enum Reference — add rows
 

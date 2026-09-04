@@ -793,3 +793,39 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Public routes (`/privacy-policy`, `/terms-conditions`) require no authentication
 - Footer links on public Legal/Show.tsx always render — link to the other page
 - @tailwindcss/typography required for `prose` classes on Legal/Show.tsx
+
+## 33. Navbar Badge Rules (Item 1.18)
+
+### Feature Announcement Badges
+
+- `feature_announcements` table stores badge definitions — one badge per sidebar nav item (by route_name)
+- `scopeVisible()` filters: `is_active = true` AND `show_until >= today` — auto-expiry, no manual cleanup needed
+- Badges are keyed by `route_name` in `HandleInertiaRequests` for O(1) lookup in NavLeaf
+- Badge types and their colors:
+    - `new` → indigo pill
+    - `hot` → red pill
+    - `beta` → amber pill
+    - `custom` → indigo pill (uses `badge_text` as label)
+- Admin manages badges from Settings → Navbar Badges tab
+
+### Live Count Dots
+
+- `navCounts` shared globally via `HandleInertiaRequests` on every Inertia response
+- Current tracked counts:
+    - `order_tasks` → pending + claimed order tasks (soft-delete excluded)
+    - `pre_orders` → pending pre-orders (soft-delete excluded)
+- Count dot hidden when count = 0 or undefined
+- Count capped at 99+ display
+
+### Badge vs Count Dot Priority
+
+- Badge (feature announcement) and count dot never shown simultaneously on the same nav item
+- Badge takes priority — count dot hidden when a badge exists for that route
+- This is intentional: a "New" badge is more informative than a count during feature launch period
+- Once the badge expires (show_until < today), count dot automatically takes over
+
+### hot_product_order_threshold
+
+- Seeded to `business_settings` in Item 1.18 migration (default: 10)
+- Future use: "Hot" badge on Website product cards when order count exceeds threshold
+- Not yet used in any calculation — reserved for Sprint 8 Storefront

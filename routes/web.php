@@ -16,6 +16,7 @@ use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\PaymentMethodController;
 use App\Http\Controllers\Backend\ExpenseCategoryController;
 use App\Http\Controllers\Backend\ExpenseController;
+use App\Http\Controllers\Backend\FeatureAnnouncementController;
 use App\Http\Controllers\Backend\GlobalSearchController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\InvestmentController;
@@ -674,6 +675,15 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             Route::post('/',          [QuickLinkController::class, 'store'])->name('store');
             Route::put('/{quickLink}',[QuickLinkController::class, 'update'])->name('update');
             Route::delete('/{quickLink}', [QuickLinkController::class, 'destroy'])->name('destroy');
+        });
+
+        // ── Sprint 5 — Feature Announcements (Navbar Badges) ─────────────────
+        // Settings → Navbar Badges tab — manages sidebar nav badge definitions
+        Route::prefix('feature-announcements')->name('feature-announcements.')->group(function () {
+            Route::get('/',                                    [FeatureAnnouncementController::class, 'index'])->name('index');
+            Route::post('/',                                   [FeatureAnnouncementController::class, 'store'])->name('store');
+            Route::put('/{featureAnnouncement}',               [FeatureAnnouncementController::class, 'update'])->name('update');
+            Route::delete('/{featureAnnouncement}',            [FeatureAnnouncementController::class, 'destroy'])->name('destroy');
         });
 
         // Legal Pages (Settings → Privacy & Terms tab)

@@ -74,10 +74,24 @@ interface ThemeSettings {
     sidebar_color?: string;
 }
 
+// Badge type for feature announcements
+interface FeatureBadge {
+    badge_label: string;
+    badge_type: "new" | "hot" | "beta" | "custom";
+}
+
+// Live counts for nav items (order_tasks, pre_orders)
+interface NavCounts {
+    order_tasks?: number;
+    pre_orders?: number;
+}
+
 interface PageProps {
     auth?: AuthData;
     settings?: ThemeSettings;
     notifications?: NotificationShared;
+    featureAnnouncements?: Record<string, FeatureBadge>;
+    navCounts?: NavCounts;
 }
 
 interface NavItem {
@@ -99,6 +113,41 @@ interface NavbarLogoProps {
 
 interface UserDropdownProps {
     auth?: AuthData;
+}
+
+// ─── Nav Badge component ──────────────────────────────────────────────────────
+// Renders feature announcement badge (New/Hot/Beta/Custom) beside nav label.
+// badge_type drives the color — custom uses same color as 'new'.
+function NavBadge({ badge_label, badge_type }: FeatureBadge) {
+    const colorMap: Record<string, string> = {
+        new: "bg-indigo-100 text-indigo-700",
+        hot: "bg-red-100 text-red-700",
+        beta: "bg-amber-100 text-amber-700",
+        custom: "bg-indigo-100 text-indigo-700",
+    };
+
+    const cls = colorMap[badge_type] ?? colorMap.new;
+
+    return (
+        <span
+            className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none ${cls}`}
+        >
+            {badge_label}
+        </span>
+    );
+}
+
+// ─── Nav Count Dot component ──────────────────────────────────────────────────
+// Renders a small count pill for live counts (pending tasks, pre-orders).
+// Hidden when count is 0 or undefined.
+function NavCountDot({ count }: { count?: number }) {
+    if (!count || count === 0) return null;
+
+    return (
+        <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+            {count > 99 ? "99+" : count}
+        </span>
+    );
 }
 
 // ─── Navigation structure ─────────────────────────────────────────────────────
@@ -449,6 +498,23 @@ function NavLeaf({
     const active = implemented && isActive(item.active);
     const padding = nested ? "pl-9 pr-3" : "px-3";
 
+    // Read globally shared badge + count data from Inertia props
+    const { featureAnnouncements, navCounts } = usePage()
+        .props as unknown as PageProps;
+
+    // Feature announcement badge for this nav item (keyed by route_name)
+    const badge = item.href ? featureAnnouncements?.[item.href] : undefined;
+
+    // Live count badge — matched by route_name convention
+    // order-tasks.index → navCounts.order_tasks
+    // pre-orders.index  → navCounts.pre_orders
+    const countKeyMap: Record<string, keyof NavCounts> = {
+        "backend.order-tasks.index": "order_tasks",
+        "backend.pre-orders.index": "pre_orders",
+    };
+    const countKey = item.href ? countKeyMap[item.href] : undefined;
+    const liveCount = countKey ? navCounts?.[countKey] : undefined;
+
     // Text colors based on sidebar background
     const textBase = sidebarIsLight ? "text-gray-600" : "text-gray-300";
     const textActive = sidebarIsLight ? "text-indigo-700" : "text-white";
@@ -476,7 +542,23 @@ function NavLeaf({
             }`}
         >
             <Icon size={18} />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && (
+                <>
+                    {/* Nav label */}
+                    <span className="flex-1">{item.label}</span>
+
+                    {/* Feature announcement badge (New / Hot / Beta / Custom) */}
+                    {badge && (
+                        <NavBadge
+                            badge_label={badge.badge_label}
+                            badge_type={badge.badge_type}
+                        />
+                    )}
+
+                    {/* Live count dot — pending order tasks / pre-orders */}
+                    {!badge && <NavCountDot count={liveCount} />}
+                </>
+            )}
         </Link>
     );
 }

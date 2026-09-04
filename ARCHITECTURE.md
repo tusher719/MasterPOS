@@ -574,3 +574,28 @@ Mantine's sticky implementation (content overlaps toolbar).
 `--docs-header-height: 64px` added to `app.css :root` — matches Mantine tiptap
 docs convention for sticky offset. Used if sticky toolbar is ever re-enabled
 in a compatible layout.
+
+### Navbar Badge System (Item 1.18)
+
+Two types of nav badges coexist in the sidebar:
+
+**Feature Announcement Badges** — admin-configured, time-limited:
+
+- Stored in `feature_announcements` table, keyed by `route_name`
+- `HandleInertiaRequests` shares them globally as `featureAnnouncements` (keyed map)
+- NavLeaf does O(1) lookup: `featureAnnouncements[item.href]`
+- Auto-expire via `scopeVisible()` — no cron, no cache invalidation needed
+
+**Live Count Dots** — system-computed, always fresh:
+
+- `HandleInertiaRequests` computes `navCounts` per request (small queries, no caching)
+- Currently: `order_tasks` (pending+claimed) + `pre_orders` (pending)
+- NavLeaf maps route name → count key via `countKeyMap`
+
+**Priority rule:** Badge shown → count dot hidden. Both never render simultaneously.
+This keeps the nav clean during feature launch periods, then naturally transitions
+to count-based awareness once the badge expires.
+
+**Why not cache navCounts?**
+Count queries are 2 simple WHERE clauses with index hits. Cache invalidation
+(on every task status change) would add more complexity than the query cost saves.

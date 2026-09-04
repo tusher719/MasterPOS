@@ -12,6 +12,7 @@ import {
     FileText,
     Grid2X2,
     Info,
+    Megaphone,
     Monitor,
     Palette,
     Plus,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import FeatureAnnouncementsTab from "./_components/FeatureAnnouncementsTab";
 import LegalPagesTab from "./_components/LegalPagesTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -67,6 +69,7 @@ const TABS = [
     { id: "theme", label: "My Theme", icon: Palette },
     { id: "quick-links", label: "Quick Links", icon: Grid2X2 },
     { id: "system-status", label: "System Status", icon: AlertTriangle },
+    { id: "nav-badges", label: "Navbar Badges", icon: Megaphone },
     { id: "privacy-terms", label: "Privacy & Terms", icon: FileText },
 ] as const;
 
@@ -195,6 +198,9 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         {activeTab === "quick-links" && <QuickLinksTab />}
                         {activeTab === "system-status" && (
                             <SystemStatusTab settings={settings} />
+                        )}
+                        {activeTab === "nav-badges" && (
+                            <FeatureAnnouncementsTab />
                         )}
                         {activeTab === "privacy-terms" && (
                             <LegalPagesTab can={{ edit: can.editLegalPages }} />

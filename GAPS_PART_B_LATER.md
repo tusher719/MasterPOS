@@ -226,27 +226,25 @@ timestamps
 
 ---
 
-### 1.18 Dynamic Navbar Badges (Nice to Have)
+### 1.18 Dynamic Navbar Badges | ✅ Done |
 
-```
 feature_announcements: id,
-  label (varchar — e.g. "Pre-Orders"),
-  route_name (varchar),
-  badge_type (enum: new/hot/beta/custom),
-  badge_text (varchar nullable),
-  show_until (date),
-  is_active (bool),
-  timestamps
+label (varchar — e.g. "Pre-Orders"),
+route_name (varchar),
+badge_type (enum: new/hot/beta/custom),
+badge_text (varchar nullable),
+show_until (date),
+is_active (bool),
+timestamps
 
 business_settings additions:
-  hot_product_order_threshold (int — for "Hot" badge on Website products)
-```
+hot_product_order_threshold (int — for "Hot" badge on Website products)
 
 Examples:
 
-- Order Tasks nav → count of pending + claimed tasks
-- Pre-Orders nav → count of pending pre-orders
-- New feature → "New" pill, auto-expires after show_until date
+- Order Tasks nav → count of pending + claimed tasks ✅
+- Pre-Orders nav → count of pending pre-orders ✅
+- New feature → "New" pill, auto-expires after show_until date ✅
 
 ---
 

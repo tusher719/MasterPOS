@@ -2,6 +2,78 @@
 
 ---
 
+## [v2.54 — Item 1.18] — Dynamic Navbar Badges — 2026-09-04
+
+### New Migration (1)
+
+- `2026_09_04_000001_create_feature_announcements_table.php`:
+  feature_announcements: id, label (varchar), route_name (varchar),
+  badge_type (enum: new/hot/beta/custom default: new),
+  badge_text (varchar nullable), show_until (date), is_active (bool default true), timestamps;
+  Indexes: (is_active, show_until), route_name;
+  hot_product_order_threshold (int default 10) seeded to business_settings on up()
+
+### New Files (4)
+
+- `app/Models/FeatureAnnouncement.php`:
+  fillable: label/route_name/badge_type/badge_text/show_until/is_active;
+  scopeVisible() — is_active=true AND show_until >= today;
+  badge_label accessor (custom→badge_text, others→capitalize badge_type);
+  is_expired accessor (show_until < today)
+
+- `database/seeders/FeatureAnnouncementSeeder.php`:
+  4 permissions: feature_announcement.view/create/edit/delete → Admin all;
+  2 sample rows: Pre-Orders (new, +30 days) + Planning Tasks (beta, +60 days)
+
+- `app/Http/Controllers/Backend/FeatureAnnouncementController.php`:
+  index() JSON — all announcements with badge_label + is_expired;
+  store/update/destroy — abort_unless Gate::allows(); ActivityLogService::log() on all mutations
+
+- `resources/js/Pages/Backend/Settings/_components/FeatureAnnouncementsTab.tsx`:
+  Full CRUD tab — Add Badge button, AnnouncementForm (inline create + edit),
+  BadgePill component (indigo/red/amber per type), live preview in form;
+  fetch() on mount; inline edit renders below row; theme-aware semantic classes throughout:
+  bg-muted/bg-card/bg-input/border-border/text-foreground/text-muted-foreground
+
+### Updated Files (4)
+
+- `app/Http/Middleware/HandleInertiaRequests.php`:
+  FeatureAnnouncement import added;
+  featureAnnouncements: resolveFeatureAnnouncements() — visible() keyed by route_name,
+  returns {badge_label, badge_type} per key for O(1) sidebar lookup;
+  navCounts: resolveNavCounts() — order_tasks (pending+claimed count) +
+  pre_orders (pending count); both globally shared on every Inertia response
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  FeatureBadge + NavCounts interfaces added to PageProps;
+  NavBadge component — renders badge pill beside nav label
+  (indigo=new/custom, red=hot, amber=beta);
+  NavCountDot component — red count pill, hidden when count=0 or undefined;
+  NavLeaf updated: reads featureAnnouncements + navCounts from usePage().props;
+  countKeyMap maps route names to navCounts keys;
+  badge shown when featureAnnouncements[route_name] exists;
+  count dot shown only when no badge (badge has priority)
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  Megaphone icon imported; FeatureAnnouncementsTab imported;
+  TABS: { id: 'nav-badges', label: 'Navbar Badges', icon: Megaphone } added
+
+- `routes/web.php`:
+  FeatureAnnouncementController import added;
+  feature-announcements prefix group: index GET / store POST /
+  update PUT /{featureAnnouncement} / destroy DELETE /{featureAnnouncement}
+
+### Business Rules Established
+
+- featureAnnouncements keyed by route_name — O(1) lookup in NavLeaf, no array scan
+- scopeVisible() filters is_active=true AND show_until >= today — auto-expiry, no cron needed
+- Badge and count dot never shown simultaneously — badge takes priority
+- navCounts computed per request — always fresh, no caching
+- All form inputs use semantic Tailwind: bg-input/border-border/text-foreground —
+  never hardcoded bg-white/border-gray-300/text-gray-700
+
+---
+
 ## [v2.53 — Item 1.17] — Privacy Policy & Terms Pages — 2026-09-02
 
 ### New Migration (1)
