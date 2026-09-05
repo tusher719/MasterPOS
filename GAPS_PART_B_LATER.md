@@ -248,7 +248,7 @@ Examples:
 
 ---
 
-### 1.19 Nested/Collapsible Navigation (Nice to Have)
+### 1.19 Nested/Collapsible Navigation | ✅ Done |
 
 - Reusable recursive nested-menu component
 - Native HTML + Tailwind (no shadcn)

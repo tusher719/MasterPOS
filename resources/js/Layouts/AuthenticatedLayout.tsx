@@ -481,22 +481,38 @@ function getSidebarWidthClass(width: string, collapsed: boolean): string {
     }
 }
 
+// Recursively check if any descendant leaf is active (any depth)
+function hasActiveDescendant(children: NavItem[]): boolean {
+    return children.some((c) => {
+        if (c.children) return hasActiveDescendant(c.children);
+        return routeExists(c.href) && isActive(c.active);
+    });
+}
+
 // ─── NavLeaf ──────────────────────────────────────────────────────────────────
 function NavLeaf({
     item,
     collapsed,
-    nested = false,
+    depth = 0,
     sidebarIsLight,
 }: {
     item: NavItem;
     collapsed: boolean;
-    nested?: boolean;
+    depth?: number;
     sidebarIsLight: boolean;
 }) {
     const Icon = item.icon;
     const implemented = routeExists(item.href);
     const active = implemented && isActive(item.active);
-    const padding = nested ? "pl-9 pr-3" : "px-3";
+
+    // Static padding map — avoids Tailwind purge issues with dynamic class names
+    const depthPaddingMap: Record<number, string> = {
+        0: "px-3",
+        1: "pl-9 pr-3",
+        2: "pl-14 pr-3",
+        3: "pl-16 pr-3",
+    };
+    const padding = depthPaddingMap[Math.min(depth, 3)] ?? "pl-16 pr-3";
 
     // Read globally shared badge + count data from Inertia props
     const { featureAnnouncements, navCounts } = usePage()
@@ -506,8 +522,6 @@ function NavLeaf({
     const badge = item.href ? featureAnnouncements?.[item.href] : undefined;
 
     // Live count badge — matched by route_name convention
-    // order-tasks.index → navCounts.order_tasks
-    // pre-orders.index  → navCounts.pre_orders
     const countKeyMap: Record<string, keyof NavCounts> = {
         "backend.order-tasks.index": "order_tasks",
         "backend.pre-orders.index": "pre_orders",
@@ -544,7 +558,6 @@ function NavLeaf({
             <Icon size={18} />
             {!collapsed && (
                 <>
-                    {/* Nav label */}
                     <span className="flex-1">{item.label}</span>
 
                     {/* Feature announcement badge (New / Hot / Beta / Custom) */}
@@ -555,7 +568,7 @@ function NavLeaf({
                         />
                     )}
 
-                    {/* Live count dot — pending order tasks / pre-orders */}
+                    {/* Live count dot — badge takes priority */}
                     {!badge && <NavCountDot count={liveCount} />}
                 </>
             )}
@@ -564,26 +577,51 @@ function NavLeaf({
 }
 
 // ─── NavGroup ─────────────────────────────────────────────────────────────────
+// Self-contained collapsible group — manages its own open/closed state.
+// Starts closed by default. Only the group containing the active route
+// starts open (via useState initializer — runs once on mount).
 function NavGroup({
     item,
     collapsed,
     sidebarIsLight,
+    depth = 0,
 }: {
     item: NavItem;
     collapsed: boolean;
     sidebarIsLight: boolean;
+    depth?: number;
 }) {
     const Icon = item.icon;
-    const anyChildActive =
-        item.children?.some((c) => routeExists(c.href) && isActive(c.active)) ??
-        false;
-    const [open, setOpen] = useState(anyChildActive);
+    const anyChildActive = hasActiveDescendant(item.children ?? []);
+
+    // Start open only if this group contains the current active route.
+    // useState initializer runs once on mount — not on every render.
+    const [open, setOpen] = useState<boolean>(() => anyChildActive);
+
+    // Depth-aware button padding (static Tailwind classes — purge safe)
+    const buttonPaddingMap: Record<number, string> = {
+        0: "px-3",
+        1: "pl-6 pr-3",
+        2: "pl-10 pr-3",
+        3: "pl-14 pr-3",
+    };
+    const buttonPadding = buttonPaddingMap[Math.min(depth, 3)] ?? "pl-14 pr-3";
+
+    // Depth-aware left indent for children container (static Tailwind classes)
+    const childIndentMap: Record<number, string> = {
+        0: "ml-[22px]",
+        1: "ml-[30px]",
+        2: "ml-[38px]",
+        3: "ml-[46px]",
+    };
+    const childIndent = childIndentMap[Math.min(depth, 3)] ?? "ml-[46px]";
 
     const textBase = sidebarIsLight ? "text-gray-600" : "text-gray-300";
     const textActive = sidebarIsLight ? "text-indigo-700" : "text-white";
     const bgHover = sidebarIsLight ? "hover:bg-gray-100" : "hover:bg-card/7";
     const borderColor = sidebarIsLight ? "border-border" : "border-white/10";
 
+    // Collapsed sidebar — show icon only, no toggle
     if (collapsed) {
         return (
             <div
@@ -601,32 +639,44 @@ function NavGroup({
         <div>
             <button
                 onClick={() => setOpen((o) => !o)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                className={`flex w-full items-center gap-2 rounded-lg ${buttonPadding} py-2.5 text-sm font-medium transition-all duration-200 ${
                     anyChildActive ? textActive : `${textBase} ${bgHover}`
                 }`}
             >
-                <Icon size={16} />
+                <Icon size={depth === 0 ? 16 : 15} />
                 <span className="flex-1 text-left">{item.label}</span>
                 {open ? (
-                    <ChevronDown size={14} className="opacity-60" />
+                    <ChevronDown size={13} className="opacity-60" />
                 ) : (
-                    <ChevronRight size={14} className="opacity-60" />
+                    <ChevronRight size={13} className="opacity-60" />
                 )}
             </button>
 
             {open && (
                 <div
-                    className={`ml-[22px] mt-0.5 space-y-0.5 border-l ${borderColor}`}
+                    className={`${childIndent} mt-0.5 space-y-0.5 border-l ${borderColor}`}
                 >
-                    {item.children?.map((child) => (
-                        <NavLeaf
-                            key={child.label}
-                            item={child}
-                            collapsed={collapsed}
-                            nested
-                            sidebarIsLight={sidebarIsLight}
-                        />
-                    ))}
+                    {item.children?.map((child) =>
+                        child.children ? (
+                            // Nested group — recurse
+                            <NavGroup
+                                key={child.label}
+                                item={child}
+                                collapsed={collapsed}
+                                sidebarIsLight={sidebarIsLight}
+                                depth={depth + 1}
+                            />
+                        ) : (
+                            // Leaf item
+                            <NavLeaf
+                                key={child.label}
+                                item={child}
+                                collapsed={collapsed}
+                                depth={depth + 1}
+                                sidebarIsLight={sidebarIsLight}
+                            />
+                        ),
+                    )}
                 </div>
             )}
         </div>
@@ -676,7 +726,6 @@ function NotificationBell() {
             preserveScroll: true,
         });
 
-    // Click on a notification row — mark read + navigate to url
     const handleNotificationClick = (n: Notification) => {
         if (!n.read_at) {
             router.post(
@@ -709,7 +758,7 @@ function NotificationBell() {
 
             {dropdownOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-border bg-card shadow-lg">
-                    <div className="flex items-center justify-between border-b border-border  px-4 py-3">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
                         <span className="text-sm font-semibold text-foreground">
                             Notifications
                             {notifShared.unread_count > 0 && (
@@ -884,7 +933,6 @@ function NavbarLogo({ settings }: { settings: any }) {
 }
 
 // ─── User Dropdown ────────────────────────────────────────────────────────────
-
 function UserDropdown({ auth }: UserDropdownProps) {
     const [open, setOpen] = useState<boolean>(false);
     const ref = useRef<HTMLDivElement | null>(null);
@@ -930,7 +978,6 @@ function UserDropdown({ auth }: UserDropdownProps) {
                     </div>
 
                     <div className="py-1">
-                        {/* Theme link → Settings My Theme tab */}
                         <Link
                             href={
                                 route("backend.settings.index") + "?tab=theme"
@@ -1049,12 +1096,14 @@ function InnerLayout({ children }: PropsWithChildren) {
                                 item={item}
                                 collapsed={collapsed}
                                 sidebarIsLight={sidebarIsLight}
+                                depth={0}
                             />
                         ) : (
                             <NavLeaf
                                 key={item.label}
                                 item={item}
                                 collapsed={collapsed}
+                                depth={0}
                                 sidebarIsLight={sidebarIsLight}
                             />
                         ),

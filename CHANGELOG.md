@@ -2,6 +2,35 @@
 
 ---
 
+## [v2.55 — Item 1.19] — Nested/Collapsible Navigation — 2026-09-05
+
+### Updated Files (1)
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  NavGroup component rewritten as self-contained collapsible group;
+  each group manages its own open/closed state via local useState;
+  initializer `() => anyChildActive` — opens only if current active route
+  is a descendant (runs once on mount, not on every render);
+  toggle: setOpen((o) => !o) — no prop drilling, no central state;
+  recursive rendering: child.children → NavGroup (depth+1), else NavLeaf;
+  NavLeaf: nested prop replaced with depth: number (0=top, 1+=nested);
+  static depthPaddingMap avoids Tailwind purge issues with dynamic classes;
+  hasActiveDescendant() recursive helper checks any depth for active route;
+  all localStorage logic removed — pure in-memory, resets on full page reload;
+  NavGroup depth-aware indent: buttonPaddingMap + childIndentMap (static classes);
+  no new files, no new migrations, no backend changes
+
+### Business Rules Established
+
+- NavGroup open state: local useState per component — not shared/central
+- Fresh mount: open when anyChildActive (active route in subtree), else closed
+- Toggle: independent per group — opening one does not close others
+- Infinite nesting supported via recursion (depth prop tracks level)
+- No localStorage persistence — state resets on full page reload (by design)
+- hasActiveDescendant() is the single active-check helper used by NavGroup
+
+---
+
 ## [v2.54 — Item 1.18] — Dynamic Navbar Badges — 2026-09-04
 
 ### New Migration (1)

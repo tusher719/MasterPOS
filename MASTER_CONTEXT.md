@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.18 — Dynamic Navbar Badges ✅
-- Next Item: Item 1.19 — Nested/Collapsible Navigation
+- Last Completed: Item 1.19 — Nested/Collapsible Navigation ✅
+- Next Item: Item 1.20 — Dark Mode (two separate toggles)
 
 ## Financial Domain Overview
 
@@ -139,6 +139,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.16        | System Status Pages                                 | ✅     |
 | 1.17        | Privacy Policy & Terms Pages                        | ✅     |
 | 1.18        | Dynamic Navbar Badges                               | ✅     |
+| 1.19        | Nested/Collapsible Navigation                       | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -154,7 +155,6 @@ Current Sprint: Sprint 5 — Admin Polish
 
 | #    | Item                             | Priority     |
 | ---- | -------------------------------- | ------------ |
-| 1.19 | Nested/Collapsible Navigation    | Nice to Have |
 | 1.20 | Dark Mode (two separate toggles) | Should Fix   |
 | 1.21 | Universal Image Upload Preview   | Should Fix   |
 | 2.1  | Staff Email Verification Banner  | Must Fix     |
