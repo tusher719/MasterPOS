@@ -257,7 +257,7 @@ Examples:
 
 ---
 
-### 1.20 Dark Mode — Two Separate Toggles (Should Fix — bundle with 1.3 and 10.2)
+### 1.20 Dark Mode — Two Separate Toggles | ✅ Backend Done — Website Deferred to Sprint 8 |
 
 | Surface             | Where                                                                        | Scope                     |
 | ------------------- | ---------------------------------------------------------------------------- | ------------------------- |

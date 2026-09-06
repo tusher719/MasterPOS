@@ -28,6 +28,8 @@ import {
     LayoutDashboard,
     LogOut,
     Menu,
+    Monitor,
+    Moon,
     Package,
     Palette,
     PieChart,
@@ -39,6 +41,7 @@ import {
     ShieldAlert,
     ShoppingBag,
     ShoppingCart,
+    Sun,
     Tag,
     Trash2,
     TrendingUp,
@@ -932,6 +935,70 @@ function NavbarLogo({ settings }: { settings: any }) {
     );
 }
 
+// ─── Dark Mode Toggle ─────────────────────────────────────────────────────────
+// Cycles: light → dark → system → light
+// Uses useTheme hook (same source as ThemeProvider) — no page reload needed
+function DarkModeToggle() {
+    const { theme, updateTheme } = useTheme();
+    const currentMode = (theme?.mode ?? "system") as
+        | "light"
+        | "dark"
+        | "system";
+
+    const [saving, setSaving] = useState(false);
+
+    const cycleOrder: Array<"light" | "dark" | "system"> = [
+        "light",
+        "dark",
+        "system",
+    ];
+
+    const modeConfig: Record<
+        "light" | "dark" | "system",
+        { icon: React.ReactNode; label: string }
+    > = {
+        light: {
+            icon: <Sun size={18} />,
+            label: "Light mode — click for Dark",
+        },
+        dark: {
+            icon: <Moon size={18} />,
+            label: "Dark mode — click for System",
+        },
+        system: {
+            icon: <Monitor size={18} />,
+            label: "System default — click for Light",
+        },
+    };
+
+    const handleToggle = async () => {
+        if (saving) return;
+        const idx = cycleOrder.indexOf(currentMode);
+        const nextMode = cycleOrder[(idx + 1) % cycleOrder.length];
+
+        setSaving(true);
+        try {
+            // updateTheme comes from useTheme — it saves to DB AND applies CSS vars immediately
+            await updateTheme({ mode: nextMode });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const { icon, label } = modeConfig[currentMode];
+
+    return (
+        <button
+            onClick={handleToggle}
+            disabled={saving}
+            title={label}
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+        >
+            {icon}
+        </button>
+    );
+}
+
 // ─── User Dropdown ────────────────────────────────────────────────────────────
 function UserDropdown({ auth }: UserDropdownProps) {
     const [open, setOpen] = useState<boolean>(false);
@@ -1195,6 +1262,7 @@ function InnerLayout({ children }: PropsWithChildren) {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <DarkModeToggle />
                         <NotificationBell />
                         <UserDropdown auth={auth} />
                     </div>

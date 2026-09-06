@@ -2,6 +2,31 @@
 
 ---
 
+## [v2.56 — Item 1.20] — Dark Mode Toggle — 2026-09-06
+
+### Updated Files (1)
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  DarkModeToggle component added — self-contained, reads from useTheme() hook;
+  cycles light → dark → system → light on each click;
+  Sun icon (light), Moon icon (dark), Monitor icon (system);
+  title tooltip shows current mode + next action;
+  calls updateTheme({ mode: nextMode }) from useTheme — updates CSS vars
+  immediately without page reload; ThemeProvider applies html.dark class reactively;
+  button placed in navbar between App Launcher/Search and NotificationBell;
+  Moon + Sun + Monitor imported from lucide-react;
+  disabled during save (saving state) to prevent double-click race
+
+### Business Rules Established
+
+- Dark mode toggle cycles: light → dark → system → light (3-step cycle)
+- useTheme() is the single source for current mode — never read from Inertia props directly
+- updateTheme() saves to DB AND applies CSS vars immediately — no page reload needed
+- Website dark mode (visitor localStorage toggle) deferred to Sprint 8 storefront
+- customers.dark_mode_preference column deferred to Sprint 8
+
+---
+
 ## [v2.55 — Item 1.19] — Nested/Collapsible Navigation — 2026-09-05
 
 ### Updated Files (1)
