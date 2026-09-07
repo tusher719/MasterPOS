@@ -1,6 +1,17 @@
+import {
+    CheckCircle2,
+    ImageIcon,
+    Loader2,
+    Maximize2,
+    Star,
+    Trash2,
+    Upload,
+    XCircle,
+} from "lucide-react";
 import { useRef, useState } from "react";
-import { Star, Trash2, Upload, ImageIcon, Maximize2 } from "lucide-react";
 import ImageLightbox, { LightboxImage, formatBytes } from "./ImageLightbox";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ImageFile {
     file: File;
@@ -17,15 +28,168 @@ export interface ExistingImage {
     file_size?: number;
 }
 
+// Upload state per file — driven by parent via uploadProgress prop.
+// 0        = picked, not yet uploading
+// 1–99     = uploading
+// 100      = complete
+// -1       = failed
+type FileStatus = "idle" | "uploading" | "complete" | "failed";
+
 interface Props {
     newImages: ImageFile[];
     onNewImagesChange: (images: ImageFile[]) => void;
     existingImages?: ExistingImage[];
     onDeleteExisting?: (id: number) => void;
     onSetExistingPrimary?: (id: number) => void;
+
+    // Overall form submit progress 0–100. Drives the file list progress bars.
+    // Parent passes this from router.post / axios onUploadProgress.
+    uploadProgress?: number;
+
+    // When true, the uploader is locked — no add/remove while submitting.
+    uploading?: boolean;
 }
 
 const MAX_IMAGES = 20;
+
+// ─── File icon ────────────────────────────────────────────────────────────────
+
+// Simple coloured badge showing file extension — mirrors the screenshot style.
+function FileTypeBadge({ name }: { name: string }) {
+    const ext = name.split(".").pop()?.toUpperCase() ?? "IMG";
+    const colorMap: Record<string, string> = {
+        JPG: "bg-blue-500",
+        JPEG: "bg-blue-500",
+        PNG: "bg-indigo-500",
+        WEBP: "bg-violet-500",
+        GIF: "bg-pink-500",
+    };
+    const bg = colorMap[ext] ?? "bg-gray-500";
+    return (
+        <span
+            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${bg}`}
+        >
+            {ext}
+        </span>
+    );
+}
+
+// ─── Single file list row ─────────────────────────────────────────────────────
+
+function FileRow({
+    img,
+    index,
+    progress,
+    status,
+    onRemove,
+}: {
+    img: ImageFile;
+    index: number;
+    progress: number;
+    status: FileStatus;
+    onRemove: (index: number) => void;
+}) {
+    const sizeLabel = formatBytes(img.file.size);
+
+    const statusNode = (() => {
+        if (status === "complete")
+            return (
+                <span className="flex items-center gap-1 text-[11px] text-green-600">
+                    <CheckCircle2 size={12} />
+                    Complete
+                </span>
+            );
+        if (status === "failed")
+            return (
+                <span className="flex items-center gap-1 text-[11px] text-red-500">
+                    <XCircle size={12} />
+                    Failed
+                </span>
+            );
+        if (status === "uploading")
+            return (
+                <span className="flex items-center gap-1 text-[11px] text-indigo-500">
+                    <Loader2 size={11} className="animate-spin" />
+                    Uploading...
+                </span>
+            );
+        return (
+            <span className="text-[11px] text-gray-400">Ready to upload</span>
+        );
+    })();
+
+    return (
+        <div
+            className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors
+                ${status === "failed" ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
+        >
+            {/* File icon + preview thumbnail */}
+            <div className="relative flex-shrink-0">
+                <img
+                    src={img.preview}
+                    alt={img.file.name}
+                    className="h-10 w-10 rounded-md border border-gray-200 object-cover"
+                />
+                <div className="absolute -bottom-1 -right-1">
+                    <FileTypeBadge name={img.file.name} />
+                </div>
+            </div>
+
+            {/* Name, size, status, progress */}
+            <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                    <p
+                        className="truncate text-xs font-medium text-gray-700"
+                        title={img.file.name}
+                    >
+                        {img.file.name}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => onRemove(index)}
+                        disabled={status === "uploading"}
+                        className="flex-shrink-0 rounded p-0.5 text-gray-400
+                                   hover:text-red-500 disabled:cursor-not-allowed
+                                   disabled:opacity-40"
+                        title="Remove"
+                    >
+                        <Trash2 size={13} />
+                    </button>
+                </div>
+
+                <div className="mt-0.5 flex items-center gap-2">
+                    {sizeLabel && (
+                        <span className="text-[11px] text-gray-400">
+                            {sizeLabel}
+                        </span>
+                    )}
+                    <span className="text-[11px] text-gray-300">|</span>
+                    {statusNode}
+                </div>
+
+                {/* Progress bar — shown when uploading or complete */}
+                {(status === "uploading" || status === "complete") && (
+                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                        <div
+                            className={`h-full rounded-full transition-all duration-300
+                                ${status === "complete" ? "bg-green-500" : "bg-indigo-500"}`}
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                )}
+
+                {/* Failed — red bar */}
+                {status === "failed" && (
+                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-red-200">
+                        <div className="h-full w-full rounded-full bg-red-400" />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Caption under thumbnail/gallery cards ────────────────────────────────────
 
 function ImageCaption({ name, size }: { name: string; size?: number }) {
     const sizeLabel = formatBytes(size);
@@ -44,12 +208,16 @@ function ImageCaption({ name, size }: { name: string; size?: number }) {
     );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function ImageUploader({
     newImages,
     onNewImagesChange,
     existingImages = [],
     onDeleteExisting,
     onSetExistingPrimary,
+    uploadProgress = 0,
+    uploading = false,
 }: Props) {
     const fileRef = useRef<HTMLInputElement>(null);
     const [dragOver, setDragOver] = useState(false);
@@ -68,8 +236,18 @@ export default function ImageUploader({
         .map((img, index) => ({ ...img, index }))
         .filter((img) => !img.isPrimary);
 
-    // Flat list, in display order, that feeds the lightbox (thumbnail first,
-    // then galleries) so click-to-open and swipe navigation line up.
+    // Derive per-file status from overall uploadProgress.
+    // All new files share the same overall progress (router.post sends them together).
+    const deriveStatus = (progress: number): FileStatus => {
+        if (!uploading && progress === 0) return "idle";
+        if (uploading && progress > 0 && progress < 100) return "uploading";
+        if (progress >= 100) return "complete";
+        return "idle";
+    };
+
+    const fileStatus = deriveStatus(uploadProgress);
+
+    // Flat list for lightbox navigation.
     const lightboxImages: LightboxImage[] = [
         ...(primaryExisting
             ? [
@@ -156,7 +334,7 @@ export default function ImageUploader({
     };
 
     const setNewPrimary = (index: number) => {
-        onSetExistingPrimary?.(-1); // clears any existing-image primary
+        onSetExistingPrimary?.(-1);
         onNewImagesChange(
             newImages.map((img, i) => ({ ...img, isPrimary: i === index })),
         );
@@ -164,27 +342,31 @@ export default function ImageUploader({
 
     return (
         <div className="space-y-5">
-            {/* Single upload zone — handles thumbnail + gallery both */}
+            {/* ── Drop zone ─────────────────────────────────────────────────── */}
             <div
-                onClick={() => remaining > 0 && fileRef.current?.click()}
+                onClick={() =>
+                    !uploading && remaining > 0 && fileRef.current?.click()
+                }
                 onDragOver={(e) => {
                     e.preventDefault();
-                    if (remaining > 0) setDragOver(true);
+                    if (remaining > 0 && !uploading) setDragOver(true);
                 }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
-                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors ${
-                    remaining === 0
-                        ? "cursor-not-allowed border-gray-200 bg-gray-50"
-                        : dragOver
-                          ? "cursor-pointer border-indigo-500 bg-indigo-50"
-                          : "cursor-pointer border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
-                }`}
+                className={`flex flex-col items-center justify-center gap-2 rounded-xl
+                           border-2 border-dashed px-6 py-8 text-center transition-colors
+                           ${
+                               uploading || remaining === 0
+                                   ? "cursor-not-allowed border-gray-200 bg-gray-50"
+                                   : dragOver
+                                     ? "cursor-pointer border-indigo-500 bg-indigo-50"
+                                     : "cursor-pointer border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
+                           }`}
             >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                     <Upload size={18} />
                 </div>
-                {remaining > 0 ? (
+                {remaining > 0 && !uploading ? (
                     <>
                         <p className="text-sm font-medium text-gray-700">
                             Click to upload or drag & drop
@@ -194,6 +376,10 @@ export default function ImageUploader({
                             left
                         </p>
                     </>
+                ) : uploading ? (
+                    <p className="text-sm text-gray-400">
+                        Uploading — please wait...
+                    </p>
                 ) : (
                     <p className="text-sm text-gray-400">
                         Maximum {MAX_IMAGES} images reached
@@ -210,7 +396,42 @@ export default function ImageUploader({
                 onChange={handleFiles}
             />
 
-            {/* Thumbnail — the single primary image */}
+            {/* ── File list (new picks) ──────────────────────────────────────
+                Shown when user has picked files but not yet submitted.
+                Each row shows: thumbnail badge, name, size, status, progress bar. */}
+            {newImages.length > 0 && (
+                <div>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Files to upload ({newImages.length})
+                        </p>
+                        {/* Clear all — only when idle */}
+                        {fileStatus === "idle" && (
+                            <button
+                                type="button"
+                                onClick={() => onNewImagesChange([])}
+                                className="text-xs text-red-400 hover:text-red-600"
+                            >
+                                Clear all
+                            </button>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                        {newImages.map((img, idx) => (
+                            <FileRow
+                                key={`file-${idx}`}
+                                img={img}
+                                index={idx}
+                                progress={uploadProgress}
+                                status={fileStatus}
+                                onRemove={removeNew}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Thumbnail ─────────────────────────────────────────────────── */}
             <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Thumbnail
@@ -298,7 +519,7 @@ export default function ImageUploader({
                 )}
             </div>
 
-            {/* Gallery — everything else */}
+            {/* ── Gallery ───────────────────────────────────────────────────── */}
             {(galleryExisting.length > 0 || galleryNew.length > 0) && (
                 <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -423,9 +644,7 @@ export default function ImageUploader({
                 </div>
             )}
 
-            {/* Lightbox — rendered via portal, so it always overlays the
-                whole page instead of being clipped/overlapped by ancestor
-                stacking contexts (e.g. the sticky image panel). */}
+            {/* Lightbox — portal so it overlays the whole page */}
             {lightboxIndex !== null && lightboxImages.length > 0 && (
                 <ImageLightbox
                     images={lightboxImages}

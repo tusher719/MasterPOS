@@ -122,6 +122,8 @@ export default function ProductEdit({ product, categories, units }: Props) {
         product.images,
     );
     const [deletedImageIds, setDeletedImageIds] = useState<number[]>([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploading, setUploading] = useState(false);
 
     // Initialise variant rows from existing DB variants
     const [variantRows, setVariantRows] = useState<VariantRow[]>(
@@ -243,10 +245,26 @@ export default function ProductEdit({ product, categories, units }: Props) {
             formData.append("primary_image_index", String(primaryNewIndex));
         }
 
+        setUploadProgress(0);
+        setUploading(true);
+
         router.post(route("backend.products.update", product.id), formData, {
             forceFormData: true,
-            onSuccess: () => toast.success("Product updated successfully."),
-            onError: () => toast.error("Please fix the errors below."),
+            onProgress: (e) => {
+                if (e?.percentage !== undefined) {
+                    setUploadProgress(e.percentage);
+                }
+            },
+            onSuccess: () => {
+                setUploadProgress(100);
+                setUploading(false);
+                toast.success("Product updated successfully.");
+            },
+            onError: () => {
+                setUploading(false);
+                setUploadProgress(0);
+                toast.error("Please fix the errors below.");
+            },
         });
     };
 
@@ -309,6 +327,8 @@ export default function ProductEdit({ product, categories, units }: Props) {
                                     onSetExistingPrimary={
                                         handleSetExistingPrimary
                                     }
+                                    uploadProgress={uploadProgress}
+                                    uploading={uploading}
                                 />
                             </div>
                         </div>
@@ -351,18 +371,22 @@ export default function ProductEdit({ product, categories, units }: Props) {
                                 </Link>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={processing || !isFormValid}
+                                    disabled={
+                                        processing || uploading || !isFormValid
+                                    }
                                     className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                                 >
-                                    {processing && (
+                                    {(processing || uploading) && (
                                         <Loader2
                                             size={15}
                                             className="animate-spin"
                                         />
                                     )}
-                                    {processing
-                                        ? "Saving..."
-                                        : "Update Product"}
+                                    {uploading
+                                        ? `Uploading... ${uploadProgress}%`
+                                        : processing
+                                          ? "Saving..."
+                                          : "Update Product"}
                                 </button>
                             </div>
                         </div>

@@ -1,3 +1,4 @@
+import { ImageUploadInput } from "@/Components/ImageUpload";
 import useFlashToast from "@/hooks/useFlashToast";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import QuickLinksTab from "@/Pages/Backend/Settings/_components/QuickLinksTab";
@@ -21,9 +22,8 @@ import {
     Trash2,
     Type,
     Upload,
-    X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import FeatureAnnouncementsTab from "./_components/FeatureAnnouncementsTab";
 import LegalPagesTab from "./_components/LegalPagesTab";
@@ -444,8 +444,6 @@ function NavbarLogoPreview({
 // ─── Business Info Tab ────────────────────────────────────────────────────────
 function BusinessTab({ settings }: TabProps) {
     const b = settings.business ?? {};
-    const logoInputRef = useRef<HTMLInputElement>(null);
-
     const resolveLogoUrl = () => {
         if (b.logo_image_path_url) return b.logo_image_path_url;
         if (b.logo_image_path) {
@@ -455,9 +453,45 @@ function BusinessTab({ settings }: TabProps) {
         return null;
     };
 
+    const [logoPendingFile, setLogoPendingFile] = useState<File | null>(null);
+    const [logoUploadProgress, setLogoUploadProgress] = useState(0);
+    const [logoUploading, setLogoUploading] = useState(false);
+
+    // Shown in NavbarLogoPreview — updates instantly on file pick via FileReader.
     const [logoPreview, setLogoPreview] = useState<string | null>(
         resolveLogoUrl(),
     );
+
+    const handleLogoChange = (file: File | null) => {
+        setLogoPendingFile(file);
+        // Preview already set by ImageUploadInput via FileReader.
+        // We keep a separate state to track pending file for upload button.
+    };
+
+    const submitLogo = () => {
+        if (!logoPendingFile) return;
+        const formData = new FormData();
+        formData.append("logo", logoPendingFile);
+        setLogoUploading(true);
+
+        window.axios
+            .post(route("backend.settings.logo"), formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+                onUploadProgress: (e) => {
+                    const pct = e.total
+                        ? Math.round((e.loaded * 100) / e.total)
+                        : 0;
+                    setLogoUploadProgress(pct);
+                },
+            })
+            .then(() => {
+                toast.success("Logo updated.");
+                setLogoPendingFile(null);
+                setLogoUploadProgress(0);
+            })
+            .catch(() => toast.error("Logo upload failed."))
+            .finally(() => setLogoUploading(false));
+    };
 
     const [logoType, setLogoType] = useState<"image" | "text" | "both">(
         (b.logo_type as "image" | "text" | "both") ?? "text",
@@ -467,8 +501,6 @@ function BusinessTab({ settings }: TabProps) {
     );
 
     const [logoStyleProcessing, setLogoStyleProcessing] = useState(false);
-
-    const logoForm = useForm<{ logo: File | null }>({ logo: null });
 
     const form = useForm({
         group: "business",
@@ -481,20 +513,6 @@ function BusinessTab({ settings }: TabProps) {
     const submit = () => {
         form.post(route("backend.settings.update"), {
             onSuccess: () => toast.success("Business info saved."),
-        });
-    };
-
-    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        logoForm.setData("logo", file);
-        setLogoPreview(URL.createObjectURL(file));
-    };
-
-    const submitLogo = () => {
-        logoForm.post(route("backend.settings.logo"), {
-            forceFormData: true,
-            onSuccess: () => toast.success("Logo updated."),
         });
     };
 
@@ -548,61 +566,40 @@ function BusinessTab({ settings }: TabProps) {
                 title="Business Logo"
                 description="Displayed on invoices, receipts and reports."
             >
-                <div className="flex items-center gap-6">
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50">
-                        {logoPreview ? (
-                            <img
-                                src={logoPreview}
-                                alt="Logo"
-                                className="h-full w-full rounded-xl object-contain p-2"
-                            />
-                        ) : (
-                            <Building2 size={32} className="text-gray-300" />
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        <input
-                            ref={logoInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleLogoChange}
-                        />
-                        <div className="flex gap-2">
+                <div className="flex items-start gap-6">
+                    {/* ImageUploadInput handles FileReader preview,
+                        drag-and-drop, size validation, and clear button. */}
+                    <ImageUploadInput
+                        value={resolveLogoUrl()}
+                        onChange={(file) => {
+                            handleLogoChange(file);
+                            // Sync preview for NavbarLogoPreview below.
+                            if (!file) setLogoPreview(null);
+                        }}
+                        onClear={() => setLogoPreview(null)}
+                        accept="image/*"
+                        maxSizeMB={2}
+                        hint="PNG, JPG, WEBP — max 2 MB"
+                        progress={logoUploadProgress}
+                        disabled={logoUploading}
+                    />
+
+                    {/* Upload button — only shown after a file is picked */}
+                    {logoPendingFile && (
+                        <div className="pt-8">
                             <button
                                 type="button"
-                                onClick={() => logoInputRef.current?.click()}
-                                className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                                onClick={submitLogo}
+                                disabled={logoUploading}
+                                className="flex items-center gap-2 rounded-md bg-indigo-600
+                                           px-3 py-1.5 text-sm font-medium text-white
+                                           hover:bg-indigo-700 disabled:opacity-60"
                             >
-                                <Upload size={14} /> Choose Image
+                                <Save size={14} />
+                                {logoUploading ? "Uploading..." : "Upload Logo"}
                             </button>
-                            {logoForm.data.logo && (
-                                <button
-                                    type="button"
-                                    onClick={submitLogo}
-                                    disabled={logoForm.processing}
-                                    className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-                                >
-                                    <Save size={14} /> Upload
-                                </button>
-                            )}
-                            {logoPreview && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setLogoPreview(null);
-                                        logoForm.setData("logo", null);
-                                    }}
-                                    className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                >
-                                    <X size={14} />
-                                </button>
-                            )}
                         </div>
-                        <p className="text-xs text-gray-400">
-                            PNG, JPG, WEBP — max 2 MB
-                        </p>
-                    </div>
+                    )}
                 </div>
             </Section>
 

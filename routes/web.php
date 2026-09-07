@@ -233,8 +233,7 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             ->name('purchases.duplicate');
 
         // Standard resource routes
-        Route::get('purchases',                 [PurchaseController::class, 'index'])
-            ->name('purchases.index');
+        Route::get('purchases', [PurchaseController::class, 'index']) ->name('purchases.index');
 
         Route::get('purchases/create',          [PurchaseController::class, 'create'])
             ->name('purchases.create');

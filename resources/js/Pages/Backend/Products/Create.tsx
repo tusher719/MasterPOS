@@ -63,6 +63,8 @@ const REQUIRED_FIELDS: (keyof FormData)[] = [
 export default function ProductCreate({ categories, units }: Props) {
     const [newImages, setNewImages] = useState<ImageFile[]>([]);
     const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploading, setUploading] = useState(false);
 
     const { data, setData, processing, errors } = useForm<FormData>({
         name: "",
@@ -141,10 +143,27 @@ export default function ProductCreate({ categories, units }: Props) {
             formData.append("primary_image_index", String(primaryIndex));
         }
 
+        setUploadProgress(0);
+        setUploading(true);
+
         router.post(route("backend.products.store"), formData, {
             forceFormData: true,
-            onSuccess: () => toast.success("Product created successfully."),
-            onError: () => toast.error("Please fix the errors below."),
+            onProgress: (e?: { percentage?: number }) => {
+                const percentage = e?.percentage;
+                if (percentage !== undefined) {
+                    setUploadProgress(percentage);
+                }
+            },
+            onSuccess: () => {
+                setUploadProgress(100);
+                setUploading(false);
+                toast.success("Product created successfully.");
+            },
+            onError: () => {
+                setUploading(false);
+                setUploadProgress(0);
+                toast.error("Please fix the errors below.");
+            },
         });
     };
 
@@ -202,6 +221,8 @@ export default function ProductCreate({ categories, units }: Props) {
                                 <ImageUploader
                                     newImages={newImages}
                                     onNewImagesChange={setNewImages}
+                                    uploadProgress={uploadProgress}
+                                    uploading={uploading}
                                 />
                             </div>
                         </div>
@@ -243,18 +264,22 @@ export default function ProductCreate({ categories, units }: Props) {
                                 </Link>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={processing || !isFormValid}
+                                    disabled={
+                                        processing || uploading || !isFormValid
+                                    }
                                     className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
                                 >
-                                    {processing && (
+                                    {(processing || uploading) && (
                                         <Loader2
                                             size={15}
                                             className="animate-spin"
                                         />
                                     )}
-                                    {processing
-                                        ? "Saving..."
-                                        : "Create Product"}
+                                    {uploading
+                                        ? `Uploading... ${uploadProgress}%`
+                                        : processing
+                                          ? "Saving..."
+                                          : "Create Product"}
                                 </button>
                             </div>
                         </div>

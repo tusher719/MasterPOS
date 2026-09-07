@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 1.20 — Dark Mode Toggle (navbar quick switch) ✅
-- Next Item: Item 1.21 — Universal Image Upload Preview
+- Last Completed: Item 1.21 — Universal Image Upload Preview ✅
+- Next Item: Item 2.1 — Staff Email Verification Banner
 
 ## Financial Domain Overview
 
@@ -141,6 +141,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.18        | Dynamic Navbar Badges                               | ✅     |
 | 1.19        | Nested/Collapsible Navigation                       | ✅     |
 | 1.20        | Dark Mode Toggle (navbar quick switch)              | ✅     |
+| 1.21        | Universal Image Upload Preview                      | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -154,13 +155,12 @@ Current Sprint: Sprint 5 — Admin Polish
 
 ### Sprint 5 — Admin Polish
 
-| #    | Item                            | Priority     |
-| ---- | ------------------------------- | ------------ |
-| 1.21 | Universal Image Upload Preview  | Should Fix   |
-| 2.1  | Staff Email Verification Banner | Must Fix     |
-| 2.2  | Default Role Assignment         | Must Fix     |
-| 2.3  | Optional 2FA                    | Nice to Have |
-| 1.4  | Global Trash Bin Page           | Should Fix   |
+| #   | Item                            | Priority     |
+| --- | ------------------------------- | ------------ |
+| 2.1 | Staff Email Verification Banner | Must Fix     |
+| 2.2 | Default Role Assignment         | Must Fix     |
+| 2.3 | Optional 2FA                    | Nice to Have |
+| 1.4 | Global Trash Bin Page           | Should Fix   |
 
 ### Sprint 6 — Product/Inventory Extras
 

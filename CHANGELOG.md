@@ -2,6 +2,72 @@
 
 ---
 
+## [v2.57 — Item 1.21] — Universal Image Upload Preview — 2026-09-08
+
+### New Files (2)
+
+- `resources/js/Components/ImageUpload/ImageUploadInput.tsx`:
+  Square/circular preview component — FileReader instant client-side preview
+  (no server round-trip); drag-and-drop zone with dragOver state; size validation
+  (maxSizeMB prop, default 2 MB) with inline error; circular prop for profile photo
+  style (rounded-full preview); progress prop 0–100 drives progress bar below preview
+  (parent feeds from axios onUploadProgress); hover overlay with Upload icon to change;
+  X button top-right to clear; error prop for server-side validation messages;
+  My Theme semantic classes throughout (bg-muted, border-border, text-foreground)
+
+- `resources/js/Components/ImageUpload/index.ts`:
+  Barrel export — `export { default as ImageUploadInput } from "./ImageUploadInput"`
+
+### Updated Files (4)
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  BusinessTab Business Logo section replaced — ImageUploadInput used instead of
+  manual fileRef + hidden input + preview state; logoPendingFile state tracks picked
+  file for upload button visibility; logoUploadProgress state (0–100) drives
+  ImageUploadInput progress prop; submitLogo() uses window.axios.post with
+  onUploadProgress callback; Upload button shown only when logoPendingFile is set;
+  useRef removed (no longer needed); Upload + X icons removed from logo section
+  (handled inside ImageUploadInput)
+
+- `resources/js/Pages/Backend/Products/_components/ImageUploader.tsx`:
+  File list section added between drop zone and thumbnail — FileRow component renders
+  per picked file: thumbnail preview (16×16 object-cover), FileTypeBadge (colored
+  extension pill), file name, size, status label, progress bar;
+  FileStatus type: idle / uploading / complete / failed;
+  deriveStatus() maps overall uploadProgress + uploading prop to per-file status;
+  progress bar: indigo when uploading, green when complete, red when failed;
+  "Clear all" button shown when status is idle; drop zone locked (cursor-not-allowed)
+  while uploading prop is true; uploadProgress + uploading props added to Props interface;
+  all existing thumbnail / gallery / lightbox logic preserved unchanged
+
+- `resources/js/Pages/Backend/Products/Create.tsx`:
+  uploadProgress (number, default 0) + uploading (bool, default false) state added;
+  handleSubmit: setUploading(true) + setUploadProgress(0) before router.post;
+  router.post onProgress: e.percentage → setUploadProgress();
+  onSuccess: setUploadProgress(100) + setUploading(false);
+  onError: setUploading(false) + setUploadProgress(0);
+  ImageUploader receives uploadProgress + uploading props;
+  submit button disabled when uploading=true; label shows "Uploading... X%" during upload
+
+- `resources/js/Pages/Backend/Products/Edit.tsx`:
+  Same changes as Create.tsx — uploadProgress + uploading state,
+  router.post onProgress tracking, ImageUploader props, submit button label
+
+### Business Rules Established
+
+- ImageUploadInput is for single-image square/circular use cases (logo, profile photo,
+  payment screenshot) — FileReader preview, no server round-trip before form submit
+- ImageUploader (product images) uses file list + progress bar style — multiple files,
+  overall form submit progress tracked via router.post onProgress
+- uploadProgress drives all file rows simultaneously (router.post sends all files together,
+  one overall progress event, not per-file)
+- uploading=true locks drop zone and disables submit button — prevents double submit
+- FileTypeBadge colors: JPG/JPEG=blue, PNG=indigo, WEBP=violet, GIF=pink, others=gray
+- Future apply: payment screenshot (Item 10.6) → ImageUploadInput; review images
+  (Item 6.1) → ImageUploadInput; profile photo (Item 2.4) → ImageUploadInput circular=true
+
+---
+
 ## [v2.56 — Item 1.20] — Dark Mode Toggle — 2026-09-06
 
 ### Updated Files (1)

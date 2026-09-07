@@ -270,21 +270,25 @@ customers additions: dark_mode_preference (enum: light/dark/system nullable)
 
 ---
 
-### 1.21 Universal Image Upload Preview (Should Fix — standing component)
+### 1.21 Universal Image Upload Preview | ✅ Done |
 
-One reusable ImageUploadInput component (Backend) + Website equivalent:
+Two reusable upload components built:
 
-- Instant client-side preview using FileReader (no server round-trip)
-- Progress indicator during actual upload
-- Circular-crop style for profile photos
+**ImageUploadInput** (`resources/js/Components/ImageUpload/ImageUploadInput.tsx`):
 
-Used in:
+- Single image, square or circular preview (circular prop)
+- FileReader instant client-side preview — no server round-trip
+- Drag-and-drop support, size validation, progress bar prop
+- Used: Business logo (Settings/Index.tsx) ✅
+- Future: profile photo (2.4, circular=true), payment screenshot (10.6)
 
-- Product image upload
-- Business logo upload (1.2)
-- Profile photo upload (2.4)
-- Payment screenshot upload (4.3 / 10.6)
-- Review image upload (6.1)
+**ImageUploader** (`resources/js/Pages/Backend/Products/_components/ImageUploader.tsx`):
+
+- Multiple images, file list style with progress bar per row
+- FileTypeBadge, name, size, status (idle/uploading/complete/failed)
+- Overall progress driven by router.post onProgress
+- Used: Product images (Create.tsx + Edit.tsx) ✅
+- Future: review images (6.1)
 
 ---
 
