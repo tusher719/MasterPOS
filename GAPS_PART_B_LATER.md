@@ -308,7 +308,7 @@ users: email_verified_at already exists in schema — enforce UI layer only
 
 ---
 
-### 2.2 Default Role Assignment (Must Fix)
+### 2.2 Default Role Assignment | ✅ Done |
 
 ```
 business_settings: default_registration_role_id

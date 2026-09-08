@@ -22,11 +22,13 @@ import {
     Trash2,
     Type,
     Upload,
+    Users,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import FeatureAnnouncementsTab from "./_components/FeatureAnnouncementsTab";
 import LegalPagesTab from "./_components/LegalPagesTab";
+import StaffRolesTab from "./_components/StaffRolesTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SettingsGroup {
@@ -48,6 +50,11 @@ interface TabProps {
     };
 }
 
+interface Role {
+    id: number;
+    name: string;
+}
+
 interface Props {
     pageSettings: {
         business?: SettingsGroup;
@@ -55,7 +62,9 @@ interface Props {
         tax?: SettingsGroup;
         notification?: SettingsGroup;
         system?: SettingsGroup;
+        staff?: SettingsGroup;
     };
+    roles: Role[];
     can: {
         editLegalPages: boolean;
     };
@@ -71,6 +80,7 @@ const TABS = [
     { id: "system-status", label: "System Status", icon: AlertTriangle },
     { id: "nav-badges", label: "Navbar Badges", icon: Megaphone },
     { id: "privacy-terms", label: "Privacy & Terms", icon: FileText },
+    { id: "staff-roles", label: "Staff & Roles", icon: Users },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -89,7 +99,10 @@ function parseSegments(raw: string | null | undefined): LogoTextSegment[] {
     return [{ text: "Master", color: "#4f46e5" }];
 }
 
-export default function SettingsIndex({ pageSettings: settings }: Props) {
+export default function SettingsIndex({
+    pageSettings: settings,
+    roles,
+}: Props) {
     useFlashToast();
 
     const { can } = usePage().props as unknown as Props;
@@ -204,6 +217,19 @@ export default function SettingsIndex({ pageSettings: settings }: Props) {
                         )}
                         {activeTab === "privacy-terms" && (
                             <LegalPagesTab can={{ edit: can.editLegalPages }} />
+                        )}
+                        {activeTab === "staff-roles" && (
+                            <StaffRolesTab
+                                roles={roles}
+                                currentDefaultRoleId={
+                                    settings.staff?.default_registration_role_id
+                                        ? Number(
+                                              settings.staff
+                                                  .default_registration_role_id,
+                                          )
+                                        : null
+                                }
+                            />
                         )}
                     </div>
                 </div>

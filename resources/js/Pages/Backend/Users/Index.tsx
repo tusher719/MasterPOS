@@ -82,12 +82,13 @@ function PresenceAvatar({ user }: { user: User }) {
 export default function Index({
     users,
     roles,
+    defaultRoleName,
     filters,
 }: {
     users: PaginatedUsers;
     roles: string[];
+    defaultRoleName: string | null;
     filters: { search?: string };
-    // serverNow passed from controller but we use client Date.now() for simplicity
     serverNow?: string;
 }) {
     const [search, setSearch] = useState(filters.search ?? "");
@@ -100,7 +101,9 @@ export default function Index({
             email: "",
             phone: "",
             password: "",
-            role: roles[0] ?? "",
+            // Pre-select default role from Settings → Staff & Roles.
+            // Falls back to first role if no default configured.
+            role: defaultRoleName ?? roles[0] ?? "",
             status: "active",
         });
 

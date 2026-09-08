@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 class SettingController extends Controller
 {
@@ -41,8 +42,12 @@ class SettingController extends Controller
                 . '/storage/' . $settings['business']['logo_image_path'];
         }
 
+        // Load all roles so the Staff & Roles tab can render the default role dropdown.
+        $roles = Role::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('Backend/Settings/Index', [
             'pageSettings' => $settings,
+            'roles'        => $roles,
             'can'          => [
                 'editLegalPages' => Gate::allows('legal_page.edit'),
             ],

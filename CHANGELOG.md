@@ -2,6 +2,67 @@
 
 ---
 
+## [v2.59 — Item 2.2] — Default Role Assignment — 2026-09-08
+
+### New Migration (1)
+
+- `2026_09_08_164855_seed_default_role_setting.php`:
+  `default_registration_role_id` key seeded to `business_settings`
+  (group: staff, value: null — admin configures from Settings tab);
+  `down()` deletes the row cleanly
+
+### New Files (1)
+
+- `resources/js/Pages/Backend/Settings/_components/StaffRolesTab.tsx`:
+  Settings → Staff & Roles tab; single role dropdown (all Spatie roles,
+  ordered by name); "No default" option (null) forces manual selection
+  every time; saves via `router.post` to `backend.settings.update`
+  (group: staff); indigo hint text shows currently selected role name;
+  amber hint when no default set; semantic theme classes throughout
+  (bg-card, border-border, bg-input, text-foreground)
+
+### Updated Files (5)
+
+- `app/Http/Requests/Backend/UpdateSettingRequest.php`:
+  `'staff'` case added to `match` block —
+  `default_registration_role_id`: nullable integer, exists in roles table
+
+- `app/Http/Controllers/Backend/SettingController.php`:
+  `index()`: `$roles = Role::orderBy('name')->get(['id', 'name'])` added;
+  `roles` prop passed to Inertia render alongside `pageSettings` and `can`
+
+- `app/Http/Controllers/Backend/UserController.php`:
+  `index()`: `SettingsService::get('default_registration_role_id')` read;
+  `Role::find()` resolves name; `defaultRoleName` prop passed to Inertia;
+  `roles` changed from `pluck('name')` to `Role::orderBy('name')->pluck('name')`
+
+- `resources/js/Pages/Backend/Settings/Index.tsx`:
+  `Role` interface added; `roles: Role[]` and `staff?: SettingsGroup` added
+  to `Props`; `defaultRoleName` destructured from component props;
+  `Users` icon imported from lucide-react; `StaffRolesTab` imported;
+  `{ id: "staff-roles", label: "Staff & Roles", icon: Users }` added to
+  `TABS`; `StaffRolesTab` rendered in content panel with `roles` and
+  `currentDefaultRoleId` props
+
+- `resources/js/Pages/Backend/Users/Index.tsx`:
+  `defaultRoleName: string | null` added to Props;
+  `useForm` default `role` changed from `roles[0] ?? ""` to
+  `defaultRoleName ?? roles[0] ?? ""` — create form pre-selects
+  configured default role; admin can still change per-user before saving
+
+### Business Rules Established
+
+- `default_registration_role_id` stores the Spatie role `id` (integer) —
+  resolved to role name in `UserController::index()` before passing to frontend
+- Setting null = no default — admin must select role manually on every create
+- Default role is a frontend pre-selection only — `StoreUserRequest` still
+  requires `role` to be present and valid; no silent auto-assign on backend
+- Admin can override the pre-selected role per user at create time
+- `roles` prop in `UserController` ordered alphabetically — consistent with
+  Settings tab dropdown order
+
+---
+
 ## [v2.58 — Item 2.1] — Staff Email Verification Banner — 2026-09-08
 
 ### Updated Files (4)

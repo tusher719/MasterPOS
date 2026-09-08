@@ -44,6 +44,10 @@ class UpdateSettingRequest extends FormRequest
                 'notify_on_expense'   => 'required|in:true,false',
                 'low_stock_threshold' => 'required|integer|min:1|max:9999',
             ],
+            'staff' => [
+                'group'                       => 'required|string',
+                'default_registration_role_id' => 'nullable|integer|exists:roles,id',
+            ],
             default => [
                 'group' => 'required|string',
             ],

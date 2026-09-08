@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 2.1 — Staff Email Verification Banner ✅
-- Next Item: Item 2.2 — Default Role Assignment
+- Last Completed: Item 2.2 — Default Role Assignment ✅
+- Next Item: Sprint 6 — Item 3.1 — Product Search Autocomplete
 
 ## Financial Domain Overview
 
@@ -143,6 +143,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.20        | Dark Mode Toggle (navbar quick switch)              | ✅     |
 | 1.21        | Universal Image Upload Preview                      | ✅     |
 | 2.1         | Staff Email Verification Banner                     | ✅     |
+| 2.2         | Default Role Assignment                             | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -156,11 +157,10 @@ Current Sprint: Sprint 5 — Admin Polish
 
 ### Sprint 5 — Admin Polish
 
-| #   | Item                    | Priority     |
-| --- | ----------------------- | ------------ |
-| 2.2 | Default Role Assignment | Must Fix     |
-| 2.3 | Optional 2FA            | Nice to Have |
-| 1.4 | Global Trash Bin Page   | Should Fix   |
+| #   | Item                  | Priority           |
+| --- | --------------------- | ------------------ |
+| 2.3 | Optional 2FA          | Skipped (deferred) |
+| 1.4 | Global Trash Bin Page | Skipped (deferred) |
 
 ### Sprint 6 — Product/Inventory Extras
 

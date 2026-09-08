@@ -7,6 +7,7 @@ use App\Http\Requests\Backend\StoreUserRequest;
 use App\Http\Requests\Backend\UpdateUserRequest;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\SettingsService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
@@ -24,31 +25,40 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Resolve default role name from settings so the create form pre-selects it.
+        $defaultRoleName = null;
+        $defaultRoleId   = SettingsService::get('default_registration_role_id');
+
+        if ($defaultRoleId) {
+            $defaultRole     = Role::find((int) $defaultRoleId);
+            $defaultRoleName = $defaultRole?->name;
+        }
+
         return Inertia::render('Backend/Users/Index', [
-            'users' => $users,
-            'roles' => \Spatie\Permission\Models\Role::pluck('name'),
-            'filters' => request()->only('search'),
-            // Pass current time so frontend can compute relative "X min ago" without clock skew
-            'serverNow' => now()->toISOString(),
+            'users'           => $users,
+            'roles'           => Role::orderBy('name')->pluck('name'),
+            'defaultRoleName' => $defaultRoleName,
+            'filters'         => request()->only('search'),
+            'serverNow'       => now()->toISOString(),
         ]);
     }
 
     public function store(StoreUserRequest $request)
-    {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => bcrypt($request->password),
-            'status' => $request->status,
-        ]);
+{
+    $user = User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'phone'    => $request->phone,
+        'password' => bcrypt($request->password),
+        'status'   => $request->status,
+    ]);
 
-        $user->assignRole($request->role);
+    $user->assignRole($request->role);
 
-        ActivityLogService::log('users', 'created', "User {$user->name} created", $user);
+    ActivityLogService::log('users', 'created', "User {$user->name} created", $user);
 
-        return redirect()->route('backend.users.index')->with('success', 'User created successfully');
-    }
+    return redirect()->route('backend.users.index')->with('success', 'User created successfully');
+}
 
     public function update(UpdateUserRequest $request, User $user)
     {
