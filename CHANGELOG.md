@@ -2,6 +2,47 @@
 
 ---
 
+## [v2.58 — Item 2.1] — Staff Email Verification Banner — 2026-09-08
+
+### Updated Files (4)
+
+- `app/Http/Middleware/HandleInertiaRequests.php`:
+  `emailVerifiedAt` key added to share() — `fn () => $request->user()?->email_verified_at`;
+  returns null when user is unauthenticated; globally available on every Inertia response
+  so banner works across all backend pages without per-page prop passing
+
+- `resources/js/Layouts/AuthenticatedLayout.tsx`:
+  `AuthUser` interface: `email_verified_at?: string | null` added;
+  `PageProps` interface: `emailVerifiedAt?: string | null` added;
+  `EmailVerificationBanner` component added — reads `emailVerifiedAt` from
+  `usePage().props`; shows amber banner when user is unverified;
+  "Resend verification email" button → `router.post(route('verification.send'))`;
+  session-only dismiss button (banner returns on page reload — by design);
+  hidden entirely when user is verified; banner placed between navbar `</header>`
+  and `<main>` in InnerLayout; inline SVG warning icon (no extra lucide import)
+
+- `resources/js/Pages/Backend/Users/Index.tsx`:
+  Email column added to DataTable — shows email address with Verified (green) or
+  Unverified (amber) badge below; `UserWithVerification` local type alias extends
+  `User` with `email_verified_at: string | null`; `DataTable<UserWithVerification>`
+  generic updated; inline SVG checkmark / info icons in badges (no extra imports)
+
+- `resources/js/types/user.d.ts`:
+  `email_verified_at: string | null` added to `User` interface (after `last_seen_at`)
+
+### Business Rules Established
+
+- Login is never blocked — unverified staff can still access the backend fully
+- Banner is persistent — cannot be permanently dismissed; session-only dismiss
+  reappears on every new page load or browser restart
+- Admin (verified) never sees the banner — hidden when `email_verified_at` is set
+- `verification.send` route already registered by Laravel Breeze — no new route needed
+- `emailVerifiedAt` shared as separate key — `auth.user` object not modified
+  (avoids breaking existing code that reads `auth.user` throughout the codebase)
+- `email_verified_at` in `users` table already exists — no new migration needed
+
+---
+
 ## [v2.57 — Item 1.21] — Universal Image Upload Preview — 2026-09-08
 
 ### New Files (2)

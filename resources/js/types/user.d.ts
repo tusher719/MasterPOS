@@ -14,6 +14,7 @@ export interface User {
     created_at: string;
     // Nullable — null means user has never been seen after this feature was added
     last_seen_at: string | null;
+    email_verified_at: string | null;
 }
 
 export interface PaginatedUsers {

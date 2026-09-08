@@ -292,7 +292,7 @@ Two reusable upload components built:
 
 ---
 
-### 2.1 Staff Email Verification — Persistent Banner ✅ (Must Fix)
+### 2.1 Staff Email Verification — Persistent Banner ✅ Done |
 
 **Confirmed flow:**
 

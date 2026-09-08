@@ -7,6 +7,12 @@ import { Head, router, useForm } from "@inertiajs/react";
 import { Archive, Pencil, Plus, Search } from "lucide-react";
 import { FormEvent, useState } from "react";
 
+// Extend User type locally to include email_verified_at
+// (canonical definition lives in user.d.ts — add there too when editing)
+type UserWithVerification = User & {
+    email_verified_at: string | null;
+};
+
 // ─── Presence helpers ────────────────────────────────────────────────────────
 
 type PresenceStatus = "online" | "away" | "offline";
@@ -188,7 +194,7 @@ export default function Index({
                     />
                 </form>
 
-                <DataTable<User>
+                <DataTable<UserWithVerification>
                     columns={[
                         {
                             header: "Name",
@@ -196,6 +202,51 @@ export default function Index({
                             accessor: (u) => <PresenceAvatar user={u} />,
                         },
                         { header: "Phone", accessor: (u) => u.phone ?? "-" },
+                        {
+                            header: "Email",
+                            accessor: (u) => (
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm text-foreground">
+                                        {u.email}
+                                    </span>
+                                    {u.email_verified_at ? (
+                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                                            <svg
+                                                className="h-3 w-3"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                strokeWidth={2.5}
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="m4.5 12.75 6 6 9-13.5"
+                                                />
+                                            </svg>
+                                            Verified
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                            <svg
+                                                className="h-3 w-3"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                strokeWidth={2.5}
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                                                />
+                                            </svg>
+                                            Unverified
+                                        </span>
+                                    )}
+                                </div>
+                            ),
+                        },
                         {
                             header: "Role",
                             accessor: (u) => (

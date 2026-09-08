@@ -63,6 +63,7 @@ interface AuthUser {
     id?: number | string;
     name?: string;
     email?: string;
+    email_verified_at?: string | null;
 }
 
 interface AuthData {
@@ -95,6 +96,7 @@ interface PageProps {
     notifications?: NotificationShared;
     featureAnnouncements?: Record<string, FeatureBadge>;
     navCounts?: NavCounts;
+    emailVerifiedAt?: string | null;
 }
 
 interface NavItem {
@@ -1075,6 +1077,64 @@ function UserDropdown({ auth }: UserDropdownProps) {
     );
 }
 
+// ─── Email Verification Banner ────────────────────────────────────────────────
+// Shown persistently when the logged-in user has not verified their email.
+// Login is never blocked — this is a reminder only.
+// Cannot be permanently dismissed — reappears on every page load.
+function EmailVerificationBanner() {
+    const [dismissed, setDismissed] = useState(false);
+    const { auth, emailVerifiedAt } = usePage().props as unknown as PageProps;
+
+    if (!auth?.user || emailVerifiedAt) return null;
+    if (dismissed) return null;
+
+    const handleSendLink = () => {
+        router.post(route("verification.send"), {}, { preserveScroll: true });
+    };
+
+    return (
+        <div className="flex items-center justify-between gap-4 border-b border-amber-200 bg-amber-50 px-6 py-2.5 dark:border-amber-900/50 dark:bg-amber-950/30">
+            <div className="flex items-center gap-2.5 text-sm text-amber-800 dark:text-amber-300">
+                {/* Warning icon inline — no extra import needed */}
+                <svg
+                    className="h-4 w-4 shrink-0 text-amber-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                    />
+                </svg>
+                <span>
+                    Your email address{" "}
+                    <span className="font-semibold">{auth.user.email}</span> is
+                    not verified.
+                </span>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
+                <button
+                    onClick={handleSendLink}
+                    className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-700"
+                >
+                    Resend verification email
+                </button>
+                {/* Session-only dismiss — banner returns on next page load (by design) */}
+                <button
+                    onClick={() => setDismissed(true)}
+                    className="text-xs text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
+                >
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    );
+}
+
 // ─── Inner layout — reads theme from hook ─────────────────────────────────────
 function InnerLayout({ children }: PropsWithChildren) {
     useFlashToast();
@@ -1267,6 +1327,9 @@ function InnerLayout({ children }: PropsWithChildren) {
                         <UserDropdown auth={auth} />
                     </div>
                 </header>
+
+                {/* Email verification banner — shown when auth user's email is unverified */}
+                <EmailVerificationBanner />
 
                 {/* Page content */}
                 <main className="flex-1 overflow-y-auto p-6 bg-background">

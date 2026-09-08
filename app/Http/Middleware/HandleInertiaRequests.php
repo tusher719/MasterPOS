@@ -25,6 +25,8 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // email verification status — banner এর জন্য
+            'emailVerifiedAt' => fn () => $request->user()?->email_verified_at,
 
             // Ziggy may be installed under either namespace/version, so guard for both.
             'ziggy' => function () use ($request) {
