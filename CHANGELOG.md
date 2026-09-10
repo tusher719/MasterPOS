@@ -2,6 +2,70 @@
 
 ---
 
+## [v2.60 — Item 3.1] — Product Search Autocomplete + Animation System — 2026-09-10
+
+### New Files (2)
+
+- `resources/js/Pages/Backend/Products/_components/ProductAutocomplete.tsx`:
+  Debounced autocomplete (300ms) for Products Index page header;
+  min 2 chars before first request; AbortController cancels stale requests;
+  shows thumbnail, name, SKU, category, sale_price, stock_qty, low-stock badge,
+  inactive badge; keyboard nav (↑↓ Enter Esc); clicks navigate to product edit page;
+  semantic theme classes throughout (bg-card, border-border, text-foreground etc.)
+
+- `resources/js/Components/ui/animations.tsx`:
+  Central animation primitive library — never write inline one-off animation
+  classes in page components; import from here instead.
+  Exports: Skeleton, SkeletonText, SkeletonCard, SkeletonTable,
+  SkeletonSearchResult, Spinner, PingDot, BounceDots, FadeIn, SlideIn,
+  Shimmer, PresenceRing.
+  Shimmer requires tailwind.config.js keyframes.shimmer (added).
+
+### Updated Files (5)
+
+- `app/Http/Controllers/Backend/ProductController.php`:
+  search() method added — GET /backend/products/search?q=;
+  min 2 chars guard; searches name/sku/barcode with LIKE;
+  name-starts-with results ranked first via CASE WHEN;
+  max 10 results; returns id/name/sku/sale_price/stock_qty/
+  low_stock_threshold/is_low_stock/is_active/category_name/primary_image
+
+- `app/Http/Controllers/Backend/GlobalSearchController.php`:
+  initials() private helper — generates 1-2 char initials from any name;
+  productImageUrl() private helper — resolves primary image URL;
+  all modules now return image + initials fields;
+  Products: primaryImage eager loaded, image URL resolved;
+  Customers/Suppliers/Partners/Investments: initials from name/investor_name;
+  Sales: image=null, initials=null (ShoppingCart icon shown instead)
+
+- `resources/js/Components/GlobalSearch/GlobalSearchModal.tsx`:
+  ResultIcon replaced with ResultAvatar component;
+  Products show thumbnail when available, initials avatar as fallback;
+  AVATAR_COLORS: Products=indigo, Customers=purple, Suppliers=teal,
+  Investments=amber, Partners=blue, Sales=gray;
+  Skeleton loading added — SkeletonCategory shown immediately on keystroke
+  before debounce fires; results wrapped in FadeIn (180ms);
+  modal panel itself wrapped in FadeIn (180ms) on open
+
+- `routes/web.php`:
+  GET /products/search route added BEFORE /products/create
+
+- `tailwind.config.js`:
+  keyframes.shimmer + animation.shimmer added for Shimmer component;
+  @tailwindcss/typography plugin added (already installed for legal pages)
+
+### Business Rules Established
+
+- All animations use components from resources/js/Components/ui/animations.tsx —
+  never inline one-off Tailwind animation classes in page components
+- Product search: minimum 2 chars, max 10 results, name-starts-with ranked first
+- Global Search avatars: image when available (products), initials otherwise,
+  ShoppingCart icon for sales (no meaningful initials)
+- Skeleton shown immediately on keystroke — before 300ms debounce fires,
+  so UI never feels frozen even on slow connections
+
+---
+
 ## [v2.59 — Item 2.2] — Default Role Assignment — 2026-09-08
 
 ### New Migration (1)

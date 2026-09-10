@@ -1,6 +1,7 @@
-import { Head, Link, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link, router } from "@inertiajs/react";
 import { toast } from "sonner";
+import ProductAutocomplete from "./_components/ProductAutocomplete";
 import ProductStatsCards from "./_components/ProductStatsCards";
 import ProductTable from "./_components/ProductTable";
 
@@ -56,21 +57,24 @@ export default function ProductsIndex({ products, stats }: Props) {
 
             <div className="space-y-6 p-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Products
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Manage your product catalogue
                         </p>
                     </div>
-                    <Link
-                        href={route("backend.products.create")}
-                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                    >
-                        + Add Product
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <ProductAutocomplete />
+                        <Link
+                            href={route("backend.products.create")}
+                            className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                        >
+                            + Add Product
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats */}

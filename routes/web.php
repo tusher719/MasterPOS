@@ -171,34 +171,23 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             ->name('product-categories.destroy');
 
         // --- Units ---
-        Route::get('/units', [UnitController::class, 'index'])
-            ->name('units.index');
-        Route::post('/units', [UnitController::class, 'store'])
-            ->name('units.store');
-        Route::put('/units/{unit}', [UnitController::class, 'update'])
-            ->name('units.update');
-        Route::delete('/units/{unit}', [UnitController::class, 'destroy'])
-            ->name('units.destroy');
+        Route::get('/units', [UnitController::class, 'index'])->name('units.index');
+        Route::post('/units', [UnitController::class, 'store'])->name('units.store');
+        Route::put('/units/{unit}', [UnitController::class, 'update'])->name('units.update');
+        Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy');
 
         // --- Products ---
-        Route::get('/products', [ProductController::class, 'index'])
-            ->name('products.index');
-        Route::get('/products/create', [ProductController::class, 'create'])
-            ->name('products.create');
-        Route::post('/products', [ProductController::class, 'store'])
-            ->name('products.store');
-        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])
-            ->name('products.edit');
-        Route::put('/products/{product}', [ProductController::class, 'update'])
-            ->name('products.update');
-        Route::delete('/products/{product}', [ProductController::class, 'destroy'])
-            ->name('products.destroy');
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+            Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+        Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+        Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
         // --- Product Images ---
-        Route::delete('/products/{product}/images/{image}', [ProductController::class, 'destroyImage'])
-            ->name('products.images.destroy');
-        Route::post('/products/{product}/images/{image}/primary', [ProductController::class, 'setPrimaryImage'])
-            ->name('products.images.primary');
+        Route::delete('/products/{product}/images/{image}', [ProductController::class, 'destroyImage'])->name('products.images.destroy');
+        Route::post('/products/{product}/images/{image}/primary', [ProductController::class, 'setPrimaryImage'])->name('products.images.primary');
 
             // ── Step 05: Notifications
 

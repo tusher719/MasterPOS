@@ -13,7 +13,10 @@ use App\Models\Unit;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -342,6 +345,52 @@ class ProductController extends Controller
         });
 
         return back()->with('success', 'Product deleted successfully.');
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        abort_unless(Gate::allows('product.view'), 403);
+
+        $q = trim($request->input('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $results = Product::with(['primaryImage', 'category'])
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('sku', 'like', "%{$q}%")
+                    ->orWhere('barcode', 'like', "%{$q}%");
+            })
+            ->orderByRaw("CASE WHEN name LIKE ? THEN 0 ELSE 1 END", ["{$q}%"])
+            ->orderBy('name')
+            ->limit(10)
+            ->get();
+
+        return response()->json(
+            $results->map(function ($product) {
+                $imageUrl = null;
+                if ($product->primaryImage?->image_path) {
+                    $imageUrl = request()->getSchemeAndHttpHost()
+                        . request()->getBaseUrl()
+                        . '/storage/' . $product->primaryImage->image_path;
+                }
+
+                return [
+                    'id'                  => $product->id,
+                    'name'                => $product->name,
+                    'sku'                 => $product->sku,
+                    'sale_price'          => $product->sale_price,
+                    'stock_qty'           => $product->stock_qty,
+                    'low_stock_threshold' => $product->low_stock_threshold,
+                    'is_low_stock'        => $product->is_low_stock,
+                    'is_active'           => $product->is_active,
+                    'category_name'       => $product->category?->name,
+                    'primary_image'       => $imageUrl,
+                ];
+            })
+        );
     }
 
     public function destroyImage(Product $product, ProductImage $image): RedirectResponse

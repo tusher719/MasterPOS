@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 5 — Admin Polish
 
-- Last Completed: Item 2.2 — Default Role Assignment ✅
-- Next Item: Sprint 6 — Item 3.1 — Product Search Autocomplete
+- Last Completed: Item 3.1 — Product Search Autocomplete ✅
+- Next Item: Sprint 6 — Item 3.2 — Products Grid/List Toggle
 
 ## Financial Domain Overview
 
@@ -144,6 +144,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 1.21        | Universal Image Upload Preview                      | ✅     |
 | 2.1         | Staff Email Verification Banner                     | ✅     |
 | 2.2         | Default Role Assignment                             | ✅     |
+| 3.1         | Product Search Autocomplete                         | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -166,7 +167,6 @@ Current Sprint: Sprint 5 — Admin Polish
 
 | #   | Item                            | Priority     |
 | --- | ------------------------------- | ------------ |
-| 3.1 | Product Search Autocomplete     | Should Fix   |
 | 3.2 | Products Grid/List Toggle       | Nice to Have |
 | 3.6 | Universal Import/Export         | Should Fix   |
 | 3.7 | Purchase Return/Damage Tracking | Should Fix   |

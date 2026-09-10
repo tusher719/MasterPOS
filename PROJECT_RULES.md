@@ -592,3 +592,22 @@ exists. Do not attempt these without test coverage:
 - quickLinks (role-filtered) and allQuickLinks (all) both shared via HandleInertiaRequests globally
 - Quick Links tab in Settings uses id: 'quick-links' — must match TABS array in Settings/Index.tsx
 - Sidebar "Home" entry in Dashboards group → backend.quick-links.index
+
+### Animation Component Rules (NEW — Item 3.1 extension)
+
+All animations must use components from `resources/js/Components/ui/animations.tsx`.
+Never write inline one-off Tailwind animation classes in page components.
+
+| Situation                   | Component                        |
+| --------------------------- | -------------------------------- |
+| Table/card data loading     | `SkeletonTable` / `SkeletonCard` |
+| Search dropdown loading     | `SkeletonSearchResult`           |
+| Modal / dropdown appearing  | `FadeIn`                         |
+| Drawer / side panel sliding | `SlideIn from="right"`           |
+| Button submitting           | `Spinner size="sm"`              |
+| Live status dot             | `PingDot`                        |
+| User avatar presence ring   | `PresenceRing`                   |
+| Image / hero placeholder    | `Shimmer`                        |
+| Full-page loading           | `BounceDots`                     |
+
+Shimmer keyframe requires tailwind.config.js keyframes.shimmer entry — already added.
