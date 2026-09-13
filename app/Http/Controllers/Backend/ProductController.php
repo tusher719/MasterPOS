@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductImage;
 use App\Models\Unit;
+use App\Models\UserPreference;
 use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,66 +29,72 @@ class ProductController extends Controller
     use AuthorizesRequests;
 
     public function index(): Response
-    {
-        $this->authorize('viewAny', Product::class);
+{
+    $this->authorize('viewAny', Product::class);
 
-        $products = Product::with(['category', 'unit', 'primaryImage', 'activeVariants'])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(function ($product) {
-                $primaryImageUrl = null;
+    // Read grid view preference from user_preferences.ui_json
+    $pref     = UserPreference::where('user_id', Auth::id())->first();
+    $uiJson   = $pref?->ui_json ?? [];
+    $gridView = (bool) ($uiJson['grid_view'] ?? false);
 
-                if ($product->primaryImage?->image_path) {
-                    $primaryImageUrl = request()->getSchemeAndHttpHost() . request()->getBaseUrl()
-                        . '/storage/' . $product->primaryImage->image_path;
-                }
+    $products = Product::with(['category', 'unit', 'primaryImage', 'activeVariants'])
+        ->orderBy('sort_order')
+        ->orderBy('name')
+        ->get()
+        ->map(function ($product) {
+            $primaryImageUrl = null;
 
-                return [
-                    'id'                  => $product->id,
-                    'name'                => $product->name,
-                    'slug'                => $product->slug,          // ← ADDED
-                    'sku'                 => $product->sku,
-                    'barcode'             => $product->barcode,
-                    'category_id'         => $product->category_id,
-                    'category_name'       => $product->category?->name,
-                    'unit_id'             => $product->unit_id,
-                    'unit_short_code'     => $product->unit?->short_code,
-                    'cost_price'          => $product->cost_price,
-                    'sale_price'          => $product->sale_price,
-                    'stock_qty'           => $product->stock_qty,
-                    'low_stock_threshold' => $product->low_stock_threshold,
-                    'is_low_stock'        => $product->is_low_stock,
-                    'is_featured'         => $product->is_featured,
-                    'is_active'           => $product->is_active,
-                    'primary_image'       => $primaryImageUrl,
-                    'has_variants'        => $product->has_variants,
-                    'variants'            => $product->has_variants
-                        ? $product->activeVariants->map(fn($v) => [
-                            'id'             => $v->id,
-                            'sku'            => $v->sku,
-                            'attributes'     => $v->attributes ?? [],
-                            'stock_qty'      => (float) $v->stock_qty,
-                            'price_override' => $v->price_override,
-                            'is_active'      => $v->is_active,
-                            'label'          => $v->label,
-                        ])->values()
-                        : [],
-                ];
-            });
+            if ($product->primaryImage?->image_path) {
+                $primaryImageUrl = request()->getSchemeAndHttpHost() . request()->getBaseUrl()
+                    . '/storage/' . $product->primaryImage->image_path;
+            }
 
-        $stats = [
-            'total'     => Product::count(),
-            'active'    => Product::where('is_active', true)->count(),
-            'low_stock' => Product::whereColumn('stock_qty', '<=', 'low_stock_threshold')->count(),
-            'featured'  => Product::where('is_featured', true)->count(),
-        ];
+            return [
+                'id'                  => $product->id,
+                'name'                => $product->name,
+                'slug'                => $product->slug,
+                'sku'                 => $product->sku,
+                'barcode'             => $product->barcode,
+                'category_id'         => $product->category_id,
+                'category_name'       => $product->category?->name,
+                'unit_id'             => $product->unit_id,
+                'unit_short_code'     => $product->unit?->short_code,
+                'cost_price'          => $product->cost_price,
+                'sale_price'          => $product->sale_price,
+                'stock_qty'           => $product->stock_qty,
+                'low_stock_threshold' => $product->low_stock_threshold,
+                'is_low_stock'        => $product->is_low_stock,
+                'is_featured'         => $product->is_featured,
+                'is_active'           => $product->is_active,
+                'primary_image'       => $primaryImageUrl,
+                'has_variants'        => $product->has_variants,
+                'variants'            => $product->has_variants
+                    ? $product->activeVariants->map(fn($v) => [
+                        'id'             => $v->id,
+                        'sku'            => $v->sku,
+                        'attributes'     => $v->attributes ?? [],
+                        'stock_qty'      => (float) $v->stock_qty,
+                        'price_override' => $v->price_override,
+                        'is_active'      => $v->is_active,
+                        'label'          => $v->label,
+                    ])->values()
+                    : [],
+            ];
+        });
 
-        return Inertia::render('Backend/Products/Index', [
-            'products' => $products,
-            'stats'    => $stats,
-        ]);
-    }
+    $stats = [
+        'total'     => Product::count(),
+        'active'    => Product::where('is_active', true)->count(),
+        'low_stock' => Product::whereColumn('stock_qty', '<=', 'low_stock_threshold')->count(),
+        'featured'  => Product::where('is_featured', true)->count(),
+    ];
+
+    return Inertia::render('Backend/Products/Index', [
+        'products'  => $products,
+        'stats'     => $stats,
+        'grid_view' => $gridView,
+    ]);
+}
 
     public function create(): Response
     {

@@ -43,10 +43,10 @@
 
 ## Current Status
 
-Current Sprint: Sprint 5 — Admin Polish
+Current Sprint: Sprint 6 — Product/Inventory Extras
 
-- Last Completed: Item 3.1 — Product Search Autocomplete ✅
-- Next Item: Sprint 6 — Item 3.2 — Products Grid/List Toggle
+- Last Completed: Item 3.2 — Products Grid/List Toggle ✅
+- Next Item: Sprint 6 — Item 3.6 — Universal Import/Export
 
 ## Financial Domain Overview
 
@@ -145,6 +145,7 @@ Current Sprint: Sprint 5 — Admin Polish
 | 2.1         | Staff Email Verification Banner                     | ✅     |
 | 2.2         | Default Role Assignment                             | ✅     |
 | 3.1         | Product Search Autocomplete                         | ✅     |
+| 3.2         | Products Grid/List Toggle                           | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 

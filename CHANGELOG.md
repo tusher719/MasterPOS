@@ -2,6 +2,50 @@
 
 ---
 
+## [v2.61 — Item 3.2] — Products Grid/List Toggle — 2026-09-13
+
+### New Files (1)
+
+- `resources/js/Pages/Backend/Products/_components/ProductGrid.tsx`:
+  Responsive image-card grid for Products Index;
+  2 col mobile → 3 col sm → 4 col lg → 5 col xl;
+  ProductCard: primary image with scale-on-hover, top-left badges
+  (Inactive / Featured / Variant count), hover-reveal edit+delete
+  buttons (top-right), category pill, price + StockBadge row,
+  stock qty line; StockBadge: Out of stock (red) / Low stock (amber
+  with AlertTriangle) / In stock (green); empty state with Package icon;
+  semantic theme classes throughout (bg-card, border-border etc.)
+
+### Updated Files (2)
+
+- `app/Http/Controllers/Backend/ProductController.php`:
+  index(): reads UserPreference::where('user_id', Auth::id())->first()
+  for ui_json.grid_view (bool, default false); passes grid_view prop
+  to Inertia render alongside products + stats
+
+- `resources/js/Pages/Backend/Products/Index.tsx`:
+  Product interface exported (used by ProductGrid + ProductTable);
+  grid_view prop added; isGrid useState initialized from grid_view prop;
+  savingView state prevents duplicate save calls;
+  List/Grid toggle button group in header (indigo active, muted inactive);
+  handleToggleView(): updates isGrid immediately, saves preference via
+  window.axios.put(backend.user.preferences.ui.update) — non-fatal on
+  failure so view stays switched; FadeIn key={isGrid ? "grid" : "list"}
+  wraps conditional ProductGrid / ProductTable render
+
+### Business Rules Established
+
+- ui_json.grid_view (bool, default false) stores per-user product view
+  preference — false = list (default), true = grid
+- Preference read from UserPreference model directly (no relation dependency)
+- Toggle saves immediately on click — non-fatal: view switch persists
+  even if axios call fails
+- FadeIn key swap triggers re-mount animation on every view switch
+- Product interface exported from Index.tsx — imported by ProductGrid
+  and ProductTable (single source of truth)
+
+---
+
 ## [v2.60 — Item 3.1] — Product Search Autocomplete + Animation System — 2026-09-10
 
 ### New Files (2)

@@ -14,26 +14,26 @@ export default function ProductStatsCards({ stats }: Props) {
         {
             label: "Total Products",
             value: stats.total,
-            color: "text-gray-800",
-            bg: "bg-white",
+            color: "text-foreground",
+            bg: "bg-card",
         },
         {
             label: "Active",
             value: stats.active,
-            color: "text-green-700",
-            bg: "bg-white",
+            color: "text-foreground",
+            bg: "bg-card",
         },
         {
             label: "Low Stock",
             value: stats.low_stock,
-            color: stats.low_stock > 0 ? "text-amber-500" : "text-gray-800",
-            bg: "bg-white",
+            color: stats.low_stock > 0 ? "text-amber-500" : "text-foreground",
+            bg: "bg-card",
         },
         {
             label: "Featured",
             value: stats.featured,
             color: "text-indigo-600",
-            bg: "bg-white",
+            bg: "bg-card",
         },
     ];
 
@@ -42,9 +42,11 @@ export default function ProductStatsCards({ stats }: Props) {
             {cards.map((card) => (
                 <div
                     key={card.label}
-                    className={`${card.bg} rounded-lg border border-gray-200 p-4`}
+                    className={`${card.bg} rounded-lg border border-border p-4`}
                 >
-                    <p className="text-xs text-gray-500">{card.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {card.label}
+                    </p>
                     <p className={`text-2xl font-bold mt-1 ${card.color}`}>
                         {card.value}
                     </p>

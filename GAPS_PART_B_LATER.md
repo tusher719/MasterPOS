@@ -382,6 +382,16 @@ employee_salaries: id, user_id, amount, pay_date, status, timestamps
 - maatwebsite/excel Import classes with WithValidation, SkipsOnError
 - Preview/dry-run screen before committing rows
 
+### 3.2 Products Grid / List View Toggle | ✅ Done |
+
+- Toggle on Products Index header — Grid (image cards) vs List (existing table)
+- Preference stored in user_preferences.ui_json (grid_view: bool, default false)
+- Grid: 2 col mobile → 3 col sm → 4 col lg → 5 col xl
+- FadeIn animation on view switch
+- Hover-reveal edit/delete actions on cards
+- Stock / Featured / Variant badges on grid cards
+- Preference saved via PUT /backend/user/preferences/ui (non-fatal on failure)
+
 ---
 
 ### 3.7 Purchase Return / Damage-Wastage Tracking (Should Fix)

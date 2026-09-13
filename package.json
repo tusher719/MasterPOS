@@ -42,6 +42,7 @@
         "@mantine/spotlight": "^8.3.18",
         "@mantine/tiptap": "^8.3.18",
         "@tabler/icons-react": "^3.44.0",
+        "@tailwindcss/typography": "^0.5.20",
         "@tiptap/extension-color": "^3.27.3",
         "@tiptap/extension-highlight": "^3.27.3",
         "@tiptap/extension-link": "^3.27.3",
