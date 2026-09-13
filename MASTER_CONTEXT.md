@@ -45,8 +45,8 @@
 
 Current Sprint: Sprint 6 — Product/Inventory Extras
 
-- Last Completed: Item 3.2 — Products Grid/List Toggle ✅
-- Next Item: Sprint 6 — Item 3.6 — Universal Import/Export
+- Last Completed: Item 3.6 — Universal Import/Export ✅
+- Next Item: Sprint 6 — Item 3.7 — Purchase Return/Damage Tracking
 
 ## Financial Domain Overview
 
@@ -146,6 +146,7 @@ Current Sprint: Sprint 6 — Product/Inventory Extras
 | 2.2         | Default Role Assignment                             | ✅     |
 | 3.1         | Product Search Autocomplete                         | ✅     |
 | 3.2         | Products Grid/List Toggle                           | ✅     |
+| 3.6         | Universal Import/Export                             | ✅     |
 
 ### 6.5 Order-Blocked Popup ✅ DONE
 
@@ -166,11 +167,9 @@ Current Sprint: Sprint 6 — Product/Inventory Extras
 
 ### Sprint 6 — Product/Inventory Extras
 
-| #   | Item                            | Priority     |
-| --- | ------------------------------- | ------------ |
-| 3.2 | Products Grid/List Toggle       | Nice to Have |
-| 3.6 | Universal Import/Export         | Should Fix   |
-| 3.7 | Purchase Return/Damage Tracking | Should Fix   |
+| #   | Item                            | Priority   |
+| --- | ------------------------------- | ---------- |
+| 3.7 | Purchase Return/Damage Tracking | Should Fix |
 
 ### Sprint 7 — Customer Portal Foundation
 

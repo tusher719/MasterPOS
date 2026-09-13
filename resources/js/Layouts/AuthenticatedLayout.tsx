@@ -9,6 +9,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Notification, NotificationShared } from "@/types/notification";
 import { Link, router, usePage } from "@inertiajs/react";
 import {
+    ArrowLeftRight,
     BarChart3,
     Bell,
     BookOpen,
@@ -18,6 +19,7 @@ import {
     ChevronDown,
     ChevronRight,
     ClipboardList,
+    Clock,
     Command,
     CreditCard,
     FileText,
@@ -274,6 +276,18 @@ const NAV_ITEMS: NavItem[] = [
                 icon: TrendingUp,
                 href: "backend.units.index",
                 active: "backend.units.*",
+            },
+            {
+                label: "Import / Export",
+                icon: ArrowLeftRight,
+                href: "backend.import.index",
+                active: "backend.import.*",
+            },
+            {
+                label: "Import History",
+                icon: Clock,
+                href: "backend.import.history",
+                active: "backend.import.history*",
             },
         ],
     },

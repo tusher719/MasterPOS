@@ -52,6 +52,24 @@ last_seen_at (timestamp nullable) — after remember_token
 
 ## Step 03 — Settings
 
+### import_logs
+
+id, module (varchar), type (enum: import/export default: import),
+format (varchar nullable — xlsx/csv),
+filename (varchar), total_rows (int unsigned default 0),
+imported_rows (int unsigned default 0),
+skipped_rows (int unsigned default 0),
+failed_rows (int unsigned default 0),
+row_results (longText nullable — JSON per-row dry-run results),
+status (enum: completed/partial/failed default: completed),
+imported_by (FK users restrict),
+timestamps
+Indexes: (module, created_at), imported_by
+
+Note: type='import' rows store row_results JSON for history preview.
+Note: type='export' rows store null row_results.
+Note: Staff sees only their own logs; Admin sees all.
+
 ### business_settings
 
 id, key(unique), value(text nullable), timestamps
@@ -697,6 +715,8 @@ Indexes: (usable_type, usable_id), capital_ledger_entry_id
 | sales                             | courier_status        | pending, picked_up, in_transit, delivered, returned, walk_in      |
 | legal_pages                       | type                  | privacy_policy, terms_conditions                                  |
 | feature_announcements             | badge_type            | new, hot, beta, custom                                            |
+| import_logs                       | type                  | import, export                                                    |
+| import_logs                       | status                | completed, partial, failed                                        |
 
 ---
 

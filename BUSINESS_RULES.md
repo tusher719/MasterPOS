@@ -829,3 +829,32 @@ Layer 1 runs on every checkout attempt (POS + storefront) before any DB write.
 - Seeded to `business_settings` in Item 1.18 migration (default: 10)
 - Future use: "Hot" badge on Website product cards when order count exceeds threshold
 - Not yet used in any calculation — reserved for Sprint 8 Storefront
+
+## 34. Import / Export Rules (Item 3.6)
+
+### Import Rules
+
+- Dry-run always runs first — no data persisted until admin confirms
+- Duplicate detection per module:
+  Products: SKU (case-insensitive)
+  Categories, Units, Expense Categories, Payment Methods: Name (case-insensitive)
+  Customers, Suppliers: Email (case-insensitive)
+- Warning rows still import — warnings are soft issues (category not found, etc.)
+- Error rows are skipped — hard violations (duplicate key, missing required field)
+- row_results JSON saved on every commit for history preview
+- Unit model has no SoftDeletes — UnitImport uses Unit::pluck() not withTrashed()
+
+### Export Rules
+
+- Every export creates an ImportLog row (type=export) for download tracking
+- Export supports: xlsx (maatwebsite/excel) and csv (maatwebsite/excel CSV)
+- Financial tables are export-only — never importable
+- Export filenames: {module}_export_{Ymd_His}.{format}
+
+### History Rules
+
+- Admin sees all import/export logs
+- Staff sees only their own logs (scopeForUser)
+- Import logs show per-row preview via row_results JSON
+- Export logs show file, format, who, when — no row preview
+- Pagination: 20 per page

@@ -19,6 +19,7 @@ use App\Http\Controllers\Backend\ExpenseController;
 use App\Http\Controllers\Backend\FeatureAnnouncementController;
 use App\Http\Controllers\Backend\GlobalSearchController;
 use App\Http\Controllers\Backend\HoldOrderController;
+use App\Http\Controllers\Backend\ImportController;
 use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentFundUsageController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
@@ -685,6 +686,17 @@ Route::middleware(['auth', 'verified', 'maintenance'])
         // Item 1.5 — Delete Preview endpoint
         // Paste this INSIDE the backend auth middleware group, before resource routes.
         // ─────────────────────────────────────────────────────────────────────────────
+
+        // ─── Import / Export Hub (Item 3.6) ──────────────────────────────────────────
+    Route::prefix('import')->name('import.')->group(function () {
+        Route::get('/',          [ImportController::class, 'index'])    ->name('index');
+        Route::post('/dry-run',  [ImportController::class, 'dryRun'])   ->name('dry-run');
+        Route::post('/commit',   [ImportController::class, 'commit'])   ->name('commit');
+        Route::get('/export',    [ImportController::class, 'export'])   ->name('export');
+        Route::get('/template',  [ImportController::class, 'template']) ->name('template');
+        Route::get('/history',   [ImportController::class, 'history'])  ->name('history');
+        Route::get('/history/{importLog}', [ImportController::class, 'historyShow'])->name('history.show');
+    });
 
         // GET /backend/delete-preview/{type}/{id}
         Route::get('delete-preview/{type}/{id}', [DeletePreviewController::class, 'show'])

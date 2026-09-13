@@ -374,13 +374,20 @@ employee_salaries: id, user_id, amount, pay_date, status, timestamps
 
 ---
 
-### 3.6 Universal Import/Export (Should Fix)
+### 3.6 Universal Import/Export | ✅ Done |
 
-**Whitelist (safe):** Products, Categories, Units, Customers, Suppliers, Expense Categories, Payment Methods
+**Importable modules:** Products, Categories, Units, Customers, Suppliers,
+Expense Categories, Payment Methods
 **Financial tables:** export only, never import
 
-- maatwebsite/excel Import classes with WithValidation, SkipsOnError
-- Preview/dry-run screen before committing rows
+- maatwebsite/excel ^3.1 — Import classes: ToCollection, WithHeadingRow,
+  SkipsEmptyRows, WithValidation
+- Dry-run preview before commit — per-row status (success/warning/error)
+- Import history with per-row preview modal (row_results JSON)
+- Export history with file/format/date tracking
+- PDF export: dompdf (deferred to Sprint 7 if needed)
+- Sample template download (header-only xlsx, dynamically generated)
+- Staff sees own history; Admin sees all
 
 ### 3.2 Products Grid / List View Toggle | ✅ Done |
 

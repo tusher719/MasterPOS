@@ -2,6 +2,77 @@
 
 ---
 
+## [v2.62 — Item 3.6] — Universal Import/Export — 2026-09-14
+
+### New Migration (2)
+
+- `2026_09_13_000001_create_import_logs_table.php`:
+  import_logs: module, filename, total_rows, imported_rows, skipped_rows,
+  failed_rows, status (enum: completed/partial/failed), imported_by (FK restrict),
+  timestamps; Indexes: (module, created_at), imported_by
+
+- `2026_09_14_000001_update_import_logs_table.php`:
+  type (enum: import/export default: import), format (varchar nullable),
+  row_results (longText nullable) added to import_logs
+
+### New Files (20)
+
+**Exports (7):** `app/Exports/ProductExport.php`, `CategoryExport.php`,
+`UnitExport.php`, `CustomerExport.php`, `SupplierExport.php`,
+`ExpenseCategoryExport.php`, `PaymentMethodExport.php`
+— FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithTitle
+— Indigo header row; ProductExport/CustomerExport/SupplierExport support filters
+
+**Imports (7):** `app/Imports/ProductImport.php`, `CategoryImport.php`,
+`UnitImport.php`, `CustomerImport.php`, `SupplierImport.php`,
+`ExpenseCategoryImport.php`, `PaymentMethodImport.php`
+— ToCollection, WithHeadingRow, SkipsEmptyRows, WithValidation
+— isDryRun constructor flag; getResults() + getSummary() per-class
+— Pre-loaded lookup maps prevent N+1; in-memory duplicate tracking
+— UnitImport: no withTrashed() (Unit model has no SoftDeletes)
+
+**Models (1):** `app/Models/ImportLog.php`
+— scopeImports/Exports/ForUser; module_label + success_rate + is_import + is_export accessors
+
+**Controller (1):** `app/Http/Controllers/Backend/ImportController.php`
+— index() hub page, history() + historyShow() history pages,
+dryRun() parse-only, commit() persist + log, export() download + log,
+template() header-only xlsx; formatLog() private helper
+
+**Frontend (4):**
+`resources/js/Pages/Backend/Import/Index.tsx` — module cards with color
+accent borders, import/export/template buttons, tooltip on template,
+info toggle panel, mini activity stats, recent activity log
+`resources/js/Pages/Backend/Import/History.tsx` — Import/Export tabs,
+module filter, table with progress bar, Preview panel (useEffect fetch)
+`resources/js/Pages/Backend/Import/_components/ImportUploader.tsx`
+— UntitledUI-style drag-drop, file badge, animated progress, retry/remove
+`resources/js/Pages/Backend/Import/_components/DryRunPreview.tsx`
+— summary cards, filter pills, expandable row list
+
+### Updated Files (1)
+
+- `routes/web.php`: import prefix group — index, dry-run, commit, export,
+  template, history, history/{importLog} routes (all BEFORE delete-preview)
+
+### Package
+
+- `maatwebsite/excel ^3.1` — upgraded from v1.1.5 (2014) to v3.1 (Laravel 12 compatible)
+- `ext-zip` enabled in `D:\xampp\php\php.ini` (required by phpoffice/phpspreadsheet)
+
+### Business Rules Established
+
+- Dry-run runs first — no data written until admin confirms
+- Warning rows import; error rows skip — different severity levels
+- row_results JSON saved on commit — enables per-row history preview
+- Export tracking: every download creates ImportLog (type=export)
+- Staff sees own logs; Admin sees all (scopeForUser)
+- Unit model has no SoftDeletes — never call withTrashed() on Unit
+- MIME validation removed from ImportController — extension check in Import classes only
+- maatwebsite/excel heading normalization: "Opening Balance" → "opening_balance"
+
+---
+
 ## [v2.61 — Item 3.2] — Products Grid/List Toggle — 2026-09-13
 
 ### New Files (1)
