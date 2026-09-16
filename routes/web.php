@@ -20,6 +20,7 @@ use App\Http\Controllers\Backend\FeatureAnnouncementController;
 use App\Http\Controllers\Backend\GlobalSearchController;
 use App\Http\Controllers\Backend\HoldOrderController;
 use App\Http\Controllers\Backend\ImportController;
+use App\Http\Controllers\Backend\PurchaseReturnController;
 use App\Http\Controllers\Backend\InvestmentController;
 use App\Http\Controllers\Backend\InvestmentFundUsageController;
 use App\Http\Controllers\Backend\InvestmentTypeController;
@@ -209,6 +210,8 @@ Route::middleware(['auth', 'verified', 'maintenance'])
         });
 
         // ── Purchases ─────────────────────────────────────────────────────────────
+
+        Route::get('purchases/search-for-return', [PurchaseController::class, 'searchForReturn'])->name('purchases.search-for-return');
 
         // Bulk action — must be before {purchase} to avoid route conflict
         Route::post('purchases/bulk-action', [PurchaseController::class, 'bulkAction'])
@@ -697,6 +700,16 @@ Route::middleware(['auth', 'verified', 'maintenance'])
         Route::get('/history',   [ImportController::class, 'history'])  ->name('history');
         Route::get('/history/{importLog}', [ImportController::class, 'historyShow'])->name('history.show');
     });
+
+        // ─── Sprint 6 — Purchase Returns (Item 3.7) ───────────────────────────────────
+        // restore + confirm declared BEFORE wildcard {purchaseReturn} to prevent swallowing
+        Route::prefix('purchase-returns')->name('purchase-returns.')->group(function () {
+            Route::post('/{id}/restore',                      [PurchaseReturnController::class, 'restore'])->name('restore');
+            Route::post('/{purchaseReturn}/confirm',          [PurchaseReturnController::class, 'confirm'])->name('confirm');
+            Route::get('/',                                   [PurchaseReturnController::class, 'index'])->name('index');
+            Route::post('/',                                  [PurchaseReturnController::class, 'store'])->name('store');
+            Route::delete('/{purchaseReturn}',                [PurchaseReturnController::class, 'destroy'])->name('destroy');
+        });
 
         // GET /backend/delete-preview/{type}/{id}
         Route::get('delete-preview/{type}/{id}', [DeletePreviewController::class, 'show'])

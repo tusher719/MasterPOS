@@ -236,7 +236,7 @@ export default function AppDateRangeInput({
     return (
         <div>
             {label && (
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                     {label}
                     {required && <span className="ml-0.5 text-red-500">*</span>}
                 </label>
@@ -266,11 +266,11 @@ export default function AppDateRangeInput({
                         className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition
                             focus:outline-none focus:ring-1 focus:ring-indigo-500
                             ${error ? "border-red-300" : "border-gray-300 focus:border-indigo-500"}
-                            ${disabled ? "cursor-not-allowed bg-gray-50 text-gray-400" : "bg-white hover:border-gray-400"}`}
+                            ${disabled ? "cursor-not-allowed bg-muted/50 text-gray-400" : "bg-card hover:border-gray-400"}`}
                     >
                         <span
                             className={
-                                hasValue ? "text-gray-800" : "text-gray-400"
+                                hasValue ? "text-foreground" : "text-gray-400"
                             }
                         >
                             {hasValue
@@ -319,7 +319,7 @@ export default function AppDateRangeInput({
                                         clearAll();
                                         setOpened(false);
                                     }}
-                                    className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                                    className="text-sm font-medium text-gray-500 hover:text-foreground"
                                 >
                                     Clear
                                 </button>
@@ -350,7 +350,7 @@ export default function AppDateRangeInput({
 
                         {/* ── Presets sidebar ── */}
                         {presets.length > 0 && (
-                            <div className="w-36 border-l border-gray-100 bg-gray-50 p-2">
+                            <div className="w-36 border-l border-gray-100 bg-muted/50 p-2">
                                 <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                                     Presets
                                 </p>
@@ -364,7 +364,7 @@ export default function AppDateRangeInput({
                                                 ${
                                                     isActivePreset(preset)
                                                         ? "bg-indigo-100 text-indigo-700"
-                                                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                                                        : "text-gray-600 hover:bg-gray-100 hover:text-foreground"
                                                 }`}
                                         >
                                             {preset.label}

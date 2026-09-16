@@ -1,316 +1,238 @@
-# Master Business Suite — Master Context
+# MasterPOS — Master Context
 
-> Paste this file at the start of every new chat.
-> See "Which Files to Paste" section for chat-specific guidance.
+_Last updated: Sprint 6 complete → Sprint 8 starting_
 
----
+## Project Overview
 
-## Which Files to Paste (Token Guide)
+Full-stack POS + ERP system
 
-| Chat Type                       | Files to Paste                                                                                       |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Sprint 1–4 active work          | MASTER_CONTEXT + PROJECT_RULES + DATABASE_SCHEMA + BUSINESS_RULES + ARCHITECTURE + GAPS_PART_B_CORE  |
-| Sprint 1–4 + history needed     | Above 6 + GAPS_PART_A                                                                                |
-| Sprint 5+ work                  | MASTER_CONTEXT + PROJECT_RULES + DATABASE_SCHEMA + BUSINESS_RULES + ARCHITECTURE + GAPS_PART_B_LATER |
-| Database/schema question        | Always include DATABASE_SCHEMA                                                                       |
-| Bug fix / architecture question | Add ARCHITECTURE + GAPS_PART_A                                                                       |
-| CHANGELOG update                | Add CHANGELOG                                                                                        |
+- **Local path:** D:/xampp/htdocs/Laravel_12/MasterPOS
+- **GitHub:** tusher719/MasterPOS
+- **Dev OS:** Windows 10, XAMPP
+- **Stack:** Laravel 12 + React 18 + Inertia.js + TypeScript + Tailwind + MySQL
 
 ---
 
-## Project Identity
+## Tech Stack Details
 
-- **Name:** Master Business Suite
-- **Version:** v2.53
-- **Path:** D:/xampp/htdocs/Laravel_12/MasterPOS
-- **Environment:** Windows 10, XAMPP, Git Bash
+| Layer    | Tech                                      |
+| -------- | ----------------------------------------- |
+| Backend  | Laravel 12, Spatie Permission             |
+| Frontend | React 18, TypeScript, Inertia.js          |
+| Styling  | Tailwind CSS                              |
+| DB       | MySQL (XAMPP)                             |
+| Excel    | maatwebsite/excel ^3.1                    |
+| Sessions | Database driver                           |
+| Icons    | Lucide React                              |
+| Alerts   | Sonner (toast), SweetAlert2               |
+| Date     | AppDateInput / AppDateRangeInput (custom) |
 
-## Tech Stack
+---
 
-| Layer       | Technology                                                                     |
-| ----------- | ------------------------------------------------------------------------------ |
-| Backend     | Laravel 12                                                                     |
-| Frontend    | React 18 + Inertia.js + TypeScript                                             |
-| Styling     | Tailwind CSS (primary) + Mantine UI v8 (selective — see PROJECT_RULES Rule 11) |
-| Routing     | Ziggy                                                                          |
-| Permissions | Spatie laravel-permission                                                      |
-| PDF         | barryvdh/laravel-dompdf                                                        |
-| Charts      | recharts (bundled) + @mantine/charts (investor/capital/partner pages only)     |
-| Toast       | sonner                                                                         |
-| Confirm     | SweetAlert2                                                                    |
-| Icons       | lucide-react                                                                   |
-| Excel       | maatwebsite/excel                                                              |
+## Surfaces
 
-## Current Status
+| Surface           | URL Prefix   | Auth             |
+| ----------------- | ------------ | ---------------- |
+| Backend Admin     | /backend     | Auth + Role      |
+| POS               | /backend/pos | Auth + Role      |
+| Public Storefront | / (root)     | Guest (Sprint 8) |
 
-Current Sprint: Sprint 6 — Product/Inventory Extras
+---
 
-- Last Completed: Item 3.6 — Universal Import/Export ✅
-- Next Item: Sprint 6 — Item 3.7 — Purchase Return/Damage Tracking
+## Roles & Permissions
 
-## Financial Domain Overview
+- **Admin** — full access to all modules
+- **Staff** — limited access per module (view only by default)
+- Permissions seeded per module via individual Seeders
+- Spatie Permission — guard: web
 
-| Domain  | Central Entity    | Tracks                                  |
-| ------- | ----------------- | --------------------------------------- |
-| Capital | Investment        | Money entering and leaving the business |
-| Profit  | Partner           | Profit entitlement, rules, distribution |
-| Link    | PartnerInvestment | Which partner owns which investment     |
+---
 
-> Capital and Profit are ALWAYS independent. Investment amount NEVER determines profit share.
+## Completed Sprints
 
-## Completed Modules
+### Sprint 1 — Auth & Core ✅
 
-| Step        | Module                                              | Status |
-| ----------- | --------------------------------------------------- | ------ |
-| 00          | Project Standards                                   | ✅     |
-| 01          | Project Foundation                                  | ✅     |
-| 02          | Authentication & Permission                         | ✅     |
-| 03          | Business Settings                                   | ✅     |
-| 04          | Product & Category Management                       | ✅     |
-| 05          | Notification System                                 | ✅     |
-| 06          | Supplier Management                                 | ✅     |
-| 07          | Purchase & Inventory                                | ✅     |
-| 08          | Customer Management                                 | ✅     |
-| 09          | POS (Cart/Sale)                                     | ✅     |
-| 10          | Invoice & Receipt                                   | ✅     |
-| 11          | Hold Orders                                         | ✅     |
-| 12          | Expense Management                                  | ✅     |
-| 13          | Investment Management                               | ✅     |
-| 14          | Profit Distribution                                 | ✅     |
-| 15          | Dashboard & Analytics                               | ✅     |
-| 16          | Reports                                             | ✅     |
-| 17 Phase 1  | Advanced Profit Distribution                        | ✅     |
-| 17 Phase 2  | Capital Ledger                                      | ✅     |
-| 17 Phase 3  | Investor Statements                                 | ✅     |
-| 17 Phase 4A | Partner Domain Foundation                           | ✅     |
-| 17 Phase 4B | Profit Rules + Versioning                           | ✅     |
-| 17 Phase 4C | Profit Eligibility                                  | ✅     |
-| 17 Phase 4D | Settlement Config                                   | ✅     |
-| 17 Phase 4E | Product Partner & Assignments                       | ✅     |
-| 17 Phase 4F | Profit Calculation Engine                           | ✅     |
-| 17 Phase 4G | Investment-to-Business Tracking                     | ✅     |
-| 17 Phase 4H | Existing Table Migrations                           | ✅     |
-| 4.4 + 4.5   | Duplicate Prevention + Per-Partner Effective Period | ✅     |
-| 2.2         | Settlement Config Approval Columns                  | ✅     |
-| 2.1         | Partner Type ↔ Rule Validation                      | ✅     |
-| 2.5         | Verify Deactivated Partner Guard                    | ✅     |
-| 4.1         | Capital Principal Lock + Partial Unlock             | ✅     |
-| 4.2         | Product Partner Cost/Profit Split                   | ✅     |
-| 1.5         | Investment/Partner Show Page Financial Summary      | ✅     |
-| 1.2         | Investor Statement — Partner Support                | ✅     |
-| 2.4         | Mixed Rule Resolution clarification                 | ✅     |
-| 1.3         | Distribution List — Source Type Badge & Filter      | ✅     |
-| 1.4         | Partner Financial Overview page                     | ✅     |
-| 2.3         | Mixed Partner per-type Settlement/Eligibility       | ✅     |
-| 1.5         | Cascade Soft-Delete Correction                      | ✅     |
-| 1.1         | Settings Dynamic Fix                                | ✅     |
-| 3.3         | Product Variants                                    | ✅     |
-| 3.4         | Secure Product Slug + POS min_sale_qty fix          | ✅     |
-| 3.5         | Inventory Sync + Stock Reservation                  | ✅     |
-| 5.1         | Payment Method Charge Config                        | ✅     |
-| 5.2         | Individual Bank under Bank Transfer                 | ✅     |
-| 4.1         | Order Status Workflow                               | ✅     |
-| 4.2         | Delivery Details                                    | ✅     |
-| 4.3         | Multi-Payment (sale_payments)                       | ✅     |
-| 4.4         | POS Payment Type Selection                          | ✅     |
-| 4.5         | COD Delivery + Payment Collection                   | ✅     |
-| 4.6         | Courier Manual Fields                               | ✅     |
-| 4.7         | Sales History Page                                  | ✅     |
-| 4.8         | Sale Status History                                 | ✅     |
-| 4.9         | Order Confirmation Email                            | ✅     |
-| 6.1         | Fraud Flags Core Table                              | ✅     |
-| 6.2         | Layer 1 Form Validation                             | ✅     |
-| 6.3         | Layer 2 IP Order Limit                              | ✅     |
-| 6.4         | Layer 3 Success Ratio Check                         | ✅     |
-| 8.1         | Order Task System                                   | ✅     |
-| 8.2         | Staff Performance Report                            | ✅     |
-| 8.3         | Pre-Order/Booking System                            | ✅     |
-| 3.8         | Product Planning Task Manager                       | ✅     |
-| 1.2         | Dynamic Navbar Logo                                 | ✅     |
-| 1.3         | Admin Panel Theme Per-User                          | ✅     |
-| 1.6         | Dynamic Notifications                               | ✅     |
-| 1.7         | Split Dashboards                                    | ✅     |
-| 1.8         | Live Login Status                                   | ✅     |
-| 1.9         | Global Search Ctrl+K                                | ✅     |
-| 1.10        | Audit Trail Viewer UI                               | ✅     |
-| 1.11        | PDF/Print Branding                                  | ✅     |
-| 1.14        | Fallback / 404 Pages (3 surfaces)                   | ✅     |
-| 1.15        | App Launcher Popup (Quick Links)                    | ✅     |
-| 1.16        | System Status Pages                                 | ✅     |
-| 1.17        | Privacy Policy & Terms Pages                        | ✅     |
-| 1.18        | Dynamic Navbar Badges                               | ✅     |
-| 1.19        | Nested/Collapsible Navigation                       | ✅     |
-| 1.20        | Dark Mode Toggle (navbar quick switch)              | ✅     |
-| 1.21        | Universal Image Upload Preview                      | ✅     |
-| 2.1         | Staff Email Verification Banner                     | ✅     |
-| 2.2         | Default Role Assignment                             | ✅     |
-| 3.1         | Product Search Autocomplete                         | ✅     |
-| 3.2         | Products Grid/List Toggle                           | ✅     |
-| 3.6         | Universal Import/Export                             | ✅     |
+- Login, Registration, Email Verification
+- AuthenticatedLayout, GuestLayout
+- User Management (CRUD + roles)
+- Role Management (Spatie)
 
-### 6.5 Order-Blocked Popup ✅ DONE
+### Sprint 2 — Settings & Catalogue ✅
 
-## Pending Work — Sprint Order
+- Business Settings (logo, name, currency, timezone)
+- Products (CRUD, variants, stock, images)
+- Categories, Units
+- Suppliers
 
-### Sprint 2 — Sales/Delivery/Payment Core ✅ DONE
+### Sprint 3 — Purchases ✅
 
-### Sprint 3 — Fraud Protection ✅ DONE
+- Purchase Orders (Draft → Partial Received → Received → Cancelled)
+- Purchase Items, Purchase Payments
+- Supplier ledger (opening balance)
+- Stock movements on receive
 
-### Sprint 4 — Fulfillment Ops ✅ DONE
+### Sprint 4 — Sales & POS ✅
 
-### Sprint 5 — Admin Polish
+- Sales (Draft → Confirmed → Cancelled)
+- Sale Items, Sale Payments
+- POS interface (Hold orders, quick sale)
+- Customer management
+- Stock deduction on confirm
 
-| #   | Item                  | Priority           |
-| --- | --------------------- | ------------------ |
-| 2.3 | Optional 2FA          | Skipped (deferred) |
-| 1.4 | Global Trash Bin Page | Skipped (deferred) |
+### Sprint 5 — Finance & Reports ✅
 
-### Sprint 6 — Product/Inventory Extras
+- Expenses + Expense Categories
+- Investments, Investment Types, Investor Balance
+- Profit Calculation, Profit Distribution, Profit Payment
+- Partners, Partner Profit Rules, Partner Settlement
+- Capital Ledger, Capital Withdrawal
+- Invoices (PDF via DomPDF)
+- Reports (Sales, Purchase, Expense, Stock)
+- Activity Logs, Audit Trail
+- Quick Links
+- Legal Pages
+- Feature Announcements
+- Fraud Flags
+- Fulfillment (Order Tasks, Pre-Orders)
+- Staff Performance Report
+- Notification system
+- User Preferences
+- Global Search
 
-| #   | Item                            | Priority   |
-| --- | ------------------------------- | ---------- |
-| 3.7 | Purchase Return/Damage Tracking | Should Fix |
+### Sprint 6 — Inventory & Returns ✅
 
-### Sprint 7 — Customer Portal Foundation
+#### Item 3.6 — Universal Import/Export ✅
 
-| #   | Item                                | Priority   |
-| --- | ----------------------------------- | ---------- |
-| 9.1 | Website Customer Source Flag        | Should Fix |
-| 9.2 | Secure Portal Access Invite         | Must Fix   |
-| 9.3 | Customer Registration Auth Columns  | Should Fix |
-| 8.1 | Business Payment Accounts Ledger    | Should Fix |
-| 8.2 | Customer Spending Visibility        | Should Fix |
-| 8.3 | Customer Ledger Opening Balance Fix | Should Fix |
+- Route: /backend/import (ImportController)
+- 7 modules: products, categories, units, customers, suppliers,
+  expense_categories, payment_methods
+- Tables: import_logs (tracks both imports and exports)
+- maatwebsite/excel ^3.1, ext-zip enabled in php.ini
+- Flow: Dry-run → Preview → Confirm
+- History: Admin sees all, Staff sees own
 
-### Sprint 8 — Storefront Build
+#### Item 3.7 — Purchase Return / Damage Tracking ✅
 
-| #     | Item                                      | Priority     |
-| ----- | ----------------------------------------- | ------------ |
-| 10.1  | Public Product Catalog                    | Must Fix     |
-| 10.2  | Website Settings / CMS                    | Must Fix     |
-| 10.3  | Add-to-Cart Animation + Responsiveness    | Should Fix   |
-| 10.4  | Cart                                      | Must Fix     |
-| 10.5  | Checkout (Login Required, Manual Payment) | Must Fix     |
-| 10.6  | Manual Payment Verification               | Must Fix     |
-| 10.7  | Website Product Search Premium            | Should Fix   |
-| 10.8  | Recently Ordered Products                 | Should Fix   |
-| 10.9  | Customer Profile + Order Tracking         | Must Fix     |
-| 10.10 | Reviews & Wishlist UI                     | Should Fix   |
-| 10.11 | SEO                                       | Should Fix   |
-| 10.12 | Facebook Pixel Integration                | Should Fix   |
-| 10.13 | Login Modal + Dedicated Page              | Must Fix     |
-| 10.14 | Animated Widgets & Counters               | Nice to Have |
+- Route: /backend/purchase-returns (PurchaseReturnController)
+- Tables: purchase_returns, purchase_return_items
+- Return types: supplier_return | damage_wastage
+- Flow: Draft → Confirmed (stock deducted ONLY on confirm)
+- Stock movements: reference_type = 'purchase_return', type = 'return'
+- Quantity guard: return qty ≤ original qty − already-returned qty
+- Confirmed returns cannot be deleted (soft delete only on draft)
+- Permissions: purchase_return.view / create / confirm / delete
+    - Admin: all, Staff: view only
+- ⚠️ PENDING FIX: CreateReturnModal purchase search broken
+  (Inertia JSON conflict — needs dedicated /purchases/search-for-return route)
+  Solution planned:
+    - New route: GET /backend/purchases/search-for-return
+    - New method: PurchaseController::searchForReturn()
+    - Update CreateReturnModal fetch URL
 
-### Sprint 9 — Customer Engagement
+---
 
-| #   | Item                           | Priority   |
-| --- | ------------------------------ | ---------- |
-| 6.1 | Product Reviews Backend        | Must Fix   |
-| 6.2 | Wishlist Backend               | Must Fix   |
-| 6.3 | Coupon / Discount Code Engine  | Should Fix |
-| 6.4 | Festival / Time-Bound Discount | Should Fix |
-| 6.5 | Spinning Wheel                 | Should Fix |
-| 6.6 | Abandoned Cart Recovery        | Should Fix |
-| 6.7 | Email/SMS Notification Flow    | Should Fix |
-| 6.8 | Loyalty Points System          | Should Fix |
+## Active Sprint: Sprint 8 — Public Storefront
 
-### Sprint 10 — Employee/HR
+### Planned Items
 
-| #    | Item                       | Priority     |
-| ---- | -------------------------- | ------------ |
-| 2.4  | Employee/User Profile Page | Should Fix   |
-| 2.5  | Salary/Payroll Domain      | Should Fix   |
-| 13.x | Attendance/Leave/Payroll   | Nice to Have |
+| Item | Feature                  | Status  |
+| ---- | ------------------------ | ------- |
+| 10.1 | Public Product Catalog   | 🔲 Next |
+| 10.2 | Website Settings / CMS   | 🔲      |
+| 10.3 | Hero / Banner Management | 🔲      |
+| 10.4 | Cart                     | 🔲      |
+| 10.5 | Checkout                 | 🔲      |
+| 10.6 | Order Tracking           | 🔲      |
+| 10.7 | Storefront Layout + Nav  | 🔲      |
 
-### Sprint 11 — Phase 2 (Paid Services Only)
+---
 
-| #    | Item                       |
-| ---- | -------------------------- |
-| 11.1 | Automated Payment Gateway  |
-| 11.2 | Courier API Integration    |
-| 11.3 | External Fraud Network API |
-| 11.4 | WhatsApp Business API      |
+## Key Coding Rules (never break)
 
-### Sprint 12 — Optional / As-Needed
+### Model Rules
 
-| #     | Item                           |
-| ----- | ------------------------------ |
-| 12.1  | Supplier Ledger                |
-| 12.2  | VAT/Tax Report                 |
-| 12.3  | Double-Entry Accounting        |
-| 12.4  | Backup & Restore               |
-| 12.5  | Multi-language Toggle          |
-| 12.6  | Custom Report Builder          |
-| 12.7  | Business Analytics/Forecasting |
-| 12.8  | Multi-Warehouse                |
-| 12.9  | Customer Segments              |
-| 12.10 | SLA Alert for Order Tasks      |
-| 12.11 | Task Templates for Order Tasks |
+- **Unit model** — NO SoftDeletes, never withTrashed() on Unit
+- **Rule 66** — status / confirmed_by / confirmed_at excluded from $fillable
+  → Always set via forceFill() in a dedicated model method (e.g. confirm())
+- **Rule 3** — Policy methods take NO model parameter
+  (causes ArgumentCountError when called with class string)
+- Products with SoftDeletes — always withTrashed() in relations
 
-## Deferred
+### Controller Rules
 
-| Step       | Module                   | Notes                       |
-| ---------- | ------------------------ | --------------------------- |
-| 17 Phase 5 | Sales Payment Upgrade    | Revisit after gaps resolved |
-| 18         | Security Hardening       |                             |
-| 19         | Performance Optimization |                             |
-| 20         | Testing                  |                             |
+- Authorization via Gate::allows() / abort_unless() — never middleware-only
+- Restore routes declared BEFORE wildcard routes to prevent swallowing
+- Always load relations with specific column selects (e.g. supplier:id,name)
 
-## Documentation Files
+### Migration Rules
 
-| File                 | Purpose                                   | When to Paste                      |
-| -------------------- | ----------------------------------------- | ---------------------------------- |
-| MASTER_CONTEXT.md    | This file — identity, status, sprint list | Always                             |
-| PROJECT_RULES.md     | Coding rules, UI standards, conventions   | Always                             |
-| DATABASE_SCHEMA.md   | All tables, columns, relationships        | Always (especially DB work)        |
-| CHANGELOG.md         | Implementation history                    | When updating changelog            |
-| BUSINESS_RULES.md    | Domain logic — how the system works       | Always                             |
-| ARCHITECTURE.md      | Architectural decisions — WHY             | Bug fix / architecture questions   |
-| GAPS_PART_A.md       | Original POS-era gaps (all ✅ Done)       | History / Partner-domain questions |
-| GAPS_PART_B_CORE.md  | Sprint 1–4 active features                | Sprint 1–4 work                    |
-| GAPS_PART_B_LATER.md | Sprint 5–12 future features               | Sprint 5+ work                     |
+- nullOnDelete() for nullable FKs to users (confirmed_by, updated_by etc.)
+- restrictOnDelete() for required FKs (created_by, product_id etc.)
+- cascadeOnDelete() for child tables (items, payments etc.)
+- Always add indexes for filter columns (status, type, date, FK columns)
 
-## AI Usage Notes
+### Frontend Rules
 
-- Always read ALL pasted documentation files before writing code
-- PROJECT_RULES.md contains critical rules that prevent known bugs
-- BUSINESS_RULES.md contains domain logic that must be respected
-- ARCHITECTURE.md explains WHY decisions were made — do not override them
-- DATABASE_SCHEMA.md is the single source of truth for column names
-- Never assume column names from context — always verify
-- Capital domain = Investment entity (complete — do not redesign)
-- Profit domain = Partner entity (complete — do not redesign)
-- Never couple capital amount to profit share calculation
-- Storefront (Sprint 8) is a NEW separate frontend — NOT a modification of Backend Admin Panel
+- decimal fields from backend always wrap in Number() before arithmetic
+- All modals use fixed inset-0 z-50 overlay pattern
+- Filters use preserveScroll: true, replace: true
+- Toast via sonner, confirm dialogs via SweetAlert2
+- AppDateInput / AppDateRangeInput for all date fields
 
-## Key Decisions Confirmed
+### Windows / Git Rules
 
-### Online Business Expansion
+- After adding new controller files: composer dump-autoload -o FIRST
+- Then: php artisan route:cache
+- Windows case-sensitive rename: use temp name intermediate step
+- Never php artisan route:cache before composer dump-autoload
 
-- **Staff registration:** Admin creates all accounts manually — no public self-registration
-- **Staff email verification:** Persistent banner after login, login not blocked, admin sees verified status
-- **Refund flow:** Distinct refund entry in sale_payments (not negative ledger balance)
-- **Discount stack order:** Festival/Product discount first → Coupon last (if coupon_stackable = true)
-- **Delivery charge:** Added to customer total as separate line item, admin can set 0 (free delivery flag)
-- **Payment method charge:** Configured in Settings → Payment Methods, applies dynamically everywhere
-- **Individual bank charge:** payment_method_banks table — each bank has its own charge config
-- **Coupon datetime:** starts_at + expires_at store datetime with time (not date only)
-- **Stock reservation window:** Configurable via business_settings.stock_reservation_minutes (default: 30)
-- **Product slug:** Auto-generated with 6-char random suffix, immutable after creation
-- **Storefront checkout:** Login required to place order, guest browsing allowed
-- **Storefront payment:** Manual bKash/Nagad verification (no gateway in Phase 1)
-- **Product Planning Task:** Internal tool — multi-product add with quantity/cost/status
-- **Storefront frontend:** Completely separate from Backend Admin Panel — own routes, layout, auth guard, page directory
-- **Login flow:** Both modal (inline, preserves cart) + dedicated page (/login, /register)
-- **Dark mode:** Two separate toggles — Admin Panel (per-user theme) vs Website (visitor session/cookie)
+---
 
-### Original System (4.4 + 4.5)
+## Known Issues / Tech Debt
 
-- **Overlap check:** Any overlap between periods triggers the check
-- **Settled statuses:** paid, reinvested, deferred — all three count
-- **Effective Period:** Effective Start = MAX(selected_start, eligibility_start, last_paid_up_to + 1 day)
-- **Engine:** Financial summary computed once per unique Effective Period
+| #   | Issue                        | File                                 | Fix                       |
+| --- | ---------------------------- | ------------------------------------ | ------------------------- |
+| 1   | 500 handler commented out    | bootstrap/app.php                    | Restore Throwable block   |
+| 2   | Windows filename case        | Staffperformancereportcontroller.php | git mv via temp           |
+| 3   | Windows filename case        | Legalpageseeder.php                  | git mv via temp           |
+| 4   | Purchase Return modal search | CreateReturnModal.tsx                | Dedicated search endpoint |
 
-```
+---
 
-```
+## Important File Locations
+
+### Backend
+
+| Purpose     | Path                          |
+| ----------- | ----------------------------- |
+| Routes      | routes/web.php                |
+| Controllers | app/Http/Controllers/Backend/ |
+| Models      | app/Models/                   |
+| Policies    | app/Policies/                 |
+| Requests    | app/Http/Requests/Backend/    |
+| Seeders     | database/seeders/             |
+| Migrations  | database/migrations/          |
+| Middleware  | app/Http/Middleware/          |
+| Services    | app/Services/                 |
+
+### Frontend
+
+| Purpose      | Path                                  |
+| ------------ | ------------------------------------- |
+| Pages        | resources/js/Pages/Backend/           |
+| Public Pages | resources/js/Pages/Public/ (Sprint 8) |
+| Layouts      | resources/js/Layouts/                 |
+| Components   | resources/js/Components/              |
+| Types        | resources/js/types/                   |
+| Hooks        | resources/js/hooks/                   |
+
+---
+
+## Database Notes
+
+- All tables use id (bigIncrements), timestamps, softDeletes (except Unit)
+- Stock tracked in products.stock_qty and product_variants.stock_qty
+- All money fields: decimal(10,2)
+- All quantity fields: decimal(10,2)
+- Enum fields used for status, type columns (not string)
+- Sessions, cache, jobs all in DB (not file/redis)

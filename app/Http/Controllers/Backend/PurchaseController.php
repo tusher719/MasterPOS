@@ -32,7 +32,7 @@ class PurchaseController extends Controller
 
     // ─── Index ────────────────────────────────────────────────────────────────
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|\Illuminate\Http\JsonResponse
     {
         $this->authorize('viewAny', Purchase::class);
 
@@ -80,8 +80,16 @@ class PurchaseController extends Controller
             'total_due'       => Purchase::sum('due_amount'),
         ];
 
+        // if ($request->wantsJson() || $request->ajax()) {
+        //     // Paginator collection এ load করতে getCollection() ব্যবহার করো
+        //     $purchases->getCollection()->load('items.product');
+        //     return response()->json([
+        //         'purchases' => $purchases,
+        //     ]);
+        // }
+
         return Inertia::render('Backend/Purchases/Index', [
-            'purchases'      => $purchases,
+            'purchases' => $purchases,
             'suppliers'      => Supplier::active()->select('id', 'name')->get(),
             'paymentMethods' => PaymentMethod::active()->select('id', 'name')->get(),
             'stats'          => $stats,
@@ -614,5 +622,27 @@ class PurchaseController extends Controller
             'purchase' => $purchase,
             'payments' => $payments,
         ]);
+    }
+
+
+    public function searchForReturn(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->authorize('viewAny', Purchase::class);
+
+        $query = Purchase::with([
+            'supplier:id,name',
+            'items.product:id,name,sku,cost_price',
+        ]);
+
+        if ($search = $request->input('search')) {
+            $query->where('reference_no', 'like', "%{$search}%")
+                ->orWhereHas('supplier', fn($s) =>
+                    $s->where('name', 'like', "%{$search}%")
+                );
+        }
+
+        $purchases = $query->latest('purchase_date')->limit(10)->get();
+
+        return response()->json(['purchases' => ['data' => $purchases]]);
     }
 }

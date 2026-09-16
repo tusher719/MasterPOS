@@ -64,7 +64,7 @@ export default function AppDateInput({
     return (
         <div>
             {label && (
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground">
                     {label}
                     {required && <span className="ml-0.5 text-red-500">*</span>}
                 </label>
@@ -85,11 +85,13 @@ export default function AppDateInput({
                         className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition
                             focus:outline-none focus:ring-1 focus:ring-indigo-500
                             ${error ? "border-red-300" : "border-gray-300 focus:border-indigo-500"}
-                            ${disabled ? "cursor-not-allowed bg-gray-50 text-gray-400" : "bg-white hover:border-gray-400"}`}
+                            ${disabled ? "cursor-not-allowed bg-muted/50 text-muted-foreground" : "bg-card hover:border-gray-400"}`}
                     >
                         <span
                             className={
-                                value ? "text-gray-800" : "text-gray-400"
+                                value
+                                    ? "text-foreground"
+                                    : "text-muted-foreground"
                             }
                         >
                             {value
@@ -104,12 +106,15 @@ export default function AppDateInput({
                                         e.stopPropagation();
                                         onChange("");
                                     }}
-                                    className="rounded p-0.5 text-gray-400 hover:text-red-500"
+                                    className="rounded p-0.5 text-muted-foreground hover:text-red-500"
                                 >
                                     <X size={13} />
                                 </span>
                             )}
-                            <CalendarDays size={14} className="text-gray-400" />
+                            <CalendarDays
+                                size={14}
+                                className="text-muted-foreground"
+                            />
                         </span>
                     </button>
                 </Popover.Target>
@@ -130,7 +135,7 @@ export default function AppDateInput({
                                 onChange("");
                                 setOpened(false);
                             }}
-                            className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground"
                         >
                             Clear
                         </button>

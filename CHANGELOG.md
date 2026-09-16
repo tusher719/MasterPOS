@@ -2,6 +2,55 @@
 
 ---
 
+## Sprint 6 — [2026-09-14 to 2026-09-16]
+
+### Item 3.6 — Universal Import/Export ✅
+
+- ImportController, 7 modules, dry-run/preview/confirm flow
+- import_logs table, maatwebsite/excel, export support
+
+### Item 3.7 — Purchase Return / Damage Tracking ✅
+
+**New files:**
+
+- database/migrations/2026_09_14_101613_create_purchase_returns_table.php
+- database/migrations/2026_09_14_101620_create_purchase_return_items_table.php
+- app/Models/PurchaseReturn.php
+- app/Models/PurchaseReturnItem.php
+- app/Policies/PurchaseReturnPolicy.php
+- database/seeders/PurchaseReturnSeeder.php
+- app/Http/Requests/Backend/StorePurchaseReturnRequest.php
+- app/Http/Controllers/Backend/PurchaseReturnController.php
+- resources/js/types/purchase-return.d.ts
+- resources/js/Pages/Backend/PurchaseReturns/Index.tsx
+- resources/js/Pages/Backend/PurchaseReturns/\_components/CreateReturnModal.tsx
+- resources/js/Pages/Backend/PurchaseReturns/\_components/ConfirmReturnModal.tsx
+
+**Modified files:**
+
+- routes/web.php — PurchaseReturnController use + route group added
+- app/Providers/AppServiceProvider.php — PurchaseReturnPolicy registered
+- resources/js/Layouts/AuthenticatedLayout.tsx — Purchase Returns nav link
+- app/Http/Controllers/Backend/PurchaseController.php — wantsJson() branch +
+  getCollection()->load('items.product') for return modal search
+
+**Debug changes (restore before production):**
+
+- bootstrap/app.php — 500 Throwable handler commented out
+
+**Permissions seeded:**
+
+- purchase_return.view / create / confirm / delete
+- Admin: all, Staff: view only
+
+**Business rules:**
+
+- Draft → Confirmed: stock deducted, stock_movement recorded (type: return)
+- Confirmed returns cannot be deleted (soft delete only)
+- Quantity guard: return qty ≤ original qty minus already-returned qty
+
+---
+
 ## [v2.62 — Item 3.6] — Universal Import/Export — 2026-09-14
 
 ### New Migration (2)

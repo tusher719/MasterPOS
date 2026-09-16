@@ -77,7 +77,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // 500 — Internal Server Error (and other unhandled exceptions)
         $exceptions->render(function (\Throwable $e, Request $request) use ($resolveSurface) {
-            // Only handle 500-level errors — let Laravel handle the rest normally
             $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
             if ($status < 500) return null;
             if ($request->expectsJson()) return null;

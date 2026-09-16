@@ -30,6 +30,7 @@ use App\Models\ProductPlanningTask;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
 use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use App\Models\QuickLink;
 use App\Models\Sale;
 use App\Models\Supplier;
@@ -59,6 +60,7 @@ use App\Policies\ProductCategoryPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
+use App\Policies\PurchaseReturnPolicy;
 use App\Policies\QuickLinkPolicy;
 use App\Policies\SalePolicy;
 use App\Policies\SettingPolicy;
@@ -161,5 +163,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(QuickLink::class, QuickLinkPolicy::class);
 
         Gate::policy(LegalPage::class, LegalPagePolicy::class);
+
+        // ─── Sprint 6 — Purchase Returns (Item 3.7) ───────────────────────────────
+        Gate::policy(PurchaseReturn::class, PurchaseReturnPolicy::class);
     }
 }
