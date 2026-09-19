@@ -611,3 +611,9 @@ Never write inline one-off Tailwind animation classes in page components.
 | Full-page loading           | `BounceDots`                     |
 
 Shimmer keyframe requires tailwind.config.js keyframes.shimmer entry — already added.
+
+- Public controllers: namespace App\Http\Controllers\Public — folder: app/Http/Controllers/Public/
+- Public paginator: always build manual $paginatedData array (data/meta/links keys) — never use ->through() or LengthAwarePaginator directly in Inertia response
+- Category product count: always use manual childIds query (prepend parent id, whereIn) — never withCount() which misses subcategory products
+- Public pages never use AuthenticatedLayout — always PublicLayout
+- Cart state: page-level useState until Item 10.4 — do not use localStorage yet

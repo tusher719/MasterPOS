@@ -2,6 +2,53 @@
 
 ---
 
+## Sprint 8 — Public Storefront
+
+### Item 10.1 — Public Product Catalog ✅ (2026-09-19)
+
+**New Files:**
+
+- app/Http/Controllers/Public/PublicHomeController.php
+- app/Http/Controllers/Public/PublicProductController.php
+- app/Http/Controllers/Public/PublicCategoryController.php
+- resources/js/Layouts/PublicLayout.tsx
+- resources/js/Components/Public/Header.tsx
+- resources/js/Components/Public/Footer.tsx
+- resources/js/Components/Public/ProductCard.tsx
+- resources/js/Components/Public/Pagination.tsx
+- resources/js/Components/Public/AddToCartModal.tsx
+- resources/js/Pages/Public/Home.tsx
+- resources/js/Pages/Public/Products/Index.tsx
+- resources/js/Pages/Public/Products/Show.tsx
+- resources/js/Pages/Public/Categories/Show.tsx
+- resources/js/types/public.d.ts
+
+**Modified Files:**
+
+- routes/web.php — public route group added (coming.soon middleware)
+
+**Features:**
+
+- Homepage: full-width hero, category strip, featured + latest products
+- Product catalog: filter (sort/category/price), search (dynamic expand), pagination
+- Category page: subcategory pills, filter sidebar, breadcrumb
+- Product detail: image gallery, variant preview chips, product details table, related products
+- Add to Cart modal: variant picker per attribute key, qty control, in-stock check
+- Cart: page-level state, count badge in header (not persisted — Sprint 10.4)
+- Footer: newsletter subscribe UI (endpoint pending), quick links, categories
+- Favicon: business logo via Head in PublicLayout
+- Page titles: per-page Head title prop
+
+**Technical notes:**
+
+- Paginator: manual $paginatedData (data/meta/links) — NOT ->through()
+- Product count: manual childIds query for subcategory inclusion — NOT withCount()
+- Out of stock: no stock filter on listing queries, shown with disabled button
+- Public controllers namespace: App\Http\Controllers\Public
+- coming.soon middleware applied to all public routes
+
+---
+
 ## Sprint 6 — [2026-09-14 to 2026-09-16]
 
 ### Item 3.6 — Universal Import/Export ✅

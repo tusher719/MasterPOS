@@ -50,6 +50,15 @@ Full-stack POS + ERP system
 
 ## Completed Sprints
 
+Sprint 8 — Public Storefront (active)
+
+- Item 10.1 Public Product Catalog ✅
+- Item 10.2 Search page (pending)
+- Item 10.3 Coming Soon public page (pending)
+- Item 10.4 Cart page + localStorage persist (pending)
+- Item 10.5 Checkout (pending)
+- Item 10.6 Order confirmation (pending)
+
 ### Sprint 1 — Auth & Core ✅
 
 - Login, Registration, Email Verification
@@ -137,7 +146,7 @@ Full-stack POS + ERP system
 
 | Item | Feature                  | Status  |
 | ---- | ------------------------ | ------- |
-| 10.1 | Public Product Catalog   | 🔲 Next |
+| 10.1 | Public Product Catalog   | ✅ Done |
 | 10.2 | Website Settings / CMS   | 🔲      |
 | 10.3 | Hero / Banner Management | 🔲      |
 | 10.4 | Cart                     | 🔲      |

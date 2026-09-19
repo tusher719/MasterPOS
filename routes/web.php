@@ -55,18 +55,30 @@ use App\Http\Controllers\Backend\InventoryDashboardController;
 use App\Http\Controllers\Backend\InvestmentDashboardController;
 use App\Http\Controllers\Backend\QuickLinkController;
 use App\Http\Controllers\Backend\LegalPageController;
+use App\Http\Controllers\Public\PublicHomeController;
+use App\Http\Controllers\Public\PublicProductController;
+use App\Http\Controllers\Public\PublicCategoryController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+// ─── Public Storefront ────────────────────────────────────────────────────────
+// No auth required. CheckComingSoon middleware applied (Sprint 8).
+// Route order: specific routes BEFORE wildcard {slug} to prevent swallowing.
+Route::middleware(['coming.soon'])->group(function () {
+
+    // Homepage
+    Route::get('/', [PublicHomeController::class, 'index'])->name('public.home');
+
+    // Product catalog
+    Route::get('/products', [PublicProductController::class, 'index'])->name('public.products.index');
+
+    // Product detail — slug based (BEFORE category slug to avoid conflict)
+    Route::get('/products/{slug}', [PublicProductController::class, 'show'])->name('public.products.show');
+
+    // Category page
+    Route::get('/categories/{slug}', [PublicCategoryController::class, 'show'])->name('public.categories.show');
 });
 
 Route::middleware(['auth', 'verified', 'maintenance'])->group(function () {
@@ -729,6 +741,14 @@ Route::middleware(['auth', 'verified', 'maintenance'])
         ->defaults('slug', 'terms-conditions')
         ->name('legal.terms-conditions');
 
+    // Public legal pages — no auth required
+    Route::get('/privacy-policy', [LegalPageController::class, 'show'])
+        ->defaults('slug', 'privacy-policy')
+        ->name('legal.privacy-policy');
+
+    Route::get('/terms-conditions', [LegalPageController::class, 'show'])
+        ->defaults('slug', 'terms-conditions')
+        ->name('legal.terms-conditions');
 
 
 

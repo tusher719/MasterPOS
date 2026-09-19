@@ -599,3 +599,17 @@ to count-based awareness once the badge expires.
 **Why not cache navCounts?**
 Count queries are 2 simple WHERE clauses with index hits. Cache invalidation
 (on every task status change) would add more complexity than the query cost saves.
+
+## Public Storefront (Sprint 8)
+
+Controllers: app/Http/Controllers/Public/
+Layout: resources/js/Layouts/PublicLayout.tsx
+Pages: resources/js/Pages/Public/
+Components: resources/js/Components/Public/
+Types: resources/js/types/public.d.ts
+
+Route group: no auth, coming.soon middleware
+URL pattern: / | /products | /products/{slug} | /categories/{slug}
+Cart state: page-level useState (localStorage Sprint 10.4)
+Paginator: manual data/meta/links (never ->through() on public controllers)
+Product count: manual childIds (never withCount on category listing)
