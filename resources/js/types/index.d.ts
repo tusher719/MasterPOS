@@ -5,11 +5,23 @@ export interface User {
     email_verified_at?: string;
 }
 
+export interface Customer {
+    id: number;
+    uuid?: string;
+    name: string;
+    phone: string;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    default_delivery_type?: string | null;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
     auth?: {
         user: User | null;
+        customer?: Customer | null;
     };
     settings?: Record<string, string | null>;
     flash?: {

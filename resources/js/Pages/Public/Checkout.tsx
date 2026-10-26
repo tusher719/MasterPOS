@@ -3,7 +3,7 @@
 import { formatPrice } from "@/Components/Public/ProductCard";
 import { useCart } from "@/hooks/useCart";
 import PublicLayout from "@/Layouts/PublicLayout";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import axios from "axios";
 import {
     ArrowLeft,
@@ -50,14 +50,19 @@ export default function Checkout({
 }: CheckoutProps) {
     const currency = settings.currency_symbol ?? "৳";
     const { items, subtotal, cartCount, clearCart } = useCart();
+    const customer = (usePage().props as any).auth?.customer;
 
-    const [customerName, setCustomerName] = useState("");
-    const [customerPhone, setCustomerPhone] = useState("");
-    const [customerEmail, setCustomerEmail] = useState("");
+    const [customerName, setCustomerName] = useState(customer?.name ?? "");
+    const [customerPhone, setCustomerPhone] = useState(customer?.phone ?? "");
+    const [customerEmail, setCustomerEmail] = useState(customer?.email ?? "");
     const [deliveryType, setDeliveryType] = useState<
         "inside_dhaka" | "outside_dhaka" | "store_pickup"
-    >("inside_dhaka");
-    const [deliveryAddress, setDeliveryAddress] = useState("");
+    >(
+        (customer?.default_delivery_type as any) ?? "inside_dhaka",
+    );
+    const [deliveryAddress, setDeliveryAddress] = useState(
+        customer?.address ?? "",
+    );
     const [paymentType, setPaymentType] = useState<
         "cash_on_delivery" | "full_paid"
     >("cash_on_delivery");
@@ -227,6 +232,36 @@ export default function Checkout({
                                     1. Customer Information
                                 </h3>
                             </div>
+
+                            {customer ? (
+                                <div className="mb-5 flex items-center justify-between rounded-xl bg-indigo-50/70 border border-indigo-100 p-3 text-xs text-indigo-900">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck className="h-4 w-4 text-indigo-600 shrink-0" />
+                                        <span>
+                                            Logged in as <strong>{customer.name}</strong> ({customer.phone}). This order will be linked to your account.
+                                        </span>
+                                    </div>
+                                    <Link
+                                        href={route("customer.orders")}
+                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 underline shrink-0 ml-2"
+                                    >
+                                        My Orders
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="mb-5 flex items-center justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 p-3 text-xs text-amber-900">
+                                    <span>
+                                        Have an existing account?{" "}
+                                        <Link
+                                            href={route("customer.login")}
+                                            className="font-bold text-indigo-600 hover:underline"
+                                        >
+                                            Sign In
+                                        </Link>{" "}
+                                        to load your saved delivery addresses and order history.
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">

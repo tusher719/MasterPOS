@@ -3,8 +3,19 @@
 import CartDrawer from "@/Components/Public/CartDrawer";
 import { useCart } from "@/hooks/useCart";
 import { PublicCategory, PublicSettings } from "@/types/public";
-import { Link, usePage } from "@inertiajs/react";
-import { ChevronRight, Menu, Search, ShoppingBag, Tag, X } from "lucide-react";
+import { Link, router, usePage } from "@inertiajs/react";
+import {
+    ChevronDown,
+    ChevronRight,
+    LogOut,
+    Menu,
+    Package,
+    Search,
+    ShoppingBag,
+    Tag,
+    User,
+    X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface HeaderProps {
@@ -450,6 +461,63 @@ function MobileDrawer({
                         </>
                     )}
                 </nav>
+
+                {/* Mobile Customer Section */}
+                <div className="border-t border-gray-100 p-4 bg-gray-50/50">
+                    {((usePage().props as any).auth?.customer) ? (
+                        <div className="space-y-1">
+                            <div className="px-3 py-2 bg-indigo-50/80 rounded-xl mb-2">
+                                <p className="text-xs font-bold text-indigo-950 truncate">
+                                    {(usePage().props as any).auth.customer.name}
+                                </p>
+                                <p className="text-[11px] text-indigo-600 font-mono">
+                                    {(usePage().props as any).auth.customer.phone}
+                                </p>
+                            </div>
+                            <Link
+                                href={route("customer.orders")}
+                                onClick={onClose}
+                                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-white transition-colors"
+                            >
+                                <Package size={16} className="text-gray-400" /> My Orders
+                            </Link>
+                            <Link
+                                href={route("customer.profile")}
+                                onClick={onClose}
+                                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-white transition-colors"
+                            >
+                                <User size={16} className="text-gray-400" /> Profile Settings
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    router.post(route("customer.logout"));
+                                }}
+                                className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 text-left transition-colors cursor-pointer"
+                            >
+                                <LogOut size={16} /> Sign Out
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                            <Link
+                                href={route("customer.login")}
+                                onClick={onClose}
+                                className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                                Sign In
+                            </Link>
+                            <Link
+                                href={route("customer.register")}
+                                onClick={onClose}
+                                className="flex items-center justify-center rounded-xl bg-indigo-600 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors"
+                            >
+                                Register
+                            </Link>
+                        </div>
+                    )}
+                </div>
             </div>
         </>
     );
@@ -465,7 +533,22 @@ export default function Header({
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const headerRef = useRef<HTMLElement>(null);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+
+    const customer = (usePage().props as any).auth?.customer;
+
+    // Close user menu on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
 
     // Listen for custom open-cart event
     useEffect(() => {
@@ -541,6 +624,74 @@ export default function Header({
                             >
                                 <Search size={20} />
                             </Link>
+
+                            {/* Customer Auth / Profile Dropdown */}
+                            {customer ? (
+                                <div className="relative" ref={userMenuRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                        className="flex items-center gap-2 rounded-xl p-1.5 pr-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 hover:text-indigo-600 transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600/10 text-indigo-700 font-bold">
+                                            {customer.name?.charAt(0)?.toUpperCase() ?? "C"}
+                                        </div>
+                                        <span className="hidden xl:inline-block max-w-[90px] truncate text-gray-800">
+                                            {customer.name}
+                                        </span>
+                                        <ChevronDown size={14} className="text-gray-400" />
+                                    </button>
+
+                                    {userMenuOpen && (
+                                        <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl z-50">
+                                            <div className="px-4 py-2.5 border-b border-gray-100">
+                                                <p className="text-xs font-bold text-gray-900 truncate">
+                                                    {customer.name}
+                                                </p>
+                                                <p className="text-[11px] text-gray-500 font-mono truncate">
+                                                    {customer.phone}
+                                                </p>
+                                            </div>
+                                            <Link
+                                                href={route("customer.orders")}
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                                            >
+                                                <Package size={15} className="text-gray-400" />
+                                                My Orders & Reorder
+                                            </Link>
+                                            <Link
+                                                href={route("customer.profile")}
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                                            >
+                                                <User size={15} className="text-gray-400" />
+                                                Profile Settings
+                                            </Link>
+                                            <div className="border-t border-gray-100 my-1" />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setUserMenuOpen(false);
+                                                    router.post(route("customer.logout"));
+                                                }}
+                                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 text-left transition-colors cursor-pointer"
+                                            >
+                                                <LogOut size={15} />
+                                                Sign Out
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <Link
+                                    href={route("customer.login")}
+                                    className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
+                                >
+                                    <User size={16} />
+                                    <span className="hidden sm:inline">Sign In</span>
+                                </Link>
+                            )}
 
                             {/* Cart */}
                             <button

@@ -9,6 +9,10 @@ class RecordLoginHistory
 {
     public function handle(Login $event): void
     {
+        if (! ($event->user instanceof \App\Models\User)) {
+            return;
+        }
+
         LoginHistory::create([
             'user_id' => $event->user->id,
             'ip_address' => request()->ip(),

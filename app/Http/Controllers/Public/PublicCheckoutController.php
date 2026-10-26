@@ -19,6 +19,7 @@ use App\Services\SettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -147,21 +148,29 @@ class PublicCheckoutController extends Controller
             };
 
             // 3. Find or create Customer record
-            $customer = Customer::firstOrCreate(
-                ['phone' => $validated['customer_phone']],
-                [
-                    'name'    => $validated['customer_name'],
-                    'email'   => $validated['customer_email'] ?? null,
-                    'address' => $validated['delivery_address'] ?? null,
-                ]
-            );
+            if (Auth::guard('customer')->check()) {
+                /** @var Customer $customer */
+                $customer = Auth::guard('customer')->user();
+                if (empty($customer->address) && ! empty($validated['delivery_address'])) {
+                    $customer->update(['address' => $validated['delivery_address']]);
+                }
+            } else {
+                $customer = Customer::firstOrCreate(
+                    ['phone' => $validated['customer_phone']],
+                    [
+                        'name'    => $validated['customer_name'],
+                        'email'   => $validated['customer_email'] ?? null,
+                        'address' => $validated['delivery_address'] ?? null,
+                    ]
+                );
 
-            // Update customer name/address if previously blank
-            if (empty($customer->name) || $customer->name === 'Walk-in Customer') {
-                $customer->update(['name' => $validated['customer_name']]);
-            }
-            if (! empty($validated['delivery_address']) && empty($customer->address)) {
-                $customer->update(['address' => $validated['delivery_address']]);
+                // Update customer name/address if previously blank
+                if (empty($customer->name) || $customer->name === 'Walk-in Customer') {
+                    $customer->update(['name' => $validated['customer_name']]);
+                }
+                if (! empty($validated['delivery_address']) && empty($customer->address)) {
+                    $customer->update(['address' => $validated['delivery_address']]);
+                }
             }
 
             // 4. Validate & calculate coupon discount

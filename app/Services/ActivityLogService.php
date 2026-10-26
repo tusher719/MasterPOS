@@ -10,7 +10,7 @@ class ActivityLogService
     public static function log(string $module, string $action, ?string $description = null, $subject = null, ?array $properties = null): void
     {
         ActivityLog::create([
-            'user_id' => Auth::id(),
+            'user_id' => Auth::guard('web')->id(),
             'module' => $module,
             'action' => $action,
             'subject_type' => is_object($subject) ? get_class($subject) : null,

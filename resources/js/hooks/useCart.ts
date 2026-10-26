@@ -66,6 +66,27 @@ export function useCart() {
         setItems(updated);
     };
 
+    const addItems = (newItems: CartItem[]) => {
+        let updated = [...getStoredCart()];
+        for (const newItem of newItems) {
+            const existingIndex = updated.findIndex(
+                (i) =>
+                    i.id === newItem.id &&
+                    (i.variantId ?? null) === (newItem.variantId ?? null),
+            );
+            if (existingIndex > -1) {
+                updated[existingIndex] = {
+                    ...updated[existingIndex],
+                    qty: updated[existingIndex].qty + newItem.qty,
+                };
+            } else {
+                updated.push(newItem);
+            }
+        }
+        saveCart(updated);
+        setItems(updated);
+    };
+
     const updateQty = (
         id: number,
         variantId: number | undefined,
@@ -119,6 +140,7 @@ export function useCart() {
     return {
         items,
         addItem,
+        addItems,
         updateQty,
         removeItem,
         clearCart,

@@ -52,7 +52,7 @@ class SaleStockService
                     'after_quantity'  => $after,
                     'unit_cost'       => $item->unit_price,
                     'note'            => 'Sale: ' . $sale->reference_no,
-                    'created_by'      => Auth::id(),
+                    'created_by'      => Auth::guard('web')->id() ?? $sale->created_by ?? null,
                 ]);
 
                 $this->checkLowStock($product);
@@ -97,7 +97,7 @@ class SaleStockService
                     'after_quantity'  => $after,
                     'unit_cost'       => $item->unit_price,
                     'note'            => 'Sale voided: ' . $sale->reference_no,
-                    'created_by'      => Auth::id(),
+                    'created_by'      => Auth::guard('web')->id() ?? $sale->created_by ?? null,
                 ]);
             });
         }
@@ -140,7 +140,7 @@ class SaleStockService
                     'after_quantity'  => $after,
                     'unit_cost'       => $item->unit_price,
                     'note'            => 'Sale restored: ' . $sale->reference_no,
-                    'created_by'      => Auth::id(),
+                    'created_by'      => Auth::guard('web')->id() ?? $sale->created_by ?? null,
                 ]);
 
                 $this->checkLowStock($product);

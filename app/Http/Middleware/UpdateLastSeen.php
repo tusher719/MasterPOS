@@ -12,23 +12,22 @@ class UpdateLastSeen
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Only update for authenticated users
-        if (Auth::check()) {
-            $userId = Auth::id();
-            $cacheKey = "user_last_seen_{$userId}";
+        // Only update for authenticated web staff/users
+        if (Auth::guard('web')->check()) {
+            $user = Auth::guard('web')->user();
 
-            // Throttle: update DB at most once per minute per user
-            // Cache acts as a gate — if key exists, skip the DB write
-            if (!Cache::has($cacheKey)) {
-                $user = Auth::user();
+            if ($user instanceof \App\Models\User) {
+                $cacheKey = "user_last_seen_{$user->id}";
 
-                if ($user && method_exists($user, 'save')) {
+                // Throttle: update DB at most once per minute per user
+                // Cache acts as a gate — if key exists, skip the DB write
+                if (!Cache::has($cacheKey)) {
                     $user->last_seen_at = now();
                     $user->save();
-                }
 
-                // Lock for 60 seconds — next update allowed after 1 minute
-                Cache::put($cacheKey, true, 60);
+                    // Lock for 60 seconds — next update allowed after 1 minute
+                    Cache::put($cacheKey, true, 60);
+                }
             }
         }
 

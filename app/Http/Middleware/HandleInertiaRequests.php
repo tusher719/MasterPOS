@@ -23,10 +23,20 @@ class HandleInertiaRequests extends Middleware
     {
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user'     => $request->user('web') instanceof \App\Models\User ? $request->user('web') : null,
+                'customer' => fn () => Auth::guard('customer')->check() ? [
+                    'id'                    => Auth::guard('customer')->user()->id,
+                    'uuid'                  => Auth::guard('customer')->user()->uuid,
+                    'name'                  => Auth::guard('customer')->user()->name,
+                    'phone'                 => Auth::guard('customer')->user()->phone,
+                    'email'                 => Auth::guard('customer')->user()->email,
+                    'address'               => Auth::guard('customer')->user()->address,
+                    'city'                  => Auth::guard('customer')->user()->city,
+                    'default_delivery_type' => Auth::guard('customer')->user()->default_delivery_type,
+                ] : null,
             ],
             // email verification status — banner এর জন্য
-            'emailVerifiedAt' => fn () => $request->user()?->email_verified_at,
+            'emailVerifiedAt' => fn () => ($request->user('web') instanceof \App\Models\User) ? $request->user('web')->email_verified_at : null,
 
             // Ziggy may be installed under either namespace/version, so guard for both.
             'ziggy' => function () use ($request) {
@@ -53,7 +63,8 @@ class HandleInertiaRequests extends Middleware
 
             // Per-user theme + UI preferences
             'userPreferences' => function () use ($request) {
-                if (! $request->user()) {
+                $webUser = $request->user('web');
+                if (! $webUser || ! ($webUser instanceof \App\Models\User)) {
                     return [
                         'theme' => UserPreference::DEFAULT_THEME,
                         'ui'    => UserPreference::DEFAULT_UI,
@@ -61,7 +72,7 @@ class HandleInertiaRequests extends Middleware
                 }
 
                 $pref = UserPreference::findOrCreateForUser(
-                    $request->user()->id
+                    $webUser->id
                 );
 
                 return [
@@ -72,7 +83,8 @@ class HandleInertiaRequests extends Middleware
 
             // Bell dropdown — unread count + latest 8 notifications
             'notifications' => function () use ($request) {
-                if (! $request->user()) {
+                $webUser = $request->user('web');
+                if (! $webUser || ! ($webUser instanceof \App\Models\User)) {
                     return [
                         'unread_count' => 0,
                         'latest'       => [],
@@ -80,10 +92,10 @@ class HandleInertiaRequests extends Middleware
                 }
 
                 return [
-                    'unread_count' => $request->user()
+                    'unread_count' => $webUser
                         ->unreadNotifications()
                         ->count(),
-                    'latest' => $request->user()
+                    'latest' => $webUser
                         ->notifications()
                         ->latest()
                         ->take(8)
@@ -103,8 +115,8 @@ class HandleInertiaRequests extends Middleware
             // App Launcher — active links filtered by current user's roles
             // quickLinks  : for AppLauncherModal popup (role-filtered)
             // allQuickLinks: for Settings QuickLinksTab (all links, admin view)
-                        'quickLinks'    => fn () => $this->resolveQuickLinks($request),
-            'allQuickLinks' => fn () => $request->user()
+            'quickLinks'    => fn () => $this->resolveQuickLinks($request),
+            'allQuickLinks' => fn () => ($request->user('web') instanceof \App\Models\User)
                 ? QuickLink::orderBy('sort_order')->get()->toArray()
                 : [],
 
@@ -125,11 +137,12 @@ class HandleInertiaRequests extends Middleware
      */
     private function resolveQuickLinks(Request $request): array
     {
-        if (! $request->user()) {
+        $webUser = $request->user('web');
+        if (! $webUser || ! ($webUser instanceof \App\Models\User)) {
             return [];
         }
 
-        $roleNames = $request->user()->getRoleNames()->toArray();
+        $roleNames = $webUser->getRoleNames()->toArray();
 
         return QuickLink::active()
             ->get()
@@ -173,7 +186,7 @@ class HandleInertiaRequests extends Middleware
      */
     private function resolveNavCounts(Request $request): array
     {
-        if (! $request->user()) {
+        if (! ($request->user('web') instanceof \App\Models\User)) {
             return [];
         }
 
