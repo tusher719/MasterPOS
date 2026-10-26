@@ -59,13 +59,14 @@ Full-stack POS + ERP system
 - **Sprint 7 — Executive Dashboard & Filter Modernization ✅ (Audited & Tested)**: Modernized executive header, KPI trend badges, PeriodFilter (`today`, `this_week`, `this_month`, `this_year`, `custom`), Light/Dark semantic tokens across all widgets, 6 Feature tests passing.
 - **Sprint 8 — Public Storefront & POS Thermal Receipts ✅ (Audited & Tested)**: Public product catalog, Search page, Coming soon page, Persistent localStorage Cart Drawer (`useCart`), Guest checkout with dynamic delivery calculation, Stock deduction & `StockMovement` logging, Order confirmation slip with printable receipt, Live Order Tracking page (`/track-order`) with progress timeline & courier tracking, POS Counter 80mm/58mm thermal receipt printing layout with Code 128 SVG barcode and order tracking QR code (`qrcode.react` + `jsbarcode`), 9 Feature tests passing.
 - **Sprint 9 — Coupon & Promo Code Engine ✅ (Audited & Tested)**: Production-grade promotional discount system with percentage and fixed discounts, min order constraints, max discount cap, usage limits, customer-level tracking, POS checkout redemption, guest storefront checkout redemption, full admin management (CRUD, redemptions history, toggles, soft deletes, restore), 9 Feature tests passing.
+- **Sprint 10 — Storefront Hero Banner & Promotional CMS ✅ (Audited & Tested)**: Dynamic hero carousel slider with auto-advance and pause on hover, interactive promotional strip banner grid, one-click copyable coupon codes, admin CMS management (CRUD, live previews, placement controls, scheduling, soft deletes, restore, reordering), 8 Feature tests passing.
 
 ---
 
 ## Architecture & Data Standards
 
-- **Hybrid UUID Architecture**: BigInt primary keys for high-performance MySQL InnoDB indexing and foreign key constraints + indexed unique `uuid` (UUIDv4) across all core business entities (`users`, `products`, `sales`, `purchases`, `purchase_returns`, `suppliers`, `expenses`, `investments`, `customers`, `coupons`, `coupon_usages`, etc.).
-- **Automated Test Coverage**: 117 passing tests (397 assertions) running against dedicated MySQL testing database (`masterpos_testing`).
+- **Hybrid UUID Architecture**: BigInt primary keys for high-performance MySQL InnoDB indexing and foreign key constraints + indexed unique `uuid` (UUIDv4) across all core business entities (`users`, `products`, `sales`, `purchases`, `purchase_returns`, `suppliers`, `expenses`, `investments`, `customers`, `coupons`, `coupon_usages`, `storefront_banners`, etc.).
+- **Automated Test Coverage**: 125 passing tests (455 assertions) running against dedicated MySQL testing database (`masterpos_testing`).
 - **Frontend Quality**: Zero TypeScript errors (`npx tsc --noEmit` clean) and production Vite build verified.
 
 ---
