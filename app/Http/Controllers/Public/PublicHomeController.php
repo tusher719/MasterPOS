@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\StorefrontBanner;
 use App\Services\SettingsService;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -93,7 +94,42 @@ class PublicHomeController extends Controller
                 ];
             });
 
+        // Storefront Banners (Hero Carousel & Promotional Strips)
+        $heroBanners = StorefrontBanner::active()
+            ->placement('hero_slider')
+            ->ordered()
+            ->get()
+            ->map(fn (StorefrontBanner $b) => [
+                'id'          => $b->id,
+                'title'       => $b->title,
+                'subtitle'    => $b->subtitle,
+                'badge_text'  => $b->badge_text,
+                'image_path'  => $b->image_path,
+                'link_url'    => $b->link_url,
+                'button_text' => $b->button_text ?? 'Shop Now',
+                'coupon_code' => $b->coupon_code,
+                'bg_color'    => $b->bg_color ?? '#111827',
+            ]);
+
+        $promoBanners = StorefrontBanner::active()
+            ->placement('promo_strip')
+            ->ordered()
+            ->get()
+            ->map(fn (StorefrontBanner $b) => [
+                'id'          => $b->id,
+                'title'       => $b->title,
+                'subtitle'    => $b->subtitle,
+                'badge_text'  => $b->badge_text,
+                'image_path'  => $b->image_path,
+                'link_url'    => $b->link_url,
+                'button_text' => $b->button_text ?? 'Explore Deal',
+                'coupon_code' => $b->coupon_code,
+                'bg_color'    => $b->bg_color ?? '#111827',
+            ]);
+
         return Inertia::render('Public/Home', [
+            'heroBanners'      => $heroBanners,
+            'promoBanners'     => $promoBanners,
             'featuredProducts' => $featuredProducts,
             'latestProducts'   => $latestProducts,
             'categories'       => $categories,

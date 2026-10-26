@@ -59,6 +59,8 @@ class DeletePreviewController extends Controller
             'supplier'         => [Supplier::findOrFail($id),            'supplier.delete'],
             'customer'         => [Customer::findOrFail($id),            'customer.delete'],
             'user'             => [User::findOrFail($id),                'users.delete'],
+            'coupon'           => [\App\Models\Coupon::findOrFail($id),   'coupons.delete'],
+            'banner'           => [\App\Models\StorefrontBanner::findOrFail($id), 'banners.delete'],
             default            => abort(404, "Unknown entity type: {$type}"),
         };
     }

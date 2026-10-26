@@ -68,6 +68,7 @@ class DatabaseSeeder extends Seeder
             ProductPlanningTaskSeeder::class,
             QuickLinkSeeder::class,
             Step18CouponPermissionSeeder::class,
+            Step19StorefrontBannerPermissionSeeder::class,
 
             // System notifications
             NotificationSeeder::class,

@@ -8,6 +8,7 @@ use App\Http\Controllers\Backend\CustomerController;
 use App\Http\Controllers\Backend\CouponController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DeletePreviewController;
+use App\Http\Controllers\Backend\StorefrontBannerController;
 use App\Http\Controllers\Backend\FraudFlagController;
 use App\Http\Controllers\Backend\DistributionReverseController;
 use App\Http\Controllers\Backend\LoginHistoryController;
@@ -734,12 +735,21 @@ Route::middleware(['auth', 'verified', 'maintenance'])
         });
         Route::resource('coupons', CouponController::class);
 
+        // ── Storefront CMS (Banners & Promotions) ──────────────────────────────
+        Route::prefix('storefront/banners')->name('storefront.banners.')->group(function () {
+            Route::post('reorder', [StorefrontBannerController::class, 'reorder'])->name('reorder');
+            Route::post('{id}/restore', [StorefrontBannerController::class, 'restore'])->name('restore');
+            Route::patch('{banner}/toggle-status', [StorefrontBannerController::class, 'toggleStatus'])->name('toggle-status');
+        });
+        Route::resource('storefront/banners', StorefrontBannerController::class)
+            ->names('storefront.banners');
+
         // GET /backend/delete-preview/{type}/{id}
         Route::get('delete-preview/{type}/{id}', [DeletePreviewController::class, 'show'])
             ->name('delete-preview')
             ->whereIn('type', [
                 'investment', 'partner', 'sale', 'purchase', 'distribution',
-                'category', 'unit', 'expense-category', 'supplier', 'customer', 'user', 'coupon',
+                'category', 'unit', 'expense-category', 'supplier', 'customer', 'user', 'coupon', 'banner',
             ])
             ->whereNumber('id');
     });

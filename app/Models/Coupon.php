@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCustomUuid;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,6 +63,22 @@ class Coupon extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Scope for active coupons within valid date range.
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('starts_at')
+                  ->orWhere('starts_at', '<=', now());
+            })
+            ->where(function (Builder $q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', now());
+            });
     }
 
     /**
