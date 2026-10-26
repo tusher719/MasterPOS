@@ -58,16 +58,16 @@ export default function UnitsIndex({ units }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Units of Measurement
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Manage units used across products (kg, pcs, ltr…)
                         </p>
                     </div>
                     <button
                         onClick={openCreate}
-                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
                     >
                         + Add Unit
                     </button>
@@ -89,12 +89,12 @@ export default function UnitsIndex({ units }: Props) {
                     ].map((stat) => (
                         <div
                             key={stat.label}
-                            className="rounded-lg border border-gray-200 bg-white p-4"
+                            className="rounded-lg border border-border bg-card p-4"
                         >
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                                 {stat.label}
                             </p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                            <p className="text-2xl font-bold text-foreground mt-1">
                                 {stat.value}
                             </p>
                         </div>

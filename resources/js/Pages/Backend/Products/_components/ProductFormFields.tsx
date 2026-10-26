@@ -62,7 +62,7 @@ interface Props {
 /* ── shared styling helpers ── */
 
 const baseInputCls =
-    "w-full rounded-md text-sm shadow-sm transition-colors focus:outline-none focus:ring-2";
+    "w-full rounded-md text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 bg-input text-foreground";
 
 function stateClasses(
     required: boolean,
@@ -71,13 +71,13 @@ function stateClasses(
     hasError: boolean,
 ) {
     if (hasError)
-        return "border-red-400 focus:border-red-500 focus:ring-red-100";
+        return "border-red-400 focus:border-red-500 focus:ring-red-100 dark:border-red-700 dark:focus:ring-red-950";
     if (required && touched) {
         return filled
-            ? "border-green-400 focus:border-green-500 focus:ring-green-100"
-            : "border-red-400 focus:border-red-500 focus:ring-red-100";
+            ? "border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100 dark:border-emerald-600 dark:focus:ring-emerald-950"
+            : "border-red-400 focus:border-red-500 focus:ring-red-100 dark:border-red-700 dark:focus:ring-red-950";
     }
-    return "border-gray-300 focus:border-indigo-500 focus:ring-indigo-100";
+    return "border-border focus:border-primary focus:ring-primary/20";
 }
 
 function StatusIcon({ show, valid }: { show: boolean; valid: boolean }) {
@@ -129,7 +129,7 @@ function TextInput({
 
     return (
         <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
             <div className="relative">
@@ -180,7 +180,7 @@ function SelectField({
 
     return (
         <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
             <select
@@ -221,7 +221,7 @@ function TextArea({
 }) {
     return (
         <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
                 {label}
             </label>
             <textarea
@@ -230,7 +230,7 @@ function TextArea({
                 rows={rows}
                 maxLength={maxLength}
                 placeholder={placeholder}
-                className={`${baseInputCls} border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-100`}
+                className={`${baseInputCls} border border-border px-3 py-2 focus:border-primary focus:ring-primary/20`}
             />
             {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
         </div>
@@ -252,7 +252,7 @@ function Toggle({
                 type="button"
                 onClick={() => onChange(!value)}
                 className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    value ? "bg-indigo-600" : "bg-gray-200"
+                    value ? "bg-indigo-600" : "bg-muted"
                 }`}
             >
                 <span
@@ -261,7 +261,7 @@ function Toggle({
                     }`}
                 />
             </button>
-            <span className="text-sm text-gray-600">{label}</span>
+            <span className="text-sm text-foreground">{label}</span>
         </div>
     );
 }
@@ -276,19 +276,19 @@ function SectionHeader({
     hint?: string;
 }) {
     return (
-        <div className="flex items-center gap-2.5 border-b border-gray-100 px-5 py-3.5">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+        <div className="flex items-center gap-2.5 border-b border-border px-5 py-3.5">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Icon size={15} />
             </div>
             <div>
-                <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-                {hint && <p className="text-xs text-gray-400">{hint}</p>}
+                <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
             </div>
         </div>
     );
 }
 
-const sectionCls = "rounded-lg border border-gray-200 bg-white overflow-hidden";
+const sectionCls = "rounded-lg border border-border bg-card overflow-hidden";
 
 export default function ProductFormFields({
     data,

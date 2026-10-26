@@ -26,6 +26,8 @@ use App\Models\PartnerProfitRule;
 use App\Models\PartnerSettlementConfig;
 use App\Models\PaymentMethod;
 use App\Models\PreOrder;
+use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ProductPlanningTask;
 use App\Models\ProfitDistribution;
 use App\Models\ProfitDistributionEligibility;
@@ -34,6 +36,7 @@ use App\Models\PurchaseReturn;
 use App\Models\QuickLink;
 use App\Models\Sale;
 use App\Models\Supplier;
+use App\Models\Unit;
 use App\Models\User;
 use App\Observers\BusinessSettingObserver;
 use App\Policies\CapitalLedgerPolicy;
@@ -57,6 +60,8 @@ use App\Policies\PartnerSettlementConfigPolicy;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\PreOrderPolicy;
 use App\Policies\ProductCategoryPolicy;
+use App\Policies\ProductPlanningTaskPolicy;
+use App\Policies\ProductPolicy;
 use App\Policies\ProfitDistributionEligibilityPolicy;
 use App\Policies\ProfitDistributionPolicy;
 use App\Policies\PurchasePolicy;
@@ -65,6 +70,7 @@ use App\Policies\QuickLinkPolicy;
 use App\Policies\SalePolicy;
 use App\Policies\SettingPolicy;
 use App\Policies\SupplierPolicy;
+use App\Policies\UnitPolicy;
 use Illuminate\Notifications\DatabaseNotification;
 use Spatie\Permission\Models\Role;
 
@@ -92,6 +98,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PaymentMethod::class,    PaymentMethodPolicy::class);
         Gate::policy(ExpenseCategory::class,  ExpenseCategoryPolicy::class);
         Gate::policy(InvestmentType::class,   InvestmentTypePolicy::class);
+
+        // ─── Step 04 Policies ─────────────────────────────────────────────────
+        Gate::policy(Product::class,          ProductPolicy::class);
+        Gate::policy(ProductCategory::class,  ProductCategoryPolicy::class);
+        Gate::policy(Unit::class,             UnitPolicy::class);
 
         // ─── Step 05 Policies ─────────────────────────────────────────────────
         Gate::policy(DatabaseNotification::class, NotificationPolicy::class);
@@ -157,7 +168,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PreOrder::class, PreOrderPolicy::class);
 
         // ─── Sprint 4 — Product Planning Tasks ───────────────────────────────────
-        Gate::policy(ProductPlanningTask::class, ProductCategoryPolicy::class);
+        Gate::policy(ProductPlanningTask::class, ProductPlanningTaskPolicy::class);
 
         // ─── Sprint 5 — Quick Links ───────────────────────────────────────────────
         Gate::policy(QuickLink::class, QuickLinkPolicy::class);

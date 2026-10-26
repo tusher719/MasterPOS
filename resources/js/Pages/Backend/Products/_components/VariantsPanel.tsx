@@ -69,21 +69,21 @@ export default function VariantsPanel({
     };
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
                 <div>
-                    <h2 className="text-sm font-semibold text-gray-800">
+                    <h2 className="text-sm font-semibold text-foreground">
                         Product Variants
                     </h2>
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                         Leave price/cost blank to use the base product price
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={addRow}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
                 >
                     <Plus size={13} />
                     Add Variant
@@ -92,23 +92,23 @@ export default function VariantsPanel({
 
             {/* Empty state */}
             {rows.length === 0 && (
-                <div className="px-5 py-8 text-center text-sm text-gray-400">
+                <div className="px-5 py-8 text-center text-sm text-muted-foreground">
                     No variants yet. Click "Add Variant" to start.
                 </div>
             )}
 
             {/* Rows */}
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
                 {rows.map((row, idx) => (
                     <div key={idx} className="px-5 py-4 space-y-3">
                         {/* Row header */}
                         <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-gray-500">
+                            <span className="text-xs font-medium text-muted-foreground">
                                 Variant {idx + 1}
                             </span>
                             <div className="flex items-center gap-3">
                                 {/* Active toggle */}
-                                <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                                     <input
                                         type="checkbox"
                                         checked={row.is_active}
@@ -117,14 +117,14 @@ export default function VariantsPanel({
                                                 is_active: e.target.checked,
                                             })
                                         }
-                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        className="rounded border-border bg-input text-indigo-600 focus:ring-primary"
                                     />
                                     Active
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => removeRow(idx)}
-                                    className="rounded-md p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                    className="rounded-md p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
                                 >
                                     <Trash2 size={14} />
                                 </button>
@@ -134,7 +134,7 @@ export default function VariantsPanel({
                         {/* SKU */}
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-600">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     SKU <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -144,11 +144,11 @@ export default function VariantsPanel({
                                         updateRow(idx, { sku: e.target.value })
                                     }
                                     placeholder="e.g. RED-XL-001"
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-600">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Stock Qty
                                 </label>
                                 <input
@@ -161,7 +161,7 @@ export default function VariantsPanel({
                                             stock_qty: e.target.value,
                                         })
                                     }
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                                 />
                             </div>
                         </div>
@@ -169,7 +169,7 @@ export default function VariantsPanel({
                         {/* Price overrides */}
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-600">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Sale Price Override
                                 </label>
                                 <input
@@ -183,11 +183,11 @@ export default function VariantsPanel({
                                         })
                                     }
                                     placeholder={`Base: ${baseSalePrice}`}
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                                 />
                             </div>
                             <div>
-                                <label className="mb-1 block text-xs font-medium text-gray-600">
+                                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                                     Cost Price Override
                                 </label>
                                 <input
@@ -201,7 +201,7 @@ export default function VariantsPanel({
                                         })
                                     }
                                     placeholder={`Base: ${baseCostPrice}`}
-                                    className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                                 />
                             </div>
                         </div>
@@ -209,13 +209,13 @@ export default function VariantsPanel({
                         {/* Attributes */}
                         <div>
                             <div className="mb-1.5 flex items-center justify-between">
-                                <label className="text-xs font-medium text-gray-600">
+                                <label className="text-xs font-medium text-muted-foreground">
                                     Attributes
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => addAttrKey(idx)}
-                                    className="text-xs text-indigo-600 hover:text-indigo-700"
+                                    className="text-xs text-primary hover:underline"
                                 >
                                     + Add attribute
                                 </button>
@@ -231,7 +231,7 @@ export default function VariantsPanel({
                                                 type="text"
                                                 value={key}
                                                 readOnly
-                                                className="w-24 rounded-md border-gray-200 bg-gray-50 text-xs text-gray-500 focus:border-indigo-300 focus:ring-indigo-300"
+                                                className="w-24 rounded-md border-border bg-muted text-xs text-muted-foreground"
                                             />
                                             <input
                                                 type="text"
@@ -244,14 +244,14 @@ export default function VariantsPanel({
                                                     )
                                                 }
                                                 placeholder={`Enter ${key}`}
-                                                className="flex-1 rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                className="flex-1 rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() =>
                                                     removeAttrKey(idx, key)
                                                 }
-                                                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                className="rounded p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 size={12} />
                                             </button>
@@ -266,7 +266,7 @@ export default function VariantsPanel({
 
             {/* Footer count */}
             {rows.length > 0 && (
-                <div className="border-t border-gray-100 px-5 py-2.5 text-right text-xs text-gray-400">
+                <div className="border-t border-border px-5 py-2.5 text-right text-xs text-muted-foreground">
                     {rows.length} variant{rows.length !== 1 ? "s" : ""}
                 </div>
             )}

@@ -20,21 +20,21 @@ function StockBadge({ product }: { product: Product }) {
 
     if (qty <= 0) {
         return (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-400">
                 Out of stock
             </span>
         );
     }
     if (product.is_low_stock) {
         return (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
                 <AlertTriangle className="h-2.5 w-2.5" />
                 Low stock
             </span>
         );
     }
     return (
-        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
             In stock
         </span>
     );
@@ -72,7 +72,7 @@ function ProductCard({
                 {/* Top badges */}
                 <div className="absolute left-2 top-2 flex flex-col gap-1">
                     {!product.is_active && (
-                        <span className="rounded-full bg-gray-800/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                        <span className="rounded-full bg-card/90 border border-border px-2 py-0.5 text-[10px] font-medium text-foreground backdrop-blur-sm">
                             Inactive
                         </span>
                     )}
@@ -94,14 +94,14 @@ function ProductCard({
                 <div className="absolute right-2 top-2 flex flex-col gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     <Link
                         href={route("backend.products.edit", product.id)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-gray-600 shadow-sm backdrop-blur-sm hover:bg-white hover:text-indigo-600 transition-colors"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-card/90 text-foreground border border-border shadow-sm backdrop-blur-sm hover:bg-primary hover:text-white transition-colors"
                         title="Edit product"
                     >
                         <Edit2 className="h-3.5 w-3.5" />
                     </Link>
                     <button
                         onClick={() => onDelete(product)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-gray-600 shadow-sm backdrop-blur-sm hover:bg-white hover:text-red-500 transition-colors"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-card/90 text-foreground border border-border shadow-sm backdrop-blur-sm hover:bg-red-500 hover:text-white transition-colors"
                         title="Delete product"
                     >
                         <Trash2 className="h-3.5 w-3.5" />

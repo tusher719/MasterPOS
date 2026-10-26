@@ -177,26 +177,26 @@ export default function ProductCreate({ categories, units }: Props) {
                     <div>
                         <Link
                             href={route("backend.products.index")}
-                            className="mb-2 inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-indigo-600"
+                            className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
                         >
                             <ChevronLeft size={15} />
                             Products
                         </Link>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Add Product
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-muted-foreground">
                             Fill in the details to add a new product to your
                             catalog
                         </p>
                     </div>
-                    <div className="hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 sm:flex">
+                    <div className="hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary sm:flex">
                         <PackagePlus size={20} />
                     </div>
                 </div>
 
                 {errorCount > 0 && (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-400">
                         <AlertCircle size={16} className="flex-shrink-0" />
                         {errorCount === 1
                             ? "There's 1 error to fix before you can save."
@@ -208,12 +208,12 @@ export default function ProductCreate({ categories, units }: Props) {
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Left — images */}
                     <div className="lg:col-span-1">
-                        <div className="sticky top-6 rounded-sm border border-gray-200 bg-white overflow-hidden">
-                            <div className="border-b border-gray-100 px-5 py-3">
-                                <h2 className="text-sm font-semibold text-gray-800">
+                        <div className="sticky top-6 rounded-lg border border-border bg-card overflow-hidden">
+                            <div className="border-b border-border px-5 py-3">
+                                <h2 className="text-sm font-semibold text-foreground">
                                     Product Images
                                 </h2>
-                                <p className="mt-0.5 text-xs text-gray-500">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                     Upload photos, then choose your thumbnail
                                 </p>
                             </div>
@@ -249,8 +249,8 @@ export default function ProductCreate({ categories, units }: Props) {
                         )}
 
                         {/* Submit bar */}
-                        <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-5 py-4">
-                            <p className="text-xs text-gray-400">
+                        <div className="flex items-center justify-between rounded-lg border border-border bg-card px-5 py-4">
+                            <p className="text-xs text-muted-foreground">
                                 {isFormValid
                                     ? "All required fields are filled in."
                                     : "Fill in the required fields to continue."}
@@ -258,7 +258,7 @@ export default function ProductCreate({ categories, units }: Props) {
                             <div className="flex items-center gap-3">
                                 <Link
                                     href={route("backend.products.index")}
-                                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                                    className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                 >
                                     Cancel
                                 </Link>
@@ -267,7 +267,7 @@ export default function ProductCreate({ categories, units }: Props) {
                                     disabled={
                                         processing || uploading || !isFormValid
                                     }
-                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                     {(processing || uploading) && (
                                         <Loader2

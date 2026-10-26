@@ -98,16 +98,16 @@ export default function CategoryModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-xl">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                    <h2 className="text-base font-semibold text-gray-800">
+                <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                    <h2 className="text-base font-semibold text-foreground">
                         {editing ? "Edit Category" : "Add Category"}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <X size={18} />
                     </button>
@@ -117,14 +117,14 @@ export default function CategoryModal({
                 <div className="px-5 py-4 space-y-4">
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Name <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             value={data.name}
                             onChange={(e) => setData("name", e.target.value)}
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                             placeholder="Category name"
                         />
                         {errors.name && (
@@ -136,7 +136,7 @@ export default function CategoryModal({
 
                     {/* Parent */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Parent Category
                         </label>
                         <select
@@ -144,7 +144,7 @@ export default function CategoryModal({
                             onChange={(e) =>
                                 setData("parent_id", e.target.value)
                             }
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                         >
                             <option value="">— Top level —</option>
                             {parents
@@ -164,7 +164,7 @@ export default function CategoryModal({
 
                     {/* Image */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Image
                         </label>
                         <div className="flex items-center gap-3">
@@ -172,13 +172,13 @@ export default function CategoryModal({
                                 <img
                                     src={preview}
                                     alt="preview"
-                                    className="h-12 w-12 rounded-md object-cover border border-gray-100"
+                                    className="h-12 w-12 rounded-md object-cover border border-border"
                                 />
                             )}
                             <button
                                 type="button"
                                 onClick={() => fileRef.current?.click()}
-                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+                                className="rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground hover:bg-muted/80 transition-colors"
                             >
                                 {preview ? "Change Image" : "Upload Image"}
                             </button>
@@ -199,7 +199,7 @@ export default function CategoryModal({
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Description
                         </label>
                         <textarea
@@ -208,7 +208,7 @@ export default function CategoryModal({
                                 setData("description", e.target.value)
                             }
                             rows={2}
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                             placeholder="Optional description"
                         />
                     </div>
@@ -216,7 +216,7 @@ export default function CategoryModal({
                     {/* Sort Order + Status */}
                     <div className="flex items-center gap-4">
                         <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                                 Sort Order
                             </label>
                             <input
@@ -226,7 +226,7 @@ export default function CategoryModal({
                                 onChange={(e) =>
                                     setData("sort_order", e.target.value)
                                 }
-                                className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="w-full rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                             />
                         </div>
                         <div className="flex items-center gap-2 pt-5">
@@ -238,7 +238,7 @@ export default function CategoryModal({
                                 className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                     data.is_active
                                         ? "bg-indigo-600"
-                                        : "bg-gray-200"
+                                        : "bg-muted"
                                 }`}
                             >
                                 <span
@@ -249,7 +249,7 @@ export default function CategoryModal({
                                     }`}
                                 />
                             </button>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-foreground">
                                 Active
                             </span>
                         </div>
@@ -257,17 +257,17 @@ export default function CategoryModal({
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
                     <button
                         onClick={onClose}
-                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={submit}
                         disabled={processing}
-                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60 transition-colors"
                     >
                         {processing
                             ? "Saving..."

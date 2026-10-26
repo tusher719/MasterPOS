@@ -8,10 +8,10 @@ export interface User {
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
-    auth: {
-        user: User;
+    auth?: {
+        user: User | null;
     };
-    settings: Record<string, string | null>;
+    settings?: Record<string, string | null>;
     flash?: {
         success?: string;
         error?: string;

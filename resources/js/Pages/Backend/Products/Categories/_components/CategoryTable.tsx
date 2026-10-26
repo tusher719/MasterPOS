@@ -20,47 +20,47 @@ interface Props {
 
 export default function CategoryTable({ categories, onEdit, onDelete }: Props) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50 border-b border-gray-100">
+        <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/40 border-b border-border">
                     <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             #
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             Image
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             Name
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             Parent
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             Products
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             Status
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border">
                     {categories.length === 0 && (
                         <tr>
                             <td
                                 colSpan={7}
-                                className="py-10 text-center text-sm text-gray-400"
+                                className="py-10 text-center text-sm text-muted-foreground"
                             >
                                 No categories found.
                             </td>
                         </tr>
                     )}
                     {categories.map((cat, i) => (
-                        <tr key={cat.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-500">
+                        <tr key={cat.id} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
                                 {i + 1}
                             </td>
                             <td className="px-4 py-3">
@@ -68,38 +68,38 @@ export default function CategoryTable({ categories, onEdit, onDelete }: Props) {
                                     <img
                                         src={cat.image}
                                         alt={cat.name}
-                                        className="h-9 w-9 rounded-md object-cover border border-gray-100"
+                                        className="h-9 w-9 rounded-md object-cover border border-border"
                                     />
                                 ) : (
-                                    <div className="h-9 w-9 rounded-md bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+                                    <div className="h-9 w-9 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
                                         N/A
                                     </div>
                                 )}
                             </td>
                             <td className="px-4 py-3">
-                                <p className="text-sm font-medium text-gray-800">
+                                <p className="text-sm font-medium text-foreground">
                                     {cat.name}
                                 </p>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-muted-foreground">
                                     {cat.slug}
                                 </p>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
                                 {cat.parent_name ?? (
-                                    <span className="text-xs text-gray-300 italic">
+                                    <span className="text-xs text-muted-foreground/60 italic">
                                         Top level
                                     </span>
                                 )}
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
+                            <td className="px-4 py-3 text-sm text-muted-foreground">
                                 {cat.product_count}
                             </td>
                             <td className="px-4 py-3">
                                 <span
-                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium border ${
                                         cat.is_active
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-gray-100 text-gray-500"
+                                            ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                                            : "bg-muted text-muted-foreground border-border"
                                     }`}
                                 >
                                     {cat.is_active ? "Active" : "Inactive"}
@@ -109,13 +109,13 @@ export default function CategoryTable({ categories, onEdit, onDelete }: Props) {
                                 <div className="flex items-center justify-end gap-1">
                                     <button
                                         onClick={() => onEdit(cat)}
-                                        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+                                        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                     >
                                         <Pencil size={15} />
                                     </button>
                                     <button
                                         onClick={() => onDelete(cat)}
-                                        className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                        className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
                                     >
                                         <Trash2 size={15} />
                                     </button>

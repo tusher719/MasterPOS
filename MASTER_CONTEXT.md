@@ -67,16 +67,19 @@ Sprint 8 — Public Storefront (active)
 - Role Management (Spatie + English flash message + Light/Dark mode matrix + 6 Feature tests passing)
 - Login Histories & Activity Logs (`users.view` permission guard added + Dark mode verified)
 
-### Sprint 2 — Settings & Catalogue ✅ (Settings Audited & Tested)
+### Sprint 2 — Settings & Catalogue ✅ (Settings & Catalogue Audited & Tested)
 
 - Business Settings (logo, currency, tax, notification, theme, quick links, system status, staff roles)
 - Payment Methods (CRUD, active toggle, semantic theme tokens verified)
 - Expense Categories (CRUD, color badge, semantic theme tokens verified)
 - Investment Types (CRUD, active toggle, ActivityLogService object/scalar defensive fix, dark/light mode verified)
-- Automated Tests: `tests/Feature/Backend/SettingsManagementTest.php` (10 tests passing, 100% green)
-- Products (CRUD, variants, stock, images) — [Under Audit]
-- Categories, Units — [Under Audit]
-- Suppliers — [Pending Audit]
+- Products (CRUD, auto slug generation, variant options sync, multi-image upload/delete, soft deletes, AJAX search)
+- Product Categories (CRUD, parent-child hierarchy, image upload, delete safeguards)
+- Units (CRUD, NO SoftDeletes strictly verified, delete safeguards when in use)
+- AppServiceProvider policy mapping fix: corrected `ProductPlanningTask` mapping and registered catalogue policies
+- Automated Tests: `tests/Feature/Backend/SettingsManagementTest.php` (10 tests passing)
+- Automated Tests: `tests/Feature/Backend/ProductManagementTest.php` (16 tests passing, 100% green)
+- Suppliers — [Next to Audit]
 
 ### Sprint 3 — Purchases ✅
 
