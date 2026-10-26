@@ -57,7 +57,7 @@ Full-stack POS + ERP system
 - **Sprint 5 — Finance, Reports & Invoices ✅ (Audited & Tested)**: Expenses + UUID, Investments, Profit calculations, PDF invoices via DomPDF, 10 Feature tests passing.
 - **Sprint 6 — Inventory & Returns ✅ (Audited & Tested)**: Universal Import/Export (7 modules), Purchase Returns / Damage tracking (Draft → Confirmed with atomic stock decrement and movements), Dedicated purchase search endpoint (`/backend/purchases/search-for-return`), 4 Feature tests passing.
 - **Sprint 7 — Executive Dashboard & Filter Modernization ✅ (Audited & Tested)**: Modernized executive header, KPI trend badges, PeriodFilter (`today`, `this_week`, `this_month`, `this_year`, `custom`), Light/Dark semantic tokens across all widgets, 6 Feature tests passing.
-- **Sprint 8 — Public Storefront ✅ (Audited & Tested)**: Public product catalog, Search page, Coming soon page, Persistent localStorage Cart Drawer (`useCart`), Guest checkout with dynamic delivery calculation, Stock deduction & `StockMovement` logging, Order confirmation slip with printable receipt, Live Order Tracking page (`/track-order`) with progress timeline & courier tracking, 9 Feature tests passing.
+- **Sprint 8 — Public Storefront & POS Thermal Receipts ✅ (Audited & Tested)**: Public product catalog, Search page, Coming soon page, Persistent localStorage Cart Drawer (`useCart`), Guest checkout with dynamic delivery calculation, Stock deduction & `StockMovement` logging, Order confirmation slip with printable receipt, Live Order Tracking page (`/track-order`) with progress timeline & courier tracking, POS Counter 80mm/58mm thermal receipt printing layout with Code 128 SVG barcode and order tracking QR code (`qrcode.react` + `jsbarcode`), 9 Feature tests passing.
 
 ---
 
