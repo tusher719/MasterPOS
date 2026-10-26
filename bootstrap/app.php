@@ -77,9 +77,20 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // 500 — Internal Server Error (and other unhandled exceptions)
         $exceptions->render(function (\Throwable $e, Request $request) use ($resolveSurface) {
+            if ($e instanceof \Illuminate\Validation\ValidationException ||
+                $e instanceof \Illuminate\Auth\AuthenticationException ||
+                $e instanceof \Illuminate\Auth\Access\AuthorizationException ||
+                $e instanceof \Illuminate\Session\TokenMismatchException) {
+                return null;
+            }
+
             $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
             if ($status < 500) return null;
             if ($request->expectsJson()) return null;
+
+            if (config('app.debug') && ! app()->environment('production')) {
+                return null;
+            }
 
             $surface = $resolveSurface($request->getPathInfo());
 
