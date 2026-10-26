@@ -58,6 +58,7 @@ use App\Http\Controllers\Backend\LegalPageController;
 use App\Http\Controllers\Public\PublicCategoryController;
 use App\Http\Controllers\Public\PublicCheckoutController;
 use App\Http\Controllers\Public\PublicHomeController;
+use App\Http\Controllers\Public\PublicOrderTrackingController;
 use App\Http\Controllers\Public\PublicProductController;
 use App\Http\Controllers\Public\PublicSearchController;
 use App\Http\Controllers\ProfileController;
@@ -71,6 +72,7 @@ use Inertia\Inertia;
 Route::middleware(['coming.soon'])->group(function () {
     Route::get('/', [PublicHomeController::class, 'index'])->name('public.home');
     Route::get('/search', [PublicSearchController::class, 'index'])->name('public.search');
+    Route::get('/track-order', [PublicOrderTrackingController::class, 'index'])->name('public.track-order');
     Route::get('/checkout', [PublicCheckoutController::class, 'index'])->name('public.checkout.index');
     Route::post('/checkout', [PublicCheckoutController::class, 'store'])->name('public.checkout.store');
     Route::get('/order-confirmed/{reference}', [PublicCheckoutController::class, 'confirmed'])->name('public.order-confirmed');

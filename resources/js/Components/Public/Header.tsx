@@ -417,6 +417,13 @@ function MobileDrawer({
                     >
                         All Products
                     </Link>
+                    <Link
+                        href={route("public.track-order")}
+                        onClick={onClose}
+                        className="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                    >
+                        Track Order
+                    </Link>
 
                     {categories.length > 0 && (
                         <>
@@ -516,6 +523,12 @@ export default function Header({
                                 className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
                             >
                                 Products
+                            </Link>
+                            <Link
+                                href={route("public.track-order")}
+                                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-indigo-600 transition-colors"
+                            >
+                                Track Order
                             </Link>
                         </nav>
 

@@ -199,4 +199,79 @@ class StorefrontCheckoutTest extends TestCase
         $response = $this->get(route('public.order-confirmed', ['reference' => $sale->reference_no]));
         $response->assertStatus(200);
     }
+
+    public function test_guest_can_view_track_order_page(): void
+    {
+        $response = $this->get(route('public.track-order'));
+        $response->assertStatus(200);
+    }
+
+    public function test_guest_can_track_order_by_reference_number(): void
+    {
+        $sale = Sale::create([
+            'reference_no'           => 'SL-' . now()->format('Ymd') . '-7777',
+            'sale_date'              => today(),
+            'subtotal'               => 1200,
+            'discount'               => 0,
+            'tax'                    => 0,
+            'grand_total'            => 1260,
+            'paid_amount'            => 0,
+            'due_amount'             => 1260,
+            'payment_status'         => 'due',
+            'order_status'           => 'confirmed',
+            'payment_type'           => 'cash_on_delivery',
+            'delivery_type'          => 'inside_dhaka',
+            'delivery_charge'        => 60,
+            'delivery_address'       => 'Banani, Dhaka',
+            'delivery_contact_phone' => '01700112233',
+            'delivery_status'        => 'pending',
+            'created_by'             => $this->admin->id,
+        ]);
+
+        $response = $this->get(route('public.track-order', ['q' => $sale->reference_no]));
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) =>
+            $page->component('Public/TrackOrder')
+                ->where('searched', true)
+                ->has('orders', 1)
+                ->where('orders.0.reference_no', $sale->reference_no)
+                ->where('orders.0.order_status', 'confirmed')
+        );
+    }
+
+    public function test_guest_can_track_order_by_phone_number(): void
+    {
+        $sale = Sale::create([
+            'reference_no'           => 'SL-' . now()->format('Ymd') . '-8888',
+            'sale_date'              => today(),
+            'subtotal'               => 800,
+            'discount'               => 0,
+            'tax'                    => 0,
+            'grand_total'            => 860,
+            'paid_amount'            => 860,
+            'due_amount'             => 0,
+            'payment_status'         => 'paid',
+            'order_status'           => 'out_for_delivery',
+            'payment_type'           => 'full_paid',
+            'delivery_type'          => 'inside_dhaka',
+            'delivery_charge'        => 60,
+            'delivery_address'       => 'Gulshan 2, Dhaka',
+            'delivery_contact_phone' => '01855443322',
+            'delivery_status'        => 'dispatched',
+            'courier_provider'       => 'Steadfast',
+            'courier_tracking_id'    => 'STDF-998811',
+            'created_by'             => $this->admin->id,
+        ]);
+
+        $response = $this->get(route('public.track-order', ['q' => '01855443322']));
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) =>
+            $page->component('Public/TrackOrder')
+                ->where('searched', true)
+                ->has('orders', 1)
+                ->where('orders.0.reference_no', $sale->reference_no)
+                ->where('orders.0.courier_provider', 'Steadfast')
+                ->where('orders.0.courier_tracking_id', 'STDF-998811')
+        );
+    }
 }
