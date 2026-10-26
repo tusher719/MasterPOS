@@ -11,6 +11,23 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    <!-- Anti-flash theme synchronization -->
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('theme_mode') || 'system';
+                var isDark = stored === 'dark' || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.setAttribute('data-mantine-color-scheme', 'light');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Scripts -->
     @routes
     @viteReactRefresh

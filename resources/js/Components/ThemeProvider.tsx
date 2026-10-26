@@ -116,11 +116,18 @@ export function applyTheme(theme: UserTheme, ui: UserUi): void {
         isDark = false;
     }
 
-    // Force synchronous class update
+    // Force synchronous class update & Mantine sync
     root.classList.remove("dark");
     if (isDark) {
         root.classList.add("dark");
+        root.setAttribute("data-mantine-color-scheme", "dark");
+    } else {
+        root.setAttribute("data-mantine-color-scheme", "light");
     }
+
+    try {
+        localStorage.setItem("theme_mode", theme.mode || "system");
+    } catch {}
 
     // ── Border radius — Tailwind reads --radius ───────────────────────────────
     const radiusMap: Record<string, string> = {

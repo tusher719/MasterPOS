@@ -82,26 +82,59 @@ export function useTheme() {
                 const next = { ...prev, ...partial };
 
                 // Apply dark/light class IMMEDIATELY — before requestAnimationFrame
-                // This prevents the flash of wrong mode
                 if ("mode" in partial) {
                     const root = document.documentElement;
-                    root.classList.remove("dark");
+                    let isDark = false;
                     if (partial.mode === "dark") {
-                        root.classList.add("dark");
+                        isDark = true;
                     } else if (partial.mode === "system") {
-                        if (
-                            window.matchMedia("(prefers-color-scheme: dark)")
-                                .matches
-                        ) {
-                            root.classList.add("dark");
-                        }
+                        isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
                     }
+                    root.classList.toggle("dark", isDark);
+                    root.setAttribute("data-mantine-color-scheme", isDark ? "dark" : "light");
+                    try {
+                        localStorage.setItem("theme_mode", partial.mode || "system");
+                    } catch {}
                 }
 
                 requestAnimationFrame(() => applyTheme(next, ui));
                 return next;
             });
             setIsDirty(true);
+        },
+        [ui],
+    );
+
+    // ── Dedicated Mode Switcher — instant apply + auto persist ───────────────
+    const setThemeMode = useCallback(
+        async (newMode: "light" | "dark" | "system") => {
+            setThemeState((prev) => {
+                const next = { ...prev, mode: newMode };
+                const root = document.documentElement;
+                let isDark = false;
+                if (newMode === "dark") {
+                    isDark = true;
+                } else if (newMode === "system") {
+                    isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                }
+                root.classList.toggle("dark", isDark);
+                root.setAttribute("data-mantine-color-scheme", isDark ? "dark" : "light");
+                try {
+                    localStorage.setItem("theme_mode", newMode);
+                } catch {}
+
+                requestAnimationFrame(() => applyTheme(next, ui));
+                return next;
+            });
+
+            try {
+                await window.axios.put(
+                    route("backend.user.preferences.theme.update"),
+                    { mode: newMode },
+                );
+            } catch {
+                // Non-critical background save failure
+            }
         },
         [ui],
     );
@@ -238,6 +271,7 @@ export function useTheme() {
 
         // Actions
         updateTheme,
+        setThemeMode,
         updateUi,
         applyPreset,
         saveAll,

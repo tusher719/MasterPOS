@@ -33,10 +33,11 @@ function fmtLabel(label: string, granularity: "daily" | "monthly"): string {
 }
 
 function fmtCurrency(value: number): string {
-    if (Math.abs(value) >= 1_000_000)
-        return "৳" + (value / 1_000_000).toFixed(1) + "M";
-    if (Math.abs(value) >= 1_000) return "৳" + (value / 1_000).toFixed(1) + "K";
-    return "৳" + value.toFixed(0);
+    const val = Number(value || 0);
+    if (Math.abs(val) >= 1_000_000)
+        return "৳ " + (val / 1_000_000).toFixed(1) + "M";
+    if (Math.abs(val) >= 1_000) return "৳ " + (val / 1_000).toFixed(1) + "K";
+    return "৳ " + val.toFixed(0);
 }
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
@@ -55,20 +56,20 @@ function CustomTooltip({
     if (!active || !payload?.length || !label) return null;
 
     return (
-        <div className="rounded-xl border border-gray-200/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs dark:border-neutral-800 dark:bg-neutral-900/95">
-            <p className="mb-1.5 font-semibold text-gray-800 dark:text-neutral-200">
+        <div className="rounded-xl border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs">
+            <p className="mb-1.5 font-semibold text-foreground">
                 {fmtLabel(label, granularity)}
             </p>
             {payload.map((entry) => (
-                <div key={entry.name} className="flex items-center gap-1.5">
+                <div key={entry.name} className="flex items-center gap-2 py-0.5">
                     <span
                         className="inline-block h-2 w-2 rounded-full"
                         style={{ background: entry.color }}
                     />
-                    <span className="text-gray-500 capitalize dark:text-neutral-400">
+                    <span className="text-muted-foreground capitalize">
                         {entry.name}:
                     </span>
-                    <span className="font-semibold text-gray-800 dark:text-neutral-200">
+                    <span className="font-semibold text-foreground font-sans">
                         {entry.name === "count"
                             ? entry.value.toLocaleString()
                             : fmtCurrency(Number(entry.value))}
@@ -123,7 +124,7 @@ export default function SalesChart({ charts }: Props) {
 
     if (merged.length === 0) {
         return (
-            <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                 No data for the selected period.
             </div>
         );
@@ -133,24 +134,24 @@ export default function SalesChart({ charts }: Props) {
         <div className="space-y-3">
             {/* ── Granularity badge ── */}
             <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                     Showing{" "}
-                    <span className="font-medium text-gray-600">
+                    <span className="font-semibold text-foreground">
                         {charts.granularity === "daily" ? "daily" : "monthly"}
                     </span>{" "}
                     breakdown
                 </p>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                        <span className="inline-block h-2 w-4 rounded-sm bg-indigo-500" />
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <span className="inline-block h-2.5 w-3 rounded-xs bg-indigo-500" />
                         Revenue
                     </span>
-                    <span className="flex items-center gap-1">
-                        <span className="inline-block h-2 w-4 rounded-sm bg-red-400" />
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <span className="inline-block h-2.5 w-3 rounded-xs bg-rose-400" />
                         Expenses
                     </span>
-                    <span className="flex items-center gap-1">
-                        <span className="inline-block h-0.5 w-4 bg-amber-400" />
+                    <span className="flex items-center gap-1.5 font-medium">
+                        <span className="inline-block h-1 w-3.5 bg-amber-400 rounded-full" />
                         Orders
                     </span>
                 </div>
@@ -160,17 +161,19 @@ export default function SalesChart({ charts }: Props) {
             <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart
                     data={merged}
-                    margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                    margin={{ top: 10, right: 14, left: 14, bottom: 8 }}
                 >
                     <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#f0f0f0"
+                        stroke="currentColor"
+                        className="text-border/40"
                         vertical={false}
                     />
 
                     <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 11, fill: "#9ca3af" }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        className="text-muted-foreground"
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => fmtLabel(v, charts.granularity)}
@@ -180,22 +183,24 @@ export default function SalesChart({ charts }: Props) {
                     {/* Left Y — currency */}
                     <YAxis
                         yAxisId="currency"
-                        tick={{ fontSize: 11, fill: "#9ca3af" }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        className="text-muted-foreground"
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={fmtCurrency}
-                        width={56}
+                        width={64}
                     />
 
                     {/* Right Y — order count */}
                     <YAxis
                         yAxisId="count"
                         orientation="right"
-                        tick={{ fontSize: 11, fill: "#9ca3af" }}
+                        tick={{ fontSize: 11, fill: "currentColor" }}
+                        className="text-muted-foreground"
                         tickLine={false}
                         axisLine={false}
                         allowDecimals={false}
-                        width={32}
+                        width={36}
                     />
 
                     <Tooltip

@@ -32,7 +32,7 @@ return new class extends Migration
                 'other',
             ]);
 
-            $table->text('reason_note');
+            $table->text('reason_note')->nullable();
 
             $table->enum('trigger_type', [
                 'manual',

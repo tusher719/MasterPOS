@@ -7,19 +7,38 @@ import {
     Receipt,
     PiggyBank,
 } from "lucide-react";
+import React from "react";
 
 interface Props {
     financial: FinancialData;
     period: PeriodMeta;
 }
 
-function fmtCurrency(value: number): string {
+export function CurrencyDisplay({
+    value,
+    className = "",
+    size = "normal",
+}: {
+    value: number;
+    className?: string;
+    size?: "small" | "normal" | "large";
+}) {
+    const formatted = Number(value || 0).toLocaleString("en-BD", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+
+    const sizeClasses = {
+        small: "text-sm",
+        normal: "text-lg sm:text-xl",
+        large: "text-2xl",
+    };
+
     return (
-        "৳" +
-        Number(value).toLocaleString("en-BD", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        })
+        <span className={`inline-flex items-baseline gap-1.5 font-semibold text-foreground ${sizeClasses[size]} ${className}`}>
+            <span className="text-[0.78em] font-medium text-muted-foreground select-none">৳</span>
+            <span className="font-bold tracking-tight font-sans">{formatted}</span>
+        </span>
     );
 }
 
@@ -52,26 +71,28 @@ function KpiCard({
     accent,
 }: {
     label: string;
-    value: string;
+    value: React.ReactNode;
     changePct?: number;
     icon: React.ReactNode;
     accent: string;
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-                    <p className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">
+        <div className="group rounded-2xl border border-border bg-card p-4.5 shadow-xs transition-all duration-200 hover:shadow-md hover:border-primary/30">
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
+                    <div className="mt-1.5 truncate">
                         {value}
-                    </p>
+                    </div>
                 </div>
-                <div className={`rounded-xl p-2.5 ${accent}`}>{icon}</div>
+                <div className={`shrink-0 rounded-xl p-2.5 transition-transform duration-200 group-hover:scale-105 ${accent}`}>
+                    {icon}
+                </div>
             </div>
             {changePct !== undefined && (
                 <div className="mt-3 flex items-center gap-1.5">
                     <ChangeBadge pct={changePct} />
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px] text-muted-foreground">
                         vs previous period
                     </span>
                 </div>
@@ -87,30 +108,34 @@ export default function FinancialSummary({ financial }: Props) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     label="Total Revenue"
-                    value={fmtCurrency(financial.revenue)}
+                    value={<CurrencyDisplay value={financial.revenue} />}
                     changePct={financial.revenue_change_pct}
-                    icon={<Wallet className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />}
-                    accent="bg-indigo-50 dark:bg-indigo-950/50"
+                    icon={<Wallet className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
+                    accent="bg-indigo-50 dark:bg-indigo-950/60"
                 />
                 <KpiCard
                     label="Total Expenses"
-                    value={fmtCurrency(financial.expenses)}
+                    value={<CurrencyDisplay value={financial.expenses} />}
                     changePct={financial.expenses_change_pct}
-                    icon={<Receipt className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400" />}
-                    accent="bg-rose-50 dark:bg-rose-950/50"
+                    icon={<Receipt className="h-5 w-5 text-rose-500 dark:text-rose-400" />}
+                    accent="bg-rose-50 dark:bg-rose-950/60"
                 />
                 <KpiCard
                     label="Net Profit"
-                    value={fmtCurrency(financial.net_profit)}
+                    value={<CurrencyDisplay value={financial.net_profit} />}
                     changePct={financial.profit_change_pct}
-                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
-                    accent="bg-emerald-50 dark:bg-emerald-950/50"
+                    icon={<PiggyBank className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                    accent="bg-emerald-50 dark:bg-emerald-950/60"
                 />
                 <KpiCard
                     label="Total Sales Orders"
-                    value={financial.sales_count.toLocaleString()}
-                    icon={<ShoppingCart className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />}
-                    accent="bg-amber-50 dark:bg-amber-950/50"
+                    value={
+                        <span className="text-xl font-bold tracking-tight text-foreground font-sans">
+                            {financial.sales_count.toLocaleString()}
+                        </span>
+                    }
+                    icon={<ShoppingCart className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
+                    accent="bg-amber-50 dark:bg-amber-950/60"
                 />
             </div>
 
@@ -118,26 +143,30 @@ export default function FinancialSummary({ financial }: Props) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     label="Today's Revenue"
-                    value={fmtCurrency(financial.today_revenue)}
-                    icon={<Wallet className="h-4.5 w-4.5 text-indigo-500 dark:text-indigo-400" />}
-                    accent="bg-indigo-50 dark:bg-indigo-950/50"
+                    value={<CurrencyDisplay value={financial.today_revenue} />}
+                    icon={<Wallet className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />}
+                    accent="bg-indigo-50/70 dark:bg-indigo-950/50"
                 />
                 <KpiCard
                     label="Today's Profit"
-                    value={fmtCurrency(financial.today_profit)}
-                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-500 dark:text-emerald-400" />}
-                    accent="bg-emerald-50 dark:bg-emerald-950/50"
+                    value={<CurrencyDisplay value={financial.today_profit} />}
+                    icon={<PiggyBank className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />}
+                    accent="bg-emerald-50/70 dark:bg-emerald-950/50"
                 />
                 <KpiCard
                     label="Avg. Order Value (AOV)"
-                    value={fmtCurrency(financial.aov)}
-                    icon={<ShoppingCart className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400" />}
-                    accent="bg-slate-100 dark:bg-slate-800"
+                    value={<CurrencyDisplay value={financial.aov} />}
+                    icon={<ShoppingCart className="h-5 w-5 text-sky-500 dark:text-sky-400" />}
+                    accent="bg-sky-50 dark:bg-sky-950/50"
                 />
                 <KpiCard
                     label="Gross Profit Margin"
-                    value={`${financial.profit_margin.toFixed(1)}%`}
-                    icon={<TrendingUp className="h-4.5 w-4.5 text-amber-500 dark:text-amber-400" />}
+                    value={
+                        <span className="text-xl font-bold tracking-tight text-foreground font-sans">
+                            {financial.profit_margin.toFixed(1)}%
+                        </span>
+                    }
+                    icon={<TrendingUp className="h-5 w-5 text-amber-500 dark:text-amber-400" />}
                     accent="bg-amber-50 dark:bg-amber-950/50"
                 />
             </div>
@@ -146,26 +175,26 @@ export default function FinancialSummary({ financial }: Props) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                     label="Sales Due"
-                    value={fmtCurrency(financial.sales_due)}
-                    icon={<Receipt className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />}
+                    value={<CurrencyDisplay value={financial.sales_due} />}
+                    icon={<Receipt className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
                     accent="bg-amber-50 dark:bg-amber-950/50"
                 />
                 <KpiCard
                     label="Purchase Due"
-                    value={fmtCurrency(financial.purchase_due)}
-                    icon={<Receipt className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400" />}
+                    value={<CurrencyDisplay value={financial.purchase_due} />}
+                    icon={<Receipt className="h-5 w-5 text-rose-500 dark:text-rose-400" />}
                     accent="bg-rose-50 dark:bg-rose-950/50"
                 />
                 <KpiCard
                     label="Total Capital Investment"
-                    value={fmtCurrency(financial.total_investment)}
-                    icon={<PiggyBank className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />}
+                    value={<CurrencyDisplay value={financial.total_investment} />}
+                    icon={<PiggyBank className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
                     accent="bg-indigo-50 dark:bg-indigo-950/50"
                 />
                 <KpiCard
                     label="Distributed Profit"
-                    value={fmtCurrency(financial.total_distributed)}
-                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
+                    value={<CurrencyDisplay value={financial.total_distributed} />}
+                    icon={<PiggyBank className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
                     accent="bg-emerald-50 dark:bg-emerald-950/50"
                 />
             </div>

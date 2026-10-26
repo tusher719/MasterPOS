@@ -27,6 +27,7 @@ import BulkStatusModal from "./BulkStatusModal";
 import CollectCodPaymentModal from "./CollectCodPaymentModal";
 import CourierModal from "./CourierModal";
 import PaymentHistoryModal from "./PaymentHistoryModal";
+import TableActionDropdown, { TableActionItem } from "@/Components/Common/TableActionDropdown";
 
 interface Props {
     sales: Sale[];
@@ -172,6 +173,79 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
         sale.payment_type === "cash_on_delivery" &&
         sale.delivery_status !== "delivered" &&
         !sale.deleted_at;
+
+    const getRowActions = (
+        sale: Sale,
+        showCollect: boolean,
+        isDeleted: boolean
+    ): TableActionItem[] => {
+        if (isDeleted) {
+            return can.restore
+                ? [
+                      {
+                          label: "Restore Sale",
+                          icon: <RotateCcw size={15} />,
+                          onClick: () => handleRestore(sale),
+                      },
+                  ]
+                : [];
+        }
+
+        const items: TableActionItem[] = [
+            {
+                label: "View Receipt / Details",
+                icon: <Eye size={15} />,
+                href: route("backend.pos.sales.show", sale.id),
+            },
+            {
+                label: "Payment History",
+                icon: <Wallet size={15} />,
+                onClick: () => handleOpenPaymentHistory(sale),
+            },
+        ];
+
+        if (sale.delivery_type && sale.delivery_type !== "store_pickup") {
+            items.push({
+                label: "Download Delivery Slip",
+                icon: <FileText size={15} />,
+                onClick: () =>
+                    window.open(
+                        route("backend.pos.sales.delivery-slip", sale.id),
+                        "_blank"
+                    ),
+            });
+            if (can.create) {
+                items.push({
+                    label: sale.courier_provider
+                        ? "Courier Tracking"
+                        : "Add Courier Info",
+                    icon: <Truck size={15} />,
+                    onClick: () => setCourierSale(sale),
+                });
+            }
+        }
+
+        if (showCollect) {
+            items.push({
+                label: "Collect COD Payment",
+                icon: <PackageCheck size={15} />,
+                onClick: () => setCodSale(sale),
+                dividerBefore: true,
+            });
+        }
+
+        if (can.delete) {
+            items.push({
+                label: "Void / Cancel Sale",
+                icon: <Trash2 size={15} />,
+                onClick: () => handleVoid(sale),
+                danger: true,
+                dividerBefore: true,
+            });
+        }
+
+        return items;
+    };
 
     if (sales.length === 0) {
         return (
@@ -338,20 +412,37 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                     </td>
 
                                     {/* Grand Total */}
-                                    <td className="px-4 py-3 text-right font-medium text-gray-800">
-                                        ৳{Number(sale.grand_total).toFixed(2)}
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex items-baseline justify-end gap-1 text-sm font-semibold text-foreground">
+                                            <span className="text-xs text-muted-foreground font-normal">৳</span>
+                                            <span>
+                                                {Number(sale.grand_total).toLocaleString("en-BD", { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </td>
 
                                     {/* Paid */}
-                                    <td className="px-4 py-3 text-right font-medium text-green-600">
-                                        ৳{Number(sale.paid_amount).toFixed(2)}
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex items-baseline justify-end gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                            <span className="text-[10px] text-muted-foreground font-normal">৳</span>
+                                            <span>
+                                                {Number(sale.paid_amount).toLocaleString("en-BD", { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
                                     </td>
 
                                     {/* Due */}
-                                    <td className="px-4 py-3 text-right font-medium text-red-500">
-                                        {Number(sale.due_amount) > 0
-                                            ? `৳${Number(sale.due_amount).toFixed(2)}`
-                                            : "—"}
+                                    <td className="px-4 py-3 text-right">
+                                        {Number(sale.due_amount) > 0 ? (
+                                            <div className="flex items-baseline justify-end gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                                                <span className="text-[10px] text-muted-foreground font-normal">৳</span>
+                                                <span>
+                                                    {Number(sale.due_amount).toLocaleString("en-BD", { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground font-mono">—</span>
+                                        )}
                                     </td>
 
                                     {/* Payment Status */}
@@ -400,124 +491,28 @@ export default function SaleTable({ sales, paymentMethods, can }: Props) {
                                     </td>
 
                                     {/* Actions */}
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center justify-center gap-1">
-                                            {/* View receipt */}
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-1">
                                             {can.view && !isDeleted && (
                                                 <Link
                                                     href={route(
                                                         "backend.pos.sales.show",
-                                                        sale.id,
+                                                        sale.id
                                                     )}
-                                                    className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+                                                    className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                                                     title="View Receipt"
                                                 >
                                                     <Eye size={15} />
                                                 </Link>
                                             )}
-
-                                            {/* Payment History */}
-                                            {!isDeleted && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleOpenPaymentHistory(
-                                                            sale,
-                                                        )
-                                                    }
-                                                    className="rounded-md p-1.5 text-gray-400
-                                                               hover:bg-indigo-50 hover:text-indigo-600"
-                                                    title="Payment History"
-                                                >
-                                                    <Wallet size={15} />
-                                                </button>
-                                            )}
-
-                                            {/* Delivery Slip */}
-                                            {!isDeleted &&
-                                                sale.delivery_type &&
-                                                sale.delivery_type !==
-                                                    "store_pickup" && (
-                                                    <a
-                                                        href={route(
-                                                            "backend.pos.sales.delivery-slip",
-                                                            sale.id,
-                                                        )}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="rounded-md p-1.5 text-gray-400
-                                                               hover:bg-gray-100 hover:text-gray-600"
-                                                        title="Download Delivery Slip"
-                                                    >
-                                                        <FileText size={15} />
-                                                    </a>
+                                            <TableActionDropdown
+                                                actions={getRowActions(
+                                                    sale,
+                                                    showCollect,
+                                                    isDeleted
                                                 )}
-
-                                            {/* Collect COD Payment */}
-                                            {showCollect && (
-                                                <button
-                                                    onClick={() =>
-                                                        setCodSale(sale)
-                                                    }
-                                                    className="flex items-center gap-1 rounded-md
-                                                               border border-green-200 bg-green-50
-                                                               px-2 py-1 text-xs font-medium
-                                                               text-green-700 transition-colors
-                                                               hover:bg-green-100"
-                                                    title="Collect COD Payment & Mark Delivered"
-                                                >
-                                                    <PackageCheck size={13} />
-                                                    Collect
-                                                </button>
-                                            )}
-
-                                            {/* Courier info */}
-                                            {can.create &&
-                                                !isDeleted &&
-                                                sale.delivery_type !==
-                                                    "store_pickup" && (
-                                                    <button
-                                                        onClick={() =>
-                                                            setCourierSale(sale)
-                                                        }
-                                                        className="rounded-md p-1.5 text-gray-400
-                                                               hover:bg-indigo-50 hover:text-indigo-600"
-                                                        title={
-                                                            sale.courier_provider
-                                                                ? "Edit Courier Info"
-                                                                : "Add Courier Info"
-                                                        }
-                                                    >
-                                                        <Truck size={15} />
-                                                    </button>
-                                                )}
-
-                                            {/* Void */}
-                                            {can.delete && !isDeleted && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleVoid(sale)
-                                                    }
-                                                    className="rounded-md p-1.5 text-gray-400
-                                                               hover:bg-red-50 hover:text-red-500"
-                                                    title="Void Sale"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            )}
-
-                                            {/* Restore */}
-                                            {can.restore && isDeleted && (
-                                                <button
-                                                    onClick={() =>
-                                                        handleRestore(sale)
-                                                    }
-                                                    className="rounded-md p-1.5 text-gray-400
-                                                               hover:bg-green-50 hover:text-green-600"
-                                                    title="Restore Sale"
-                                                >
-                                                    <RotateCcw size={15} />
-                                                </button>
-                                            )}
+                                                triggerSize="sm"
+                                            />
                                         </div>
                                     </td>
                                 </tr>

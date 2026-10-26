@@ -243,23 +243,52 @@ export default function DashboardIndex() {
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 max-w-7xl mx-auto pb-8">
                 {/* ── Header ── */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                            Dashboard
-                        </h1>
-                        <p className="mt-0.5 text-sm text-gray-500 dark:text-neutral-400">
+                        <div className="flex items-center gap-2.5">
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                                Dashboard
+                            </h1>
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20 dark:bg-emerald-950/60 dark:text-emerald-400 dark:ring-emerald-800/60">
+                                <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Live Telemetry
+                            </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
                             Real-time enterprise metrics, sales analytics & inventory telemetry
                         </p>
                     </div>
 
-                    <PeriodFilter
-                        value={periodParams}
-                        onChange={handlePeriodChange}
-                        disabled={loading}
-                    />
+                    <div className="flex items-center gap-2">
+                        <PeriodFilter
+                            value={periodParams}
+                            onChange={handlePeriodChange}
+                            disabled={loading}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fetchData(periodParams)}
+                            disabled={loading}
+                            title="Refresh dashboard data"
+                            className="inline-flex items-center justify-center rounded-xl border border-border bg-card p-2 text-muted-foreground shadow-xs transition hover:bg-muted hover:text-foreground active:scale-95 disabled:opacity-50"
+                        >
+                            <svg
+                                className={`h-4 w-4 ${loading ? "animate-spin text-primary" : ""}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Error ── */}
@@ -392,9 +421,9 @@ function Section({
     children: React.ReactNode;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200/80 bg-white shadow-2xs transition-all dark:border-neutral-800/80 dark:bg-neutral-900">
-            <div className="border-b border-gray-100/80 px-5 py-3.5 dark:border-neutral-800">
-                <h2 className="text-sm font-semibold tracking-tight text-gray-800 dark:text-neutral-200">{title}</h2>
+        <div className="rounded-2xl border border-border bg-card shadow-xs transition-all">
+            <div className="border-b border-border/80 px-5 py-3.5">
+                <h2 className="text-sm font-semibold tracking-tight text-foreground">{title}</h2>
             </div>
             <div className="p-5">{loading ? <Skeleton /> : children}</div>
         </div>

@@ -1,9 +1,10 @@
 import { FadeIn } from "@/Components/ui/animations";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
-import { LayoutGrid, List } from "lucide-react";
-import { useState } from "react";
+import { LayoutGrid, List, Plus, RefreshCw, Filter } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import DataTableToolbar from "@/Components/Common/DataTableToolbar";
 import ProductAutocomplete from "./_components/ProductAutocomplete";
 import ProductGrid from "./_components/ProductGrid";
 import ProductStatsCards from "./_components/ProductStatsCards";
@@ -55,6 +56,29 @@ interface Props {
 export default function ProductsIndex({ products, stats, grid_view }: Props) {
     const [isGrid, setIsGrid] = useState(grid_view);
     const [savingView, setSavingView] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "low_stock">("all");
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const filteredProducts = useMemo(() => {
+        return products.filter((p) => {
+            const query = searchQuery.trim().toLowerCase();
+            const matchesSearch =
+                !query ||
+                p.name.toLowerCase().includes(query) ||
+                p.sku.toLowerCase().includes(query) ||
+                (p.barcode && p.barcode.toLowerCase().includes(query)) ||
+                (p.category_name && p.category_name.toLowerCase().includes(query));
+
+            if (!matchesSearch) return false;
+
+            if (statusFilter === "active") return p.is_active;
+            if (statusFilter === "inactive") return !p.is_active;
+            if (statusFilter === "low_stock") return p.is_low_stock;
+
+            return true;
+        });
+    }, [products, searchQuery, statusFilter]);
 
     const handleDelete = (product: any) => {
         import("@/lib/confirm").then(({ confirmAction }) => {
@@ -65,10 +89,20 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
             }).then((ok) => {
                 if (!ok) return;
                 router.delete(route("backend.products.destroy", product.id), {
-                    onSuccess: () => toast.success("Product deleted."),
+                    onSuccess: () => toast.success("Product deleted successfully."),
                     onError: () => toast.error("Failed to delete product."),
                 });
             });
+        });
+    };
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.reload({
+            onFinish: () => {
+                setIsRefreshing(false);
+                toast.success("Catalogue refreshed.");
+            },
         });
     };
 
@@ -83,7 +117,7 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
                 grid_view: gridMode,
             })
             .catch(() => {
-                // Non-fatal — preference save fail হলেও view switch থাকবে
+                // Preference fallback
             })
             .finally(() => {
                 setSavingView(false);
@@ -92,30 +126,30 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
 
     return (
         <AuthenticatedLayout>
-            <Head title="Products" />
+            <Head title="Products Catalogue" />
 
-            <div className="space-y-6 p-6">
+            <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Products
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                            Products Catalogue
                         </h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Manage your product catalogue
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                            Manage inventory, pricing, variants, and stock alerts
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
                         <ProductAutocomplete />
 
                         {/* Grid / List toggle */}
-                        <div className="flex items-center rounded-lg border border-border bg-card p-1 gap-0.5">
+                        <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-xs">
                             <button
                                 onClick={() => handleToggleView(false)}
-                                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                     !isGrid
-                                        ? "bg-indigo-600 text-white shadow-sm"
+                                        ? "bg-primary text-white shadow-xs"
                                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                 }`}
                                 title="List view"
@@ -125,9 +159,9 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
                             </button>
                             <button
                                 onClick={() => handleToggleView(true)}
-                                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                                     isGrid
-                                        ? "bg-indigo-600 text-white shadow-sm"
+                                        ? "bg-primary text-white shadow-xs"
                                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                 }`}
                                 title="Grid view"
@@ -139,9 +173,10 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
 
                         <Link
                             href={route("backend.products.create")}
-                            className="flex-shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 transition-colors"
                         >
-                            + Add Product
+                            <Plus size={15} />
+                            <span>Add Product</span>
                         </Link>
                     </div>
                 </div>
@@ -149,16 +184,52 @@ export default function ProductsIndex({ products, stats, grid_view }: Props) {
                 {/* Stats */}
                 <ProductStatsCards stats={stats} />
 
+                {/* Unified DataTable Toolbar */}
+                <DataTableToolbar
+                    search={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    placeholder="Search by product name, SKU, barcode, category..."
+                    totalCount={products.length}
+                    filteredCount={filteredProducts.length}
+                    loading={isRefreshing}
+                    onRefresh={handleRefresh}
+                    filters={
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {(
+                                [
+                                    { key: "all", label: "All Products" },
+                                    { key: "active", label: "Active" },
+                                    { key: "inactive", label: "Inactive" },
+                                    { key: "low_stock", label: "Low Stock" },
+                                ] as const
+                            ).map(({ key, label }) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setStatusFilter(key)}
+                                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
+                                        statusFilter === key
+                                            ? "bg-primary text-white shadow-xs"
+                                            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                    }
+                />
+
                 {/* Table / Grid */}
                 <FadeIn key={isGrid ? "grid" : "list"} duration={180}>
                     {isGrid ? (
                         <ProductGrid
-                            products={products}
+                            products={filteredProducts}
                             onDelete={handleDelete}
                         />
                     ) : (
                         <ProductTable
-                            products={products}
+                            products={filteredProducts}
                             onDelete={handleDelete}
                         />
                     )}

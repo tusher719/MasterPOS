@@ -17,23 +17,29 @@ import {
 import { router } from "@inertiajs/react";
 import {
     CheckCircle,
+    Copy,
+    Eye,
     Flag,
+    RotateCcw,
     Search,
     Shield,
     ShieldAlert,
     ShieldCheck,
     ShieldOff,
+    ShoppingBag,
     X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import TableActionDropdown, { TableActionItem } from "@/Components/Common/TableActionDropdown";
+import FraudFlagPreviewModal from "./_components/FraudFlagPreviewModal";
 
 // ── Badge components ──────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: FraudFlag["status"] }) {
     return (
         <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${FRAUD_FLAG_STATUS_COLORS[status]}`}
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${FRAUD_FLAG_STATUS_COLORS[status]}`}
         >
             {FRAUD_FLAG_STATUS_LABELS[status]}
         </span>
@@ -76,7 +82,7 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                 onSuccess: () => {
                     toast.success(
                         form.action === "confirm"
-                            ? "Fraud flag confirmed."
+                            ? "Fraud flag confirmed and customer blacklisted."
                             : "Fraud flag cleared.",
                     );
                     onClose();
@@ -94,48 +100,60 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl overflow-hidden transition-all">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                    <h3 className="text-base font-semibold text-gray-800">
-                        Review Fraud Flag
-                    </h3>
+                <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-muted/30">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <ShieldAlert className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold text-foreground">
+                                Review Fraud Flag
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                Resolve flagged customer status
+                            </p>
+                        </div>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="rounded-md p-1 text-gray-400 hover:bg-gray-100"
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="space-y-4 px-5 py-4">
+                <div className="space-y-4 px-6 py-5">
                     {/* Flag summary */}
-                    <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
-                        <p className="font-medium text-gray-800">
+                    <div className="rounded-xl border border-border bg-muted/40 p-3.5 text-sm space-y-1">
+                        <p className="font-semibold text-foreground">
                             {flag.full_name_snapshot}
                         </p>
-                        <p className="text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                             {flag.phone}
                             {flag.email ? ` · ${flag.email}` : ""}
                         </p>
-                        <p className="mt-1 text-gray-600">
-                            <span className="font-medium">Reason:</span>{" "}
+                        <p className="mt-1.5 text-xs text-foreground">
+                            <span className="font-semibold text-muted-foreground">Reason:</span>{" "}
                             {FRAUD_FLAG_REASON_LABELS[flag.reason]}
                         </p>
-                        <p className="mt-0.5 text-gray-600">
-                            <span className="font-medium">Note:</span>{" "}
-                            {flag.reason_note}
-                        </p>
+                        {flag.reason_note && (
+                            <p className="text-xs text-muted-foreground">
+                                <span className="font-semibold">Note:</span>{" "}
+                                {flag.reason_note}
+                            </p>
+                        )}
                     </div>
 
                     {/* Action selector */}
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                            Action
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Action Decision <span className="text-destructive">*</span>
                         </label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
                                 onClick={() =>
@@ -144,10 +162,10 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                                         action: "confirm",
                                     }))
                                 }
-                                className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                                className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                                     form.action === "confirm"
-                                        ? "border-red-500 bg-red-50 text-red-700"
-                                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                        ? "border-destructive bg-destructive/10 text-destructive shadow-sm"
+                                        : "border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted/30"
                                 }`}
                             >
                                 <ShieldAlert size={16} />
@@ -158,10 +176,10 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                                 onClick={() =>
                                     setForm((f) => ({ ...f, action: "clear" }))
                                 }
-                                className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                                className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                                     form.action === "clear"
-                                        ? "border-green-500 bg-green-50 text-green-700"
-                                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                                        : "border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted/30"
                                 }`}
                             >
                                 <ShieldCheck size={16} />
@@ -169,7 +187,7 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                             </button>
                         </div>
                         {errors.action && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1.5 text-xs text-destructive font-medium">
                                 {errors.action}
                             </p>
                         )}
@@ -177,8 +195,8 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
 
                     {/* Review note */}
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                            Review Note <span className="text-red-500">*</span>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Review Note <span className="text-destructive">*</span>
                         </label>
                         <textarea
                             rows={3}
@@ -190,10 +208,10 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                                 }))
                             }
                             placeholder="Explain the reason for this decision (min 10 characters)..."
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         />
                         {errors.review_note && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1.5 text-xs text-destructive font-medium">
                                 {errors.review_note}
                             </p>
                         )}
@@ -201,11 +219,11 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                <div className="flex justify-end gap-2.5 border-t border-border px-6 py-4 bg-muted/20">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                         Cancel
                     </button>
@@ -217,16 +235,16 @@ function ReviewModal({ flag, onClose }: ReviewModalProps) {
                             !form.action ||
                             form.review_note.length < 10
                         }
-                        className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${
+                        className={`rounded-xl px-5 py-2 text-sm font-semibold text-white transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${
                             form.action === "confirm"
-                                ? "bg-red-600 hover:bg-red-700"
-                                : "bg-green-600 hover:bg-green-700"
-                        } ${!form.action ? "bg-gray-400" : ""}`}
+                                ? "bg-destructive hover:bg-destructive/90"
+                                : "bg-emerald-600 hover:bg-emerald-700"
+                        } ${!form.action ? "bg-muted-foreground" : ""}`}
                     >
                         {submitting
                             ? "Saving..."
                             : form.action === "confirm"
-                              ? "Confirm Fraud"
+                              ? "Confirm & Blacklist"
                               : form.action === "clear"
                                 ? "Clear Flag"
                                 : "Submit"}
@@ -259,7 +277,7 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
             form as unknown as Record<string, string>,
             {
                 onSuccess: () => {
-                    toast.success("Fraud flag created.");
+                    toast.success("Fraud flag created successfully.");
                     onClose();
                 },
                 onError: (errs) => setErrors(errs as Record<string, string>),
@@ -269,28 +287,37 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-card border border-border shadow-2xl overflow-hidden transition-all">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-                    <h3 className="text-base font-semibold text-gray-800">
-                        Create Fraud Flag
-                    </h3>
+                <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-muted/30">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                            <Flag className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold text-foreground">
+                                Create Fraud Flag
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                                Manually flag a customer or phone number
+                            </p>
+                        </div>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="rounded-md p-1 text-gray-400 hover:bg-gray-100"
+                        className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="space-y-4 px-5 py-4">
+                <div className="space-y-4 px-6 py-5 max-h-[75vh] overflow-y-auto">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Full Name{" "}
-                                <span className="text-red-500">*</span>
+                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                Full Name <span className="text-destructive">*</span>
                             </label>
                             <input
                                 type="text"
@@ -301,17 +328,18 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                         full_name_snapshot: e.target.value,
                                     }))
                                 }
-                                className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Customer Name"
+                                className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                             />
                             {errors.full_name_snapshot && (
-                                <p className="mt-1 text-xs text-red-500">
+                                <p className="mt-1 text-xs text-destructive">
                                     {errors.full_name_snapshot}
                                 </p>
                             )}
                         </div>
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">
-                                Phone <span className="text-red-500">*</span>
+                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                Phone <span className="text-destructive">*</span>
                             </label>
                             <input
                                 type="text"
@@ -322,10 +350,11 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                         phone: e.target.value,
                                     }))
                                 }
-                                className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="01XXXXXXXXX"
+                                className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                             />
                             {errors.phone && (
-                                <p className="mt-1 text-xs text-red-500">
+                                <p className="mt-1 text-xs text-destructive">
                                     {errors.phone}
                                 </p>
                             )}
@@ -333,7 +362,7 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Email
                         </label>
                         <input
@@ -345,13 +374,14 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                     email: e.target.value,
                                 }))
                             }
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="customer@example.com (optional)"
+                            className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Address
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Address Snapshot
                         </label>
                         <input
                             type="text"
@@ -362,13 +392,14 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                     address_snapshot: e.target.value,
                                 }))
                             }
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Full delivery address"
+                            className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Reason <span className="text-red-500">*</span>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Reason <span className="text-destructive">*</span>
                         </label>
                         <select
                             value={form.reason}
@@ -379,7 +410,7 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                         .value as FraudFlag["reason"],
                                 }))
                             }
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         >
                             <option value="">Select a reason...</option>
                             {FRAUD_FLAG_REASON_OPTIONS.slice(1).map((opt) => (
@@ -389,15 +420,15 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                             ))}
                         </select>
                         {errors.reason && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1 text-xs text-destructive">
                                 {errors.reason}
                             </p>
                         )}
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                            Note <span className="text-red-500">*</span>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Detailed Note <span className="text-destructive">*</span>
                         </label>
                         <textarea
                             rows={3}
@@ -408,11 +439,11 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                                     reason_note: e.target.value,
                                 }))
                             }
-                            placeholder="Describe the issue in detail (min 10 characters)..."
-                            className="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="Describe the suspicious behavior or issue in detail..."
+                            className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         />
                         {errors.reason_note && (
-                            <p className="mt-1 text-xs text-red-500">
+                            <p className="mt-1 text-xs text-destructive">
                                 {errors.reason_note}
                             </p>
                         )}
@@ -420,11 +451,11 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                <div className="flex justify-end gap-2.5 border-t border-border px-6 py-4 bg-muted/20">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                        className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     >
                         Cancel
                     </button>
@@ -432,7 +463,7 @@ function CreateFlagModal({ onClose }: { onClose: () => void }) {
                         type="button"
                         onClick={handleSubmit}
                         disabled={submitting}
-                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                        className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-xs"
                     >
                         {submitting ? "Saving..." : "Create Flag"}
                     </button>
@@ -461,6 +492,7 @@ export default function FraudFlagsIndex({
         filters.reason ?? "",
     );
     const [reviewFlag, setReviewFlag] = useState<FraudFlag | null>(null);
+    const [previewFlag, setPreviewFlag] = useState<FraudFlag | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     const applyFilters = (overrides: Record<string, string> = {}) => {
@@ -496,23 +528,69 @@ export default function FraudFlagsIndex({
         });
     };
 
+    const getRowActions = (flag: FraudFlag): TableActionItem[] => {
+        const items: TableActionItem[] = [
+            {
+                label: "Quick Preview",
+                icon: <Eye className="h-4 w-4 text-blue-500" />,
+                onClick: () => setPreviewFlag(flag),
+            },
+            {
+                label: "Copy Phone Number",
+                icon: <Copy className="h-4 w-4 text-muted-foreground" />,
+                onClick: () => {
+                    navigator.clipboard.writeText(flag.phone);
+                    toast.success(`Copied phone: ${flag.phone}`);
+                },
+            },
+        ];
+
+        if (flag.customer_id) {
+            items.push({
+                label: "Customer Sales History",
+                icon: <ShoppingBag className="h-4 w-4 text-emerald-500" />,
+                onClick: () =>
+                    router.get(
+                        route("backend.pos.sales.index", {
+                            search: flag.phone,
+                        }),
+                    ),
+            });
+        }
+
+        if (flag.is_pending && can.review) {
+            items.push({
+                label: "Review & Resolve",
+                icon: <CheckCircle className="h-4 w-4 text-indigo-500" />,
+                onClick: () => setReviewFlag(flag),
+            });
+        }
+
+        return items;
+    };
+
     return (
         <AuthenticatedLayout>
-            <div className="space-y-6 p-6">
+            <div className="space-y-6">
                 {/* Page header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            Fraud Flags
-                        </h1>
-                        <p className="mt-0.5 text-sm text-gray-500">
-                            Review and manage flagged customers and orders.
+                        <div className="flex items-center gap-2.5">
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                                Fraud Flags & Blacklist
+                            </h1>
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                                {stats.total} total
+                            </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Multi-layer fraud detection telemetry, customer verification, and blacklist enforcement.
                         </p>
                     </div>
                     {can.flag && (
                         <button
                             onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"
                         >
                             <Flag size={16} />
                             Flag Customer
@@ -527,56 +605,60 @@ export default function FraudFlagsIndex({
                             label: "Total Flags",
                             value: stats.total,
                             icon: Shield,
-                            color: "text-gray-600",
-                            bg: "bg-gray-50",
+                            color: "text-foreground",
+                            bg: "bg-muted/50",
+                            border: "border-border",
                         },
                         {
                             label: "Pending Review",
                             value: stats.pending_review,
                             icon: ShieldAlert,
-                            color: "text-amber-600",
-                            bg: "bg-amber-50",
+                            color: "text-amber-500",
+                            bg: "bg-amber-500/10",
+                            border: "border-amber-500/20",
                         },
                         {
                             label: "Confirmed Fraud",
                             value: stats.confirmed_fraud,
                             icon: ShieldOff,
-                            color: "text-red-600",
-                            bg: "bg-red-50",
+                            color: "text-destructive",
+                            bg: "bg-destructive/10",
+                            border: "border-destructive/20",
                         },
                         {
-                            label: "Cleared",
+                            label: "Cleared / Whitelisted",
                             value: stats.cleared,
                             icon: ShieldCheck,
-                            color: "text-green-600",
-                            bg: "bg-green-50",
+                            color: "text-emerald-500",
+                            bg: "bg-emerald-500/10",
+                            border: "border-emerald-500/20",
                         },
-                    ].map(({ label, value, icon: Icon, color, bg }) => (
+                    ].map(({ label, value, icon: Icon, color, bg, border }) => (
                         <div
                             key={label}
-                            className="rounded-lg border border-gray-200 bg-white p-4"
+                            className={`rounded-2xl border ${border} bg-card p-4 shadow-xs transition-all hover:border-primary/30`}
                         >
-                            <div
-                                className={`mb-2 inline-flex rounded-lg p-2 ${bg}`}
-                            >
-                                <Icon size={18} className={color} />
+                            <div className="flex items-center justify-between">
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>
+                                    <Icon size={20} className={color} />
+                                </div>
+                                <span className="text-2xl font-bold tracking-tight text-foreground">
+                                    {value}
+                                </span>
                             </div>
-                            <p className="text-2xl font-bold text-gray-800">
-                                {value}
-                            </p>
-                            <p className="text-xs text-gray-500">{label}</p>
+                            <p className="mt-3 text-xs font-medium text-muted-foreground">{label}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* Filters */}
-                <div className="rounded-lg border border-gray-200 bg-white p-4">
-                    <div className="flex flex-wrap gap-3">
+                <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+                    <div className="flex flex-wrap items-center gap-3">
                         {/* Search */}
-                        <div className="relative min-w-[200px] flex-1">
+                        <div className="relative min-w-[220px] flex-1">
                             <Search
                                 size={15}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                             />
                             <input
                                 type="text"
@@ -585,8 +667,8 @@ export default function FraudFlagsIndex({
                                 onKeyDown={(e) =>
                                     e.key === "Enter" && applyFilters()
                                 }
-                                placeholder="Search name, phone, email..."
-                                className="w-full rounded-md border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Search by name, phone, or email..."
+                                className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                             />
                         </div>
 
@@ -603,7 +685,7 @@ export default function FraudFlagsIndex({
                                 );
                                 applyFilters({ status: e.target.value });
                             }}
-                            className="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         >
                             {FRAUD_FLAG_STATUS_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
@@ -619,7 +701,7 @@ export default function FraudFlagsIndex({
                                 setTriggerType(e.target.value as any);
                                 applyFilters({ trigger_type: e.target.value });
                             }}
-                            className="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         >
                             {FRAUD_FLAG_TRIGGER_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
@@ -635,7 +717,7 @@ export default function FraudFlagsIndex({
                                 setReason(e.target.value as any);
                                 applyFilters({ reason: e.target.value });
                             }}
-                            className="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary outline-hidden transition-colors"
                         >
                             {FRAUD_FLAG_REASON_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>
@@ -647,18 +729,18 @@ export default function FraudFlagsIndex({
                         {/* Search button */}
                         <button
                             onClick={() => applyFilters()}
-                            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
                         >
-                            Search
+                            Filter
                         </button>
 
                         {/* Reset */}
                         {hasFilters && (
                             <button
                                 onClick={resetFilters}
-                                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
+                                className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                             >
-                                <X size={14} />
+                                <RotateCcw size={14} />
                                 Reset
                             </button>
                         )}
@@ -666,117 +748,109 @@ export default function FraudFlagsIndex({
                 </div>
 
                 {/* Table */}
-                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-left text-sm">
                             <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50">
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Customer
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Reason
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Trigger
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Status
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Flagged At
-                                    </th>
-                                    <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                        Flagged By
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                        Actions
-                                    </th>
+                                <tr className="border-b border-border bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    <th className="px-5 py-3.5">Customer Snapshot</th>
+                                    <th className="px-5 py-3.5">Fraud Reason</th>
+                                    <th className="px-5 py-3.5">Trigger Layer</th>
+                                    <th className="px-5 py-3.5">Status</th>
+                                    <th className="px-5 py-3.5">Flagged At</th>
+                                    <th className="px-5 py-3.5">Flagged By</th>
+                                    <th className="px-5 py-3.5 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-border/60">
                                 {(flags.data ?? []).length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={7}
-                                            className="px-4 py-10 text-center text-sm text-gray-400"
+                                            className="px-5 py-12 text-center text-sm text-muted-foreground"
                                         >
-                                            No fraud flags found.
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <ShieldCheck className="h-8 w-8 text-muted-foreground/50" />
+                                                <p className="font-medium">No fraud flags found.</p>
+                                                <p className="text-xs">All transactions and customer profiles are clean.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
                                     (flags.data ?? []).map((flag) => (
                                         <tr
                                             key={flag.id}
-                                            className="hover:bg-gray-50"
+                                            className="transition-colors hover:bg-muted/40"
                                         >
-                                            <td className="px-4 py-3">
-                                                <p className="font-medium text-gray-800">
+                                            <td className="px-5 py-3.5">
+                                                <p className="font-semibold text-foreground">
                                                     {flag.full_name_snapshot}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs font-mono text-muted-foreground">
                                                     {flag.phone}
                                                 </p>
                                                 {flag.email && (
-                                                    <p className="text-xs text-gray-400">
+                                                    <p className="text-xs text-muted-foreground/80">
                                                         {flag.email}
                                                     </p>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3">
-                                                <p className="font-medium text-gray-700">
+                                            <td className="px-5 py-3.5">
+                                                <p className="font-medium text-foreground">
                                                     {
                                                         FRAUD_FLAG_REASON_LABELS[
                                                             flag.reason
                                                         ]
                                                     }
                                                 </p>
-                                                <p className="mt-0.5 line-clamp-2 max-w-xs text-xs text-gray-500">
-                                                    {flag.reason_note}
-                                                </p>
+                                                {flag.reason_note && (
+                                                    <p className="mt-0.5 line-clamp-2 max-w-xs text-xs text-muted-foreground">
+                                                        {flag.reason_note}
+                                                    </p>
+                                                )}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-5 py-3.5">
                                                 <TriggerBadge
                                                     type={flag.trigger_type}
                                                 />
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-5 py-3.5">
                                                 <StatusBadge
                                                     status={flag.status}
                                                 />
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">
+                                            <td className="px-5 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
                                                 {formatDate(flag.flagged_at)}
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">
+                                            <td className="px-5 py-3.5 text-xs text-muted-foreground">
                                                 {(flag.flagged_by_user ?? (flag as any).flaggedBy)?.name ?? (
-                                                    <span className="italic text-gray-400">
-                                                        System
+                                                    <span className="italic text-muted-foreground/70">
+                                                        System Rule
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-right">
-                                                {flag.is_pending &&
-                                                    can.review && (
-                                                        <button
-                                                            onClick={() =>
-                                                                setReviewFlag(
-                                                                    flag,
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-                                                        >
-                                                            <CheckCircle
-                                                                size={13}
-                                                            />
-                                                            Review
-                                                        </button>
-                                                    )}
-                                                {!flag.is_pending && (
-                                                    <span className="text-xs text-gray-400 italic">
-                                                        Reviewed
-                                                    </span>
-                                                )}
+                                            <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    {flag.is_pending &&
+                                                        can.review && (
+                                                            <button
+                                                                onClick={() =>
+                                                                    setReviewFlag(
+                                                                        flag,
+                                                                    )
+                                                                }
+                                                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                                                            >
+                                                                <CheckCircle
+                                                                    size={13}
+                                                                />
+                                                                Review
+                                                            </button>
+                                                        )}
+                                                    <TableActionDropdown
+                                                        items={getRowActions(flag)}
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -787,8 +861,8 @@ export default function FraudFlagsIndex({
 
                     {/* Pagination */}
                     {(flags.meta?.last_page ?? 1) > 1 && (
-                        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-                            <p className="text-xs text-gray-500">
+                        <div className="flex items-center justify-between border-t border-border px-5 py-3.5 bg-muted/20">
+                            <p className="text-xs text-muted-foreground">
                                 Showing {flags.meta?.from ?? 0}–
                                 {flags.meta?.to ?? 0} of{" "}
                                 {flags.meta?.total ?? 0}
@@ -804,10 +878,10 @@ export default function FraudFlagsIndex({
                                         dangerouslySetInnerHTML={{
                                             __html: link.label,
                                         }}
-                                        className={`rounded px-2.5 py-1 text-xs ${
+                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                                             link.active
-                                                ? "bg-indigo-600 text-white"
-                                                : "text-gray-500 hover:bg-gray-100 disabled:opacity-40"
+                                                ? "bg-primary text-primary-foreground font-semibold"
+                                                : "text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
                                         }`}
                                     />
                                 ))}
@@ -827,6 +901,15 @@ export default function FraudFlagsIndex({
             {showCreateModal && (
                 <CreateFlagModal onClose={() => setShowCreateModal(false)} />
             )}
+            <FraudFlagPreviewModal
+                opened={!!previewFlag}
+                onClose={() => setPreviewFlag(null)}
+                flag={previewFlag}
+                onReview={(f) => {
+                    setPreviewFlag(null);
+                    setReviewFlag(f);
+                }}
+            />
         </AuthenticatedLayout>
     );
 }

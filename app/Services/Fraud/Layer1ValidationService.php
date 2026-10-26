@@ -127,6 +127,7 @@ class Layer1ValidationService
         $phoneError = $this->validatePhone($phone);
         if ($phoneError) {
             $errors['phone'] = $phoneError;
+            $errors['customer_phone'] = $phoneError;
         }
 
         if ($name !== null) {

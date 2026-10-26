@@ -1,8 +1,22 @@
-import { router } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { useCallback, useState } from "react";
 import Swal from "sweetalert2";
-import { Pencil, Trash2, RotateCcw, Search, Filter } from "lucide-react";
+import {
+    Copy,
+    Eye,
+    Filter,
+    Pencil,
+    RotateCcw,
+    Search,
+    ShoppingBag,
+    Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+import TableActionDropdown, {
+    TableActionItem,
+} from "@/Components/Common/TableActionDropdown";
 import { Customer } from "./CustomerModal";
+import CustomerPreviewModal from "./CustomerPreviewModal";
 
 interface Filters {
     search?: string;
@@ -49,6 +63,14 @@ export default function CustomerTable({
     const [search, setSearch] = useState(filters.search ?? "");
     const [status, setStatus] = useState(filters.status ?? "");
     const [trashed, setTrashed] = useState(filters.trashed === "true");
+
+    const [previewCustomer, setPreviewCustomer] = useState<Customer | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+    const handleOpenPreview = (customer: Customer) => {
+        setPreviewCustomer(customer);
+        setIsPreviewOpen(true);
+    };
 
     const applyFilters = useCallback(
         (
@@ -110,6 +132,8 @@ export default function CustomerTable({
             if (result.isConfirmed) {
                 router.delete(route("backend.customers.destroy", customer.id), {
                     preserveScroll: true,
+                    onSuccess: () => toast.success("Customer moved to trash."),
+                    onError: () => toast.error("Failed to delete customer."),
                 });
             }
         });
@@ -129,7 +153,11 @@ export default function CustomerTable({
                 router.post(
                     route("backend.customers.restore", customer.id),
                     {},
-                    { preserveScroll: true },
+                    {
+                        preserveScroll: true,
+                        onSuccess: () => toast.success("Customer restored successfully."),
+                        onError: () => toast.error("Failed to restore customer."),
+                    },
                 );
             }
         });
@@ -139,253 +167,318 @@ export default function CustomerTable({
         if (url) router.get(url, {}, { preserveState: true });
     }
 
+    const getRowActions = (customer: Customer): TableActionItem[] => {
+        const isDeleted = customer.deleted_at !== null;
+        if (isDeleted) {
+            return [
+                {
+                    label: "Preview Details",
+                    icon: <Eye size={15} />,
+                    onClick: () => handleOpenPreview(customer),
+                },
+                ...(can.restore
+                    ? [
+                          {
+                              label: "Restore Customer",
+                              icon: <RotateCcw size={15} />,
+                              onClick: () => handleRestore(customer),
+                          },
+                      ]
+                    : []),
+            ];
+        }
+
+        return [
+            {
+                label: "Preview Details",
+                icon: <Eye size={15} />,
+                onClick: () => handleOpenPreview(customer),
+            },
+            ...(can.edit
+                ? [
+                      {
+                          label: "Edit Account",
+                          icon: <Pencil size={15} />,
+                          onClick: () => onEdit(customer),
+                      },
+                  ]
+                : []),
+            ...(customer.phone
+                ? [
+                      {
+                          label: "Copy Phone Number",
+                          icon: <Copy size={15} />,
+                          onClick: () => {
+                              navigator.clipboard.writeText(customer.phone!);
+                              toast.success(`Copied phone: ${customer.phone}`);
+                          },
+                      },
+                  ]
+                : []),
+            {
+                label: "View Customer Orders",
+                icon: <ShoppingBag size={15} />,
+                href: route("backend.pos.sales.index", {
+                    search: customer.phone || customer.name,
+                }),
+                dividerBefore: true,
+            },
+            ...(can.delete
+                ? [
+                      {
+                          label: "Move to Trash",
+                          icon: <Trash2 size={15} />,
+                          onClick: () => handleDelete(customer),
+                          danger: true,
+                          dividerBefore: true,
+                      },
+                  ]
+                : []),
+        ];
+    };
+
     return (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            {/* Toolbar */}
-            <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                {/* Search */}
-                <form
-                    onSubmit={handleSearch}
-                    className="flex items-center gap-2"
-                >
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search customers..."
-                            className="rounded-md border border-gray-300 py-2 pl-8 pr-3 text-sm focus:border-indigo-500 focus:ring-indigo-500 w-56"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        <>
+            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
+                {/* Toolbar */}
+                <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Search */}
+                    <form
+                        onSubmit={handleSearch}
+                        className="flex items-center gap-2 flex-1 max-w-md"
                     >
-                        Search
-                    </button>
-                </form>
-
-                {/* Filters */}
-                <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-gray-400" />
-
-                    <select
-                        value={status}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        className="rounded-md border border-gray-300 py-2 pl-2 pr-7 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-
-                    {can.restore && (
-                        <button
-                            onClick={handleTrashedToggle}
-                            className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                                trashed
-                                    ? "border-red-300 bg-red-50 text-red-600"
-                                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
-                            }`}
-                        >
-                            {trashed ? "Hide Trash" : "Show Trash"}
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50">
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                #
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                Name
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                Contact
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                City
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                Balance
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-gray-500">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-right font-medium text-gray-500">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {customers.data.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={7}
-                                    className="px-4 py-10 text-center text-gray-400"
-                                >
-                                    No customers found.
-                                </td>
-                            </tr>
-                        ) : (
-                            customers.data.map((customer, index) => {
-                                const isDeleted = customer.deleted_at !== null;
-                                const rowNum =
-                                    (customers.current_page - 1) * 15 +
-                                    index +
-                                    1;
-
-                                return (
-                                    <tr
-                                        key={customer.id}
-                                        className={
-                                            isDeleted
-                                                ? "bg-red-50 opacity-70"
-                                                : "hover:bg-gray-50"
-                                        }
-                                    >
-                                        <td className="px-4 py-3 text-gray-500">
-                                            {rowNum}
-                                        </td>
-
-                                        <td className="px-4 py-3">
-                                            <p className="font-medium text-gray-800">
-                                                {customer.name}
-                                            </p>
-                                            {customer.email && (
-                                                <p className="text-xs text-gray-400">
-                                                    {customer.email}
-                                                </p>
-                                            )}
-                                        </td>
-
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {customer.phone ?? (
-                                                <span className="text-gray-300">
-                                                    —
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-4 py-3 text-gray-600">
-                                            {customer.city
-                                                ? `${customer.city}, ${customer.country}`
-                                                : customer.country}
-                                        </td>
-
-                                        <td className="px-4 py-3 text-gray-700">
-                                            ৳
-                                            {Number(
-                                                customer.opening_balance,
-                                            ).toLocaleString("en-BD", {
-                                                minimumFractionDigits: 2,
-                                            })}
-                                        </td>
-
-                                        <td className="px-4 py-3">
-                                            {isDeleted ? (
-                                                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
-                                                    Deleted
-                                                </span>
-                                            ) : customer.is_active ? (
-                                                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                                                    Active
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                                                    Inactive
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-end gap-1">
-                                                {isDeleted ? (
-                                                    can.restore && (
-                                                        <button
-                                                            onClick={() =>
-                                                                handleRestore(
-                                                                    customer,
-                                                                )
-                                                            }
-                                                            title="Restore"
-                                                            className="rounded-md p-1.5 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
-                                                        >
-                                                            <RotateCcw className="h-4 w-4" />
-                                                        </button>
-                                                    )
-                                                ) : (
-                                                    <>
-                                                        {can.edit && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    onEdit(
-                                                                        customer,
-                                                                    )
-                                                                }
-                                                                title="Edit"
-                                                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
-                                                            >
-                                                                <Pencil className="h-4 w-4" />
-                                                            </button>
-                                                        )}
-                                                        {can.delete && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        customer,
-                                                                    )
-                                                                }
-                                                                title="Delete"
-                                                                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </button>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination */}
-            {customers.last_page > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-                    <p className="text-xs text-gray-500">
-                        Showing {customers.from}–{customers.to} of{" "}
-                        {customers.total} customers
-                    </p>
-                    <div className="flex gap-1">
-                        {customers.links.map((link, i) => (
-                            <button
-                                key={i}
-                                onClick={() => goToPage(link.url)}
-                                disabled={!link.url}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                                    link.active
-                                        ? "bg-indigo-600 text-white"
-                                        : link.url
-                                          ? "text-gray-600 hover:bg-gray-100"
-                                          : "cursor-not-allowed text-gray-300"
-                                }`}
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search by name, phone, email, city..."
+                                className="w-full rounded-xl border border-border bg-muted/30 py-2 pl-9 pr-3 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                             />
-                        ))}
+                        </div>
+                        <button
+                            type="submit"
+                            className="rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white hover:bg-primary/90 transition-colors shadow-xs"
+                        >
+                            Search
+                        </button>
+                    </form>
+
+                    {/* Filters */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Filter className="h-4 w-4 text-muted-foreground" />
+
+                        <select
+                            value={status}
+                            onChange={(e) => handleStatusChange(e.target.value)}
+                            className="rounded-xl border border-border bg-card py-1.5 pl-2.5 pr-7 text-xs font-medium text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="active">Active Only</option>
+                            <option value="inactive">Inactive Only</option>
+                        </select>
+
+                        {can.restore && (
+                            <button
+                                onClick={handleTrashedToggle}
+                                className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                    trashed
+                                        ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                                }`}
+                            >
+                                {trashed ? "Hide Trash" : "Show Trash"}
+                            </button>
+                        )}
                     </div>
                 </div>
-            )}
-        </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border text-sm">
+                        <thead className="bg-muted/40">
+                            <tr>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground w-12">
+                                    #
+                                </th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Customer
+                                </th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Contact
+                                </th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    City
+                                </th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Balance
+                                </th>
+                                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                    Status
+                                </th>
+                                <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground w-20">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {customers.data.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={7}
+                                        className="py-14 text-center text-sm text-muted-foreground"
+                                    >
+                                        No customer records found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                customers.data.map((customer, index) => {
+                                    const isDeleted = customer.deleted_at !== null;
+                                    const rowNum =
+                                        (customers.current_page - 1) * 15 +
+                                        index +
+                                        1;
+
+                                    return (
+                                        <tr
+                                            key={customer.id}
+                                            className={`transition-colors ${
+                                                isDeleted
+                                                    ? "bg-rose-500/5 opacity-70"
+                                                    : "hover:bg-muted/30"
+                                            }`}
+                                        >
+                                            <td className="px-4 py-3 text-xs font-mono text-muted-foreground">
+                                                {rowNum}
+                                            </td>
+
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenPreview(customer)}
+                                                    className="font-semibold text-foreground hover:text-primary transition-colors text-left focus:outline-none"
+                                                >
+                                                    {customer.name}
+                                                </button>
+                                                {customer.email && (
+                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                        {customer.email}
+                                                    </p>
+                                                )}
+                                            </td>
+
+                                            <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
+                                                {customer.phone ?? (
+                                                    <span className="text-muted-foreground/40 font-sans">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="px-4 py-3 text-xs text-muted-foreground">
+                                                {customer.city
+                                                    ? `${customer.city}, ${customer.country || "Bangladesh"}`
+                                                    : customer.country || "Dhaka"}
+                                            </td>
+
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-baseline gap-1 text-xs font-semibold text-foreground">
+                                                    <span className="text-[10px] text-muted-foreground font-normal">৳</span>
+                                                    <span>
+                                                        {Number(
+                                                            customer.opening_balance,
+                                                        ).toLocaleString("en-BD", {
+                                                            minimumFractionDigits: 2,
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td className="px-4 py-3">
+                                                {isDeleted ? (
+                                                    <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                                        Deleted
+                                                    </span>
+                                                ) : customer.is_active ? (
+                                                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground border border-border">
+                                                        Inactive
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenPreview(customer)}
+                                                        className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                        title="Quick preview"
+                                                    >
+                                                        <Eye size={15} />
+                                                    </button>
+                                                    {can.edit && !isDeleted && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onEdit(customer)}
+                                                            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                                            title="Edit customer"
+                                                        >
+                                                            <Pencil size={15} />
+                                                        </button>
+                                                    )}
+                                                    <TableActionDropdown
+                                                        actions={getRowActions(customer)}
+                                                        triggerSize="sm"
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination */}
+                {customers.last_page > 1 && (
+                    <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs text-muted-foreground">
+                            Showing {customers.from}–{customers.to} of{" "}
+                            {customers.total} customers
+                        </p>
+                        <div className="flex gap-1 flex-wrap">
+                            {customers.links.map((link, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => goToPage(link.url)}
+                                    disabled={!link.url}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                                        link.active
+                                            ? "bg-primary text-white shadow-xs"
+                                            : link.url
+                                              ? "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                              : "cursor-not-allowed text-muted-foreground/40"
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <CustomerPreviewModal
+                opened={isPreviewOpen}
+                onClose={() => setIsPreviewOpen(false)}
+                customer={previewCustomer}
+                onEdit={onEdit}
+            />
+        </>
     );
 }

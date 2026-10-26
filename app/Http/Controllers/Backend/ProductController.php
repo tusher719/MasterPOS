@@ -437,6 +437,19 @@ class ProductController extends Controller
         return back()->with('success', 'Primary image updated.');
     }
 
+    public function toggleStatus(Product $product): RedirectResponse
+    {
+        $this->authorize('update', $product);
+
+        $product->update([
+            'is_active' => !$product->is_active,
+        ]);
+
+        $status = $product->is_active ? 'activated' : 'deactivated';
+
+        return back()->with('success', "Product \"{$product->name}\" was {$status}.");
+    }
+
     // --- Helpers ---
 
     private function categoryOptions(): \Illuminate\Support\Collection

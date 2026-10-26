@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { PeriodParams, PeriodType } from "../Index";
-import { Calendar, ChevronDown } from "lucide-react";
+import { DatePickerInput, DatesRangeValue } from "@mantine/dates";
+import dayjs from "dayjs";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 interface Props {
     value: PeriodParams;
@@ -18,8 +20,10 @@ const OPTIONS: { value: PeriodType; label: string }[] = [
 
 export default function PeriodFilter({ value, onChange, disabled }: Props) {
     const [showCustom, setShowCustom] = useState(value.period === "custom");
-    const [dateFrom, setDateFrom] = useState(value.date_from ?? "");
-    const [dateTo, setDateTo] = useState(value.date_to ?? "");
+    const [rangeValue, setRangeValue] = useState<DatesRangeValue>([
+        value.date_from ? dayjs(value.date_from).toDate() : null,
+        value.date_to ? dayjs(value.date_to).toDate() : null,
+    ]);
 
     const handleSelect = (period: PeriodType) => {
         if (period === "custom") {
@@ -30,14 +34,21 @@ export default function PeriodFilter({ value, onChange, disabled }: Props) {
         onChange({ period });
     };
 
-    const applyCustom = () => {
-        if (!dateFrom || !dateTo) return;
-        onChange({ period: "custom", date_from: dateFrom, date_to: dateTo });
+    const handleRangeChange = (val: DatesRangeValue) => {
+        setRangeValue(val);
+        const [start, end] = val;
+        if (start && end) {
+            onChange({
+                period: "custom",
+                date_from: dayjs(start).format("YYYY-MM-DD"),
+                date_to: dayjs(end).format("YYYY-MM-DD"),
+            });
+        }
     };
 
     return (
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <div className="inline-flex items-center gap-1 rounded-xl border border-gray-200/80 bg-white/80 p-1 shadow-2xs backdrop-blur-xs dark:border-neutral-800 dark:bg-neutral-900/80">
+            <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-xs">
                 {OPTIONS.map((opt) => {
                     const active = value.period === opt.value;
                     return (
@@ -47,10 +58,10 @@ export default function PeriodFilter({ value, onChange, disabled }: Props) {
                             disabled={disabled}
                             onClick={() => handleSelect(opt.value)}
                             className={[
-                                "rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 disabled:opacity-50",
+                                "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 disabled:opacity-50",
                                 active
-                                    ? "bg-indigo-600 text-white shadow-xs dark:bg-indigo-500"
-                                    : "text-gray-600 hover:bg-gray-100/70 hover:text-gray-900 dark:text-neutral-400 dark:hover:bg-neutral-800/60 dark:hover:text-neutral-200",
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                             ].join(" ")}
                         >
                             {opt.label}
@@ -60,30 +71,19 @@ export default function PeriodFilter({ value, onChange, disabled }: Props) {
             </div>
 
             {showCustom && (
-                <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white p-1.5 shadow-2xs dark:border-neutral-800 dark:bg-neutral-900">
-                    <Calendar className="ml-1.5 h-3.5 w-3.5 text-gray-400 dark:text-neutral-500" />
-                    <input
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="rounded-lg border-gray-200 bg-gray-50/50 px-2 py-1 text-xs text-gray-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                <div className="flex items-center gap-2">
+                    <DatePickerInput
+                        type="range"
+                        placeholder="Select start - end date"
+                        value={rangeValue}
+                        onChange={handleRangeChange}
+                        leftSection={<CalendarIcon className="h-4 w-4 text-muted-foreground" />}
+                        clearable
+                        size="xs"
+                        radius="md"
+                        disabled={disabled}
+                        className="w-[250px]"
                     />
-                    <span className="text-xs text-gray-400 dark:text-neutral-500">to</span>
-                    <input
-                        type="date"
-                        value={dateTo}
-                        min={dateFrom || undefined}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        className="rounded-lg border-gray-200 bg-gray-50/50 px-2 py-1 text-xs text-gray-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
-                    />
-                    <button
-                        type="button"
-                        disabled={disabled || !dateFrom || !dateTo}
-                        onClick={applyCustom}
-                        className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-indigo-700 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-                    >
-                        Apply
-                    </button>
                 </div>
             )}
         </div>

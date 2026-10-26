@@ -983,7 +983,7 @@ function NavbarLogo({ settings }: { settings: any }) {
 // Cycles: light → dark → system → light
 // Uses useTheme hook (same source as ThemeProvider) — no page reload needed
 function DarkModeToggle() {
-    const { theme, updateTheme } = useTheme();
+    const { theme, setThemeMode } = useTheme();
     const currentMode = (theme?.mode ?? "system") as
         | "light"
         | "dark"
@@ -999,19 +999,22 @@ function DarkModeToggle() {
 
     const modeConfig: Record<
         "light" | "dark" | "system",
-        { icon: React.ReactNode; label: string }
+        { icon: React.ReactNode; label: string; text: string }
     > = {
         light: {
-            icon: <Sun size={18} />,
-            label: "Light mode — click for Dark",
+            icon: <Sun size={18} className="text-amber-500 transition-transform duration-200 rotate-0 hover:rotate-45" />,
+            label: "Light mode active (click for Dark)",
+            text: "Switched to Light mode",
         },
         dark: {
-            icon: <Moon size={18} />,
-            label: "Dark mode — click for System",
+            icon: <Moon size={18} className="text-indigo-400 transition-transform duration-200 -rotate-12 hover:rotate-0" />,
+            label: "Dark mode active (click for System)",
+            text: "Switched to Dark mode",
         },
         system: {
-            icon: <Monitor size={18} />,
-            label: "System default — click for Light",
+            icon: <Monitor size={18} className="text-sky-500" />,
+            label: "System mode active (click for Light)",
+            text: "Switched to System theme",
         },
     };
 
@@ -1022,8 +1025,9 @@ function DarkModeToggle() {
 
         setSaving(true);
         try {
-            // updateTheme comes from useTheme — it saves to DB AND applies CSS vars immediately
-            await updateTheme({ mode: nextMode });
+            await setThemeMode(nextMode);
+            const { toast } = await import("sonner");
+            toast.success(modeConfig[nextMode].text, { duration: 2000 });
         } finally {
             setSaving(false);
         }
@@ -1036,7 +1040,7 @@ function DarkModeToggle() {
             onClick={handleToggle}
             disabled={saving}
             title={label}
-            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            className="relative flex items-center justify-center rounded-xl p-2.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground active:scale-95 disabled:opacity-50"
         >
             {icon}
         </button>

@@ -95,21 +95,21 @@ export default function CustomersIndex({
 
             <div className="space-y-5">
                 {/* Page Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            Customers
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                            Customer Accounts
                         </h1>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                            Manage your customer accounts
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                            Manage customer directories, store credit balances, and contacts
                         </p>
                     </div>
                     {can.create && (
                         <button
                             onClick={openCreate}
-                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+                            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 transition-colors shrink-0"
                         >
-                            <span className="text-lg leading-none">+</span>
+                            <span className="text-base font-bold leading-none">+</span>
                             Add Customer
                         </button>
                     )}
@@ -117,66 +117,68 @@ export default function CustomersIndex({
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-indigo-50 p-2">
-                                <Users className="h-5 w-5 text-indigo-600" />
+                            <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                                <Users className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Total</p>
-                                <p className="text-xl font-bold text-gray-800">
+                                <p className="text-xs text-muted-foreground font-medium">Total Customers</p>
+                                <p className="text-xl font-bold text-foreground">
                                     {stats.total}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-green-50 p-2">
-                                <UserCheck className="h-5 w-5 text-green-600" />
+                            <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-600 dark:text-emerald-400">
+                                <UserCheck className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">Active</p>
-                                <p className="text-xl font-bold text-gray-800">
+                                <p className="text-xs text-muted-foreground font-medium">Active Accounts</p>
+                                <p className="text-xl font-bold text-foreground">
                                     {stats.active}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-gray-100 p-2">
-                                <UserX className="h-5 w-5 text-gray-500" />
+                            <div className="rounded-xl bg-muted p-2.5 text-muted-foreground">
+                                <UserX className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Inactive
                                 </p>
-                                <p className="text-xl font-bold text-gray-800">
+                                <p className="text-xl font-bold text-foreground">
                                     {stats.inactive}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-amber-50 p-2">
-                                <Wallet className="h-5 w-5 text-amber-500" />
+                            <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-500">
+                                <Wallet className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground font-medium">
                                     Total Balance
                                 </p>
-                                <p className="text-xl font-bold text-gray-800">
-                                    ৳
-                                    {Number(stats.total_balance).toLocaleString(
-                                        "en-BD",
-                                        { minimumFractionDigits: 2 },
-                                    )}
-                                </p>
+                                <div className="flex items-baseline gap-1 text-xl font-bold text-foreground">
+                                    <span className="text-sm font-normal text-muted-foreground">৳</span>
+                                    <span>
+                                        {Number(stats.total_balance).toLocaleString(
+                                            "en-BD",
+                                            { minimumFractionDigits: 2 },
+                                        )}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

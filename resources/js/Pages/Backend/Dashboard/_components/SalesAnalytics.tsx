@@ -44,9 +44,10 @@ function methodStyle(method: string) {
 }
 
 function fmtCurrency(value: number): string {
-    if (Math.abs(value) >= 1_000_000) return "৳" + (value / 1_000_000).toFixed(1) + "M";
-    if (Math.abs(value) >= 1_000) return "৳" + (value / 1_000).toFixed(1) + "K";
-    return "৳" + Number(value).toFixed(2);
+    const val = Number(value || 0);
+    if (Math.abs(val) >= 1_000_000) return `৳ ${(val / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(val) >= 1_000) return `৳ ${(val / 1_000).toFixed(1)}K`;
+    return `৳ ${val.toLocaleString("en-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function statusLabel(status: string): string {
@@ -56,10 +57,10 @@ function statusLabel(status: string): string {
 function statusColor(status: string): string {
     return (
         {
-            paid: "bg-green-50 text-green-700 ring-1 ring-green-200",
-            partial: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-            due: "bg-red-50 text-red-700 ring-1 ring-red-200",
-        }[status] ?? "bg-gray-100 text-gray-600"
+            paid: "bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-950/50 dark:text-green-400 dark:ring-green-800/60",
+            partial: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-800/60",
+            due: "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950/50 dark:text-red-400 dark:ring-red-800/60",
+        }[status] ?? "bg-muted text-muted-foreground"
     );
 }
 
@@ -73,14 +74,14 @@ function PieTooltip({
     if (!active || !payload?.length) return null;
     const entry = payload[0];
     return (
-        <div className="rounded-xl border border-gray-100 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs dark:border-neutral-800 dark:bg-neutral-900/95">
-            <p className="mb-1 font-semibold text-gray-800 dark:text-neutral-200">{entry.name}</p>
-            <p className="text-gray-500 dark:text-neutral-400">
-                Amount: <span className="font-semibold text-gray-800 dark:text-neutral-200">{fmtCurrency(Number(entry.payload.total))}</span>
+        <div className="rounded-xl border border-border bg-card px-3 py-2 shadow-lg backdrop-blur-sm text-xs">
+            <p className="mb-1 font-semibold text-foreground">{entry.name}</p>
+            <p className="text-muted-foreground">
+                Amount: <span className="font-semibold text-foreground">{fmtCurrency(Number(entry.payload.total))}</span>
             </p>
             {entry.payload.count !== undefined && (
-                <p className="text-gray-500 dark:text-neutral-400">
-                    Orders: <span className="font-semibold text-gray-800 dark:text-neutral-200">{Number(entry.payload.count).toLocaleString()}</span>
+                <p className="text-muted-foreground">
+                    Orders: <span className="font-semibold text-foreground">{Number(entry.payload.count).toLocaleString()}</span>
                 </p>
             )}
         </div>
@@ -124,8 +125,8 @@ function DonutWithCenter({
                 </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-neutral-500">{centerLabel}</p>
-                <p className="text-sm font-bold text-gray-800 dark:text-neutral-100">{centerValue}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{centerLabel}</p>
+                <p className="text-sm font-bold text-foreground">{centerValue}</p>
             </div>
         </div>
     );
@@ -143,35 +144,37 @@ function RankedBarList({
     const total = rows.reduce((s, r) => s + r.total, 0);
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
             {rows.map((r, i) => {
                 const pct = total > 0 ? (r.total / total) * 100 : 0;
                 const barColor = barColorFor(r.label, i);
                 return (
-                    <div key={r.key} className="group">
-                        <div className="mb-1 flex items-center justify-between gap-2">
+                    <div key={r.key} className="group rounded-xl border border-transparent p-1.5 transition-colors hover:bg-muted/40 hover:border-border">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-1.5">
                                 {iconFor && (
-                                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500 group-hover:bg-white dark:bg-neutral-800 dark:text-neutral-400 dark:group-hover:bg-neutral-700">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-card">
                                         {iconFor(r.label)}
                                     </span>
                                 )}
-                                <span className="truncate text-xs font-medium text-gray-700 dark:text-neutral-300">{r.label}</span>
+                                <span className="truncate text-xs font-semibold text-foreground">{r.label}</span>
+                                {r.count !== undefined && (
+                                    <span className="text-[11px] text-muted-foreground font-medium shrink-0">
+                                        ({r.count.toLocaleString()} {r.count === 1 ? 'order' : 'orders'})
+                                    </span>
+                                )}
                             </div>
-                            <div className="flex flex-shrink-0 items-center gap-1.5">
-                                <span className="text-xs font-semibold text-gray-800 dark:text-neutral-200">{fmtCurrency(r.total)}</span>
-                                <span className="w-9 text-right text-[10px] text-gray-400 dark:text-neutral-500">{pct.toFixed(1)}%</span>
+                            <div className="flex shrink-0 items-center gap-2">
+                                <span className="text-xs font-bold text-foreground font-sans">{fmtCurrency(r.total)}</span>
+                                <span className="rounded-md bg-muted px-1.5 py-0.5 text-right text-[10px] font-semibold text-muted-foreground">{pct.toFixed(1)}%</span>
                             </div>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-neutral-800">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                             <div
                                 className={`h-full rounded-full ${barColor} transition-all duration-500`}
                                 style={{ width: `${pct}%` }}
                             />
                         </div>
-                        {r.count !== undefined && (
-                            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-neutral-500">{r.count.toLocaleString()} orders</p>
-                        )}
                     </div>
                 );
             })}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\FraudFlag;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -14,6 +15,9 @@ use App\Models\SaleStatusHistory;
 use App\Models\User;
 use App\Services\ActivityLogService;
 use App\Services\CouponService;
+use App\Services\Fraud\Layer1ValidationService;
+use App\Services\Fraud\Layer2IpOrderLimitService;
+use App\Services\Fraud\Layer3SuccessRatioService;
 use App\Services\SaleStockService;
 use App\Services\SettingsService;
 use Illuminate\Http\JsonResponse;
@@ -79,6 +83,58 @@ class PublicCheckoutController extends Controller
             'items.*.qty'       => ['required', 'integer', 'min:1'],
             'items.*.variantId' => ['nullable', 'integer', 'exists:product_variants,id'],
         ]);
+
+        // ── Fraud Protection & Business Rules ──
+        $phone = $validated['customer_phone'];
+        $cleanedPhone = preg_replace('/[\s\-()]/', '', $phone);
+
+        $layer1 = app(Layer1ValidationService::class);
+        $normalizedPhone = $layer1->normalizePhone($cleanedPhone) ?? $cleanedPhone;
+
+        // Rule A: Check if phone is blacklisted / confirmed fraud
+        $confirmedFraud = FraudFlag::where(function ($q) use ($normalizedPhone, $cleanedPhone) {
+            $q->where('phone', $normalizedPhone)
+              ->orWhere('phone', $cleanedPhone);
+        })->where('status', 'confirmed_fraud')->first();
+
+        if ($confirmedFraud) {
+            throw ValidationException::withMessages([
+                'customer_phone' => 'Orders cannot be placed with this phone number due to fraud risk. Please contact support.',
+            ]);
+        }
+
+        // Rule B: Layer 1 format & spam validation
+        $layer1Errors = $layer1->validate(
+            $phone,
+            $validated['customer_name'] ?? null,
+            $validated['delivery_type'] !== 'store_pickup' ? ($validated['delivery_address'] ?? null) : null
+        );
+        if (! empty($layer1Errors)) {
+            throw ValidationException::withMessages($layer1Errors);
+        }
+
+        // Rule C: Layer 2 IP-based order attempt limit
+        $layer2 = app(Layer2IpOrderLimitService::class);
+        $ipCheck = $layer2->check(
+            $request->ip() ?? '127.0.0.1',
+            $phone,
+            $validated['customer_name'] ?? null,
+            $validated['delivery_address'] ?? null
+        );
+        if (! $ipCheck['passed']) {
+            throw ValidationException::withMessages([
+                'customer_phone' => 'Maximum order attempt limit reached from your network. Please wait or contact support.',
+            ]);
+        }
+
+        // Rule D: Layer 3 Historical delivery success ratio
+        $layer3 = app(Layer3SuccessRatioService::class);
+        $ratioCheck = $layer3->check($phone);
+        if (! $ratioCheck['passed'] && $validated['payment_type'] === 'cash_on_delivery') {
+            throw ValidationException::withMessages([
+                'payment_type' => 'Cash on Delivery is unavailable for this phone number due to high delivery return history. Please select an online payment option or contact support.',
+            ]);
+        }
 
         $settings = SettingsService::all();
         $adminUser = User::role('Admin')->first() ?? User::first();
