@@ -50,117 +50,22 @@ Full-stack POS + ERP system
 
 ## Completed Sprints
 
-Sprint 8 — Public Storefront (active)
-
-- Item 10.1 Public Product Catalog ✅
-- Item 10.2 Search page ✅
-- Item 10.3 Coming Soon public page (pending)
-- Item 10.4 Cart page + localStorage persist (pending)
-- Item 10.5 Checkout (pending)
-- Item 10.6 Order confirmation (pending)
-
-### Sprint 1 — Auth & Core ✅ (Audited & Tested)
-
-- Login, Registration, Email Verification (All 25 Auth/Profile tests passing via `DatabaseTransactions`)
-- AuthenticatedLayout, GuestLayout (Light & Dark mode tokens verified)
-- User Management (CRUD + roles + UpdateUserRequest fix + Light/Dark mode verified + 7 Feature tests passing)
-- Role Management (Spatie + English flash message + Light/Dark mode matrix + 6 Feature tests passing)
-- Login Histories & Activity Logs (`users.view` permission guard added + Dark mode verified)
-
-### Sprint 2 — Settings & Catalogue ✅ (Settings & Catalogue Audited & Tested)
-
-- Business Settings (logo, currency, tax, notification, theme, quick links, system status, staff roles)
-- Payment Methods (CRUD, active toggle, semantic theme tokens verified)
-- Expense Categories (CRUD, color badge, semantic theme tokens verified)
-- Investment Types (CRUD, active toggle, ActivityLogService object/scalar defensive fix, dark/light mode verified)
-- Products (CRUD, auto slug generation, variant options sync, multi-image upload/delete, soft deletes, AJAX search)
-- Product Categories (CRUD, parent-child hierarchy, image upload, delete safeguards)
-- Units (CRUD, NO SoftDeletes strictly verified, delete safeguards when in use)
-- AppServiceProvider policy mapping fix: corrected `ProductPlanningTask` mapping and registered catalogue policies
-- Automated Tests: `tests/Feature/Backend/SettingsManagementTest.php` (10 tests passing)
-- Automated Tests: `tests/Feature/Backend/ProductManagementTest.php` (16 tests passing, 100% green)
-- Suppliers — [Next to Audit]
-
-### Sprint 3 — Purchases ✅
-
-- Purchase Orders (Draft → Partial Received → Received → Cancelled)
-- Purchase Items, Purchase Payments
-- Supplier ledger (opening balance)
-- Stock movements on receive
-
-### Sprint 4 — Sales & POS ✅
-
-- Sales (Draft → Confirmed → Cancelled)
-- Sale Items, Sale Payments
-- POS interface (Hold orders, quick sale)
-- Customer management
-- Stock deduction on confirm
-
-### Sprint 5 — Finance & Reports ✅
-
-- Expenses + Expense Categories
-- Investments, Investment Types, Investor Balance
-- Profit Calculation, Profit Distribution, Profit Payment
-- Partners, Partner Profit Rules, Partner Settlement
-- Capital Ledger, Capital Withdrawal
-- Invoices (PDF via DomPDF)
-- Reports (Sales, Purchase, Expense, Stock)
-- Activity Logs, Audit Trail
-- Quick Links
-- Legal Pages
-- Feature Announcements
-- Fraud Flags
-- Fulfillment (Order Tasks, Pre-Orders)
-- Staff Performance Report
-- Notification system
-- User Preferences
-- Global Search
-
-### Sprint 6 — Inventory & Returns ✅
-
-#### Item 3.6 — Universal Import/Export ✅
-
-- Route: /backend/import (ImportController)
-- 7 modules: products, categories, units, customers, suppliers,
-  expense_categories, payment_methods
-- Tables: import_logs (tracks both imports and exports)
-- maatwebsite/excel ^3.1, ext-zip enabled in php.ini
-- Flow: Dry-run → Preview → Confirm
-- History: Admin sees all, Staff sees own
-
-#### Item 3.7 — Purchase Return / Damage Tracking ✅
-
-- Route: /backend/purchase-returns (PurchaseReturnController)
-- Tables: purchase_returns, purchase_return_items
-- Return types: supplier_return | damage_wastage
-- Flow: Draft → Confirmed (stock deducted ONLY on confirm)
-- Stock movements: reference_type = 'purchase_return', type = 'return'
-- Quantity guard: return qty ≤ original qty − already-returned qty
-- Confirmed returns cannot be deleted (soft delete only on draft)
-- Permissions: purchase_return.view / create / confirm / delete
-    - Admin: all, Staff: view only
-- ⚠️ PENDING FIX: CreateReturnModal purchase search broken
-  (Inertia JSON conflict — needs dedicated /purchases/search-for-return route)
-  Solution planned:
-    - New route: GET /backend/purchases/search-for-return
-    - New method: PurchaseController::searchForReturn()
-    - Update CreateReturnModal fetch URL
+- **Sprint 1 — Auth & Core ✅ (Audited & Tested)**: 25 Auth/Profile tests, User & Role Management, Login histories, Activity logs, Light/Dark tokens.
+- **Sprint 2 — Settings & Catalogue ✅ (Audited & Tested)**: Business settings, Payment methods, Expense categories, Investment types, Products, Categories, Units (no soft deletes), Slugs, Multi-image uploads, 26 Feature tests passing.
+- **Sprint 3 — Purchases & Suppliers ✅ (Audited & Tested)**: Suppliers CRUD + UUID, Supplier ledger, Purchases (Draft → Received), Stock auto-increment, 11 Feature tests passing.
+- **Sprint 4 — Sales & POS Terminal ✅ (Audited & Tested)**: POS Terminal, Cart sale, Hold orders drawer, Atomic hold deletion, Stock deduction on confirm, 4 Feature tests passing.
+- **Sprint 5 — Finance, Reports & Invoices ✅ (Audited & Tested)**: Expenses + UUID, Investments, Profit calculations, PDF invoices via DomPDF, 10 Feature tests passing.
+- **Sprint 6 — Inventory & Returns ✅ (Audited & Tested)**: Universal Import/Export (7 modules), Purchase Returns / Damage tracking (Draft → Confirmed with atomic stock decrement and movements), Dedicated purchase search endpoint (`/backend/purchases/search-for-return`), 4 Feature tests passing.
+- **Sprint 7 — Executive Dashboard & Filter Modernization ✅ (Audited & Tested)**: Modernized executive header, KPI trend badges, PeriodFilter (`today`, `this_week`, `this_month`, `this_year`, `custom`), Light/Dark semantic tokens across all widgets, 6 Feature tests passing.
+- **Sprint 8 — Public Storefront (Active)**: Public product catalog, Search page, PublicLayout with optional settings fallback.
 
 ---
 
-## Active Sprint: Sprint 8 — Public Storefront
+## Architecture & Data Standards
 
-### Planned Items
-
-| Item | Feature                  | Status  |
-| ---- | ------------------------ | ------- |
-| 10.1 | Public Product Catalog   | ✅ Done |
-| 10.2 | Website Settings / CMS   | 🔲      |
-| 10.3 | Hero / Banner Management | 🔲      |
-| 10.4 | Cart                     | 🔲      |
-| 10.5 | Checkout                 | 🔲      |
-| 10.6 | Order Tracking           | 🔲      |
-| 10.7 | Storefront Layout + Nav  | 🔲      |
+- **Hybrid UUID Architecture**: BigInt primary keys for high-performance MySQL InnoDB indexing and foreign key constraints + indexed unique `uuid` (UUIDv4) across all core business entities (`users`, `products`, `sales`, `purchases`, `purchase_returns`, `suppliers`, `expenses`, `investments`, `customers`, etc.).
+- **Automated Test Coverage**: 99 passing tests (276 assertions) running against dedicated MySQL testing database (`masterpos_testing`).
+- **Frontend Quality**: Zero TypeScript errors (`npx tsc --noEmit` clean) and production Vite build verified.
 
 ---
 
