@@ -76,27 +76,27 @@ const TYPE_CONFIG: Record<
 > = {
     cash: {
         label: "Cash",
-        color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+        color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
         icon: Banknote,
     },
     card: {
         label: "Card",
-        color: "bg-blue-100 text-blue-700 border-blue-200",
+        color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
         icon: CreditCard,
     },
     mobile_banking: {
         label: "Mobile Banking",
-        color: "bg-purple-100 text-purple-700 border-purple-200",
+        color: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800",
         icon: Smartphone,
     },
     bank_transfer: {
         label: "Bank Transfer",
-        color: "bg-sky-100 text-sky-700 border-sky-200",
+        color: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-800",
         icon: University,
     },
     other: {
         label: "Other",
-        color: "bg-gray-100 text-gray-600 border-gray-200",
+        color: "bg-muted text-muted-foreground border-border",
         icon: MoreHorizontal,
     },
 };

@@ -13,8 +13,8 @@ class ActivityLogService
             'user_id' => Auth::id(),
             'module' => $module,
             'action' => $action,
-            'subject_type' => $subject ? get_class($subject) : null,
-            'subject_id' => $subject?->id,
+            'subject_type' => is_object($subject) ? get_class($subject) : null,
+            'subject_id' => is_object($subject) ? ($subject->id ?? null) : (is_numeric($subject) ? (int) $subject : null),
             'description' => $description,
             'properties' => $properties,
         ]);

@@ -91,8 +91,8 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Investment Types</h1>
-                        <p className="text-sm text-gray-500">
+                        <h1 className="text-2xl font-bold text-foreground">Investment Types</h1>
+                        <p className="text-sm text-muted-foreground">
                             Categorize capital investments in the business
                         </p>
                     </div>
@@ -107,44 +107,44 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                 {/* ── Stats ── */}
                 <div className="grid grid-cols-3 gap-4">
                     {[
-                        { label: "Total Types", value: visible.length, color: "text-gray-800"   },
-                        { label: "Active",      value: active,         color: "text-emerald-600" },
-                        { label: "Inactive",    value: inactive,       color: "text-amber-500"   },
+                        { label: "Total Types", value: visible.length, color: "text-foreground" },
+                        { label: "Active",      value: active,         color: "text-emerald-600 dark:text-emerald-400" },
+                        { label: "Inactive",    value: inactive,       color: "text-amber-500 dark:text-amber-400"   },
                     ].map((s) => (
-                        <div key={s.label} className="rounded-lg border border-gray-200 bg-white p-4">
-                            <p className="text-sm text-gray-500">{s.label}</p>
+                        <div key={s.label} className="rounded-lg border border-border bg-card p-4">
+                            <p className="text-sm text-muted-foreground">{s.label}</p>
                             <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.value}</p>
                         </div>
                     ))}
                 </div>
 
                 {/* ── Table ── */}
-                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <div className="overflow-hidden rounded-lg border border-border bg-card">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50">
-                                <th className="px-4 py-3 text-left font-medium text-gray-500">Type Name</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500">Description</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                                <th className="px-4 py-3 text-right font-medium text-gray-500">Actions</th>
+                            <tr className="border-b border-border bg-muted/40">
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type Name</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Description</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {visible.map((type) => (
                                 <tr
                                     key={type.id}
-                                    className="border-b border-gray-100 last:border-0 transition-colors hover:bg-gray-50"
+                                    className="border-b border-border last:border-0 transition-colors hover:bg-muted/30"
                                 >
                                     <td className="px-4 py-3">
                                         <span className="flex items-center gap-3">
                                             {/* Icon badge */}
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 border border-emerald-200">
-                                                <TrendingUp size={13} className="text-emerald-600" />
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                                                <TrendingUp size={13} className="text-emerald-600 dark:text-emerald-400" />
                                             </span>
-                                            <span className="font-medium text-gray-700">{type.name}</span>
+                                            <span className="font-medium text-foreground">{type.name}</span>
                                         </span>
                                     </td>
-                                    <td className="max-w-xs px-4 py-3 text-gray-400">
+                                    <td className="max-w-xs px-4 py-3 text-muted-foreground">
                                         <span className="line-clamp-1">
                                             {type.description || "—"}
                                         </span>
@@ -152,8 +152,8 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                             type.is_active
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-gray-100 text-gray-500"
+                                                ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400"
+                                                : "bg-muted text-muted-foreground"
                                         }`}>
                                             {type.is_active ? "Active" : "Inactive"}
                                         </span>
@@ -162,13 +162,13 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                                         <div className="flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => openEdit(type)}
-                                                className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                                className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                                             >
                                                 <Pencil size={14} />
                                             </button>
                                             <button
                                                 onClick={() => destroy(type)}
-                                                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                                className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -178,7 +178,7 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                             ))}
                             {visible.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="py-12 text-center text-gray-400">
+                                    <td colSpan={4} className="py-12 text-center text-muted-foreground">
                                         No investment types yet. Add one to get started.
                                     </td>
                                 </tr>
@@ -190,11 +190,11 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
 
             {/* ── Modal ── */}
             {open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-xl">
                         {/* Modal header */}
-                        <div className="border-b border-gray-100 px-5 py-4">
-                            <h2 className="text-base font-semibold text-gray-800">
+                        <div className="border-b border-border px-5 py-4">
+                            <h2 className="text-base font-semibold text-foreground">
                                 {editing ? "Edit Investment Type" : "Add Investment Type"}
                             </h2>
                         </div>
@@ -203,14 +203,14 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                         <div className="space-y-4 px-5 py-4">
                             {/* Name */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">
+                                <label className="block text-sm font-medium text-foreground">
                                     Name <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     value={form.data.name}
                                     onChange={(e) => form.setData("name", e.target.value)}
                                     placeholder="e.g. Equipment Purchase"
-                                    className="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 w-full rounded-md border-border bg-input text-foreground text-sm shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {form.errors.name && (
                                     <p className="mt-1 text-xs text-red-600">{form.errors.name}</p>
@@ -219,7 +219,7 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
 
                             {/* Description */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">
+                                <label className="block text-sm font-medium text-foreground">
                                     Description
                                 </label>
                                 <textarea
@@ -227,7 +227,7 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                                     onChange={(e) => form.setData("description", e.target.value)}
                                     placeholder="Brief description of this investment type..."
                                     rows={3}
-                                    className="mt-1 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 w-full rounded-md border-border bg-input text-foreground text-sm shadow-sm focus:border-primary focus:ring-primary"
                                 />
                                 {form.errors.description && (
                                     <p className="mt-1 text-xs text-red-600">{form.errors.description}</p>
@@ -235,10 +235,10 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                             </div>
 
                             {/* Active toggle */}
-                            <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                            <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-700">Active</p>
-                                    <p className="text-xs text-gray-400">
+                                    <p className="text-sm font-medium text-foreground">Active</p>
+                                    <p className="text-xs text-muted-foreground">
                                         Available when recording investments
                                     </p>
                                 </div>
@@ -246,7 +246,7 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                                     type="button"
                                     onClick={() => form.setData("is_active", !form.data.is_active)}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                                        form.data.is_active ? "bg-indigo-600" : "bg-gray-200"
+                                        form.data.is_active ? "bg-indigo-600" : "bg-muted"
                                     }`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -257,11 +257,11 @@ export default function InvestmentTypes({ investmentTypes }: Props) {
                         </div>
 
                         {/* Modal footer */}
-                        <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
+                        <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
                             <button
                                 type="button"
                                 onClick={() => setOpen(false)}
-                                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                                className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                             >
                                 Cancel
                             </button>

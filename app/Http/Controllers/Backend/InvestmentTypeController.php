@@ -35,7 +35,7 @@ class InvestmentTypeController extends Controller
             'investment_type',
             'created',
             'Investment type created: ' . $type->name,
-            $type->id,
+            $type,
             $type->toArray()
         );
 
@@ -50,7 +50,7 @@ class InvestmentTypeController extends Controller
             'investment_type',
             'updated',
             'Investment type updated: ' . $investmentType->name,
-            $investmentType->id,
+            $investmentType,
             $request->validated()
         );
 
@@ -67,7 +67,7 @@ class InvestmentTypeController extends Controller
             'investment_type',
             'deleted',
             'Investment type deleted: ' . $investmentType->name,
-            $investmentType->id,
+            $investmentType,
             ['name' => $investmentType->name]
         );
 
