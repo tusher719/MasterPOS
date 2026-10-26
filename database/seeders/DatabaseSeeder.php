@@ -77,9 +77,10 @@ class DatabaseSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@masterpos.test'],
             [
-                'name'     => 'Super Admin',
-                'password' => bcrypt('password'),
-                'status'   => 'active',
+                'name'              => 'Super Admin',
+                'password'          => bcrypt('password'),
+                'status'            => 'active',
+                'email_verified_at' => now(),
             ]
         );
         $admin->assignRole('Admin');
