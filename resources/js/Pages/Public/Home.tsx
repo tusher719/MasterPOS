@@ -11,6 +11,7 @@ import {
     PublicProduct,
     PublicSettings,
 } from "@/types/public";
+import { useCart } from "@/hooks/useCart";
 import { Head, Link } from "@inertiajs/react";
 import { ArrowRight, ShoppingCart, Tag, TrendingUp } from "lucide-react";
 import { useState } from "react";
@@ -85,31 +86,18 @@ export default function Home({
     settings,
 }: HomeProps) {
     const currency = settings.currency_symbol;
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const { addItem, cartCount } = useCart();
     const [toast, setToast] = useState<CartItem | null>(null);
     const [modalProduct, setModalProduct] = useState<ProductCardProduct | null>(
         null,
     );
 
     const handleAddToCart = (item: CartItem) => {
-        setCart((prev) => {
-            const key = `${item.id}-${item.variantId ?? ""}`;
-            const existing = prev.find(
-                (c) => `${c.id}-${c.variantId ?? ""}` === key,
-            );
-            if (existing)
-                return prev.map((c) =>
-                    `${c.id}-${c.variantId ?? ""}` === key
-                        ? { ...c, qty: c.qty + item.qty }
-                        : c,
-                );
-            return [...prev, item];
-        });
+        addItem(item);
         setToast(item);
         setTimeout(() => setToast(null), 3000);
+        window.dispatchEvent(new CustomEvent("masterpos:open-cart"));
     };
-
-    const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
 
     return (
         <PublicLayout

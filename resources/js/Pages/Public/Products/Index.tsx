@@ -13,6 +13,7 @@ import {
     PublicCategory,
     PublicSettings,
 } from "@/types/public";
+import { useCart } from "@/hooks/useCart";
 import { Head, router } from "@inertiajs/react";
 import {
     Filter,
@@ -212,7 +213,7 @@ export default function ProductsIndex({
 }: ProductsIndexProps) {
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [searchInput, setSearchInput] = useState(filters.q);
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const { addItem, cartCount } = useCart();
     const [toast, setToast] = useState<CartItem | null>(null);
     const [modalProduct, setModalProduct] = useState<ProductCardProduct | null>(
         null,
@@ -220,24 +221,11 @@ export default function ProductsIndex({
     const currency = settings.currency_symbol;
 
     const handleAddToCart = (item: CartItem) => {
-        setCart((prev) => {
-            const key = `${item.id}-${item.variantId ?? ""}`;
-            const existing = prev.find(
-                (c) => `${c.id}-${c.variantId ?? ""}` === key,
-            );
-            if (existing)
-                return prev.map((c) =>
-                    `${c.id}-${c.variantId ?? ""}` === key
-                        ? { ...c, qty: c.qty + item.qty }
-                        : c,
-                );
-            return [...prev, item];
-        });
+        addItem(item);
         setToast(item);
         setTimeout(() => setToast(null), 3000);
+        window.dispatchEvent(new CustomEvent("masterpos:open-cart"));
     };
-
-    const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
 
     const applyFilters = (overrides: Partial<ProductFilters>) => {
         const merged = { ...filters, ...overrides };

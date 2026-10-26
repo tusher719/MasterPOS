@@ -13,6 +13,7 @@ import {
     PublicProductDetail,
     PublicSettings,
 } from "@/types/public";
+import { useCart } from "@/hooks/useCart";
 import { Head, Link } from "@inertiajs/react";
 import {
     ChevronLeft,
@@ -186,26 +187,13 @@ export default function ProductShow({
     settings,
 }: ProductShowProps) {
     const currency = settings.currency_symbol;
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const { addItem, cartCount } = useCart();
     const [modalOpen, setModalOpen] = useState(false);
 
     const handleAddToCart = (item: CartItem) => {
-        setCart((prev) => {
-            const key = `${item.id}-${item.variantId ?? ""}`;
-            const existing = prev.find(
-                (c) => `${c.id}-${c.variantId ?? ""}` === key,
-            );
-            if (existing)
-                return prev.map((c) =>
-                    `${c.id}-${c.variantId ?? ""}` === key
-                        ? { ...c, qty: c.qty + item.qty }
-                        : c,
-                );
-            return [...prev, item];
-        });
+        addItem(item);
+        window.dispatchEvent(new CustomEvent("masterpos:open-cart"));
     };
-
-    const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
 
     // Current display price (without variant — just for display)
     const displayPrice = product.sale_price;

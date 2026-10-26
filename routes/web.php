@@ -56,6 +56,7 @@ use App\Http\Controllers\Backend\InvestmentDashboardController;
 use App\Http\Controllers\Backend\QuickLinkController;
 use App\Http\Controllers\Backend\LegalPageController;
 use App\Http\Controllers\Public\PublicCategoryController;
+use App\Http\Controllers\Public\PublicCheckoutController;
 use App\Http\Controllers\Public\PublicHomeController;
 use App\Http\Controllers\Public\PublicProductController;
 use App\Http\Controllers\Public\PublicSearchController;
@@ -69,7 +70,10 @@ use Inertia\Inertia;
 // Route order: specific routes BEFORE wildcard {slug} to prevent swallowing.
 Route::middleware(['coming.soon'])->group(function () {
     Route::get('/', [PublicHomeController::class, 'index'])->name('public.home');
-    Route::get('/search', [PublicSearchController::class, 'index'])->name('public.search'); // ← NEW
+    Route::get('/search', [PublicSearchController::class, 'index'])->name('public.search');
+    Route::get('/checkout', [PublicCheckoutController::class, 'index'])->name('public.checkout.index');
+    Route::post('/checkout', [PublicCheckoutController::class, 'store'])->name('public.checkout.store');
+    Route::get('/order-confirmed/{reference}', [PublicCheckoutController::class, 'confirmed'])->name('public.order-confirmed');
     Route::get('/products', [PublicProductController::class, 'index'])->name('public.products.index');
     Route::get('/products/{slug}', [PublicProductController::class, 'show'])->name('public.products.show');
     Route::get('/categories/{slug}', [PublicCategoryController::class, 'show'])->name('public.categories.show');
@@ -724,15 +728,6 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             ])
             ->whereNumber('id');
     });
-    // Public legal pages — no auth required
-    Route::get('/privacy-policy', [LegalPageController::class, 'show'])
-        ->defaults('slug', 'privacy-policy')
-        ->name('legal.privacy-policy');
-
-    Route::get('/terms-conditions', [LegalPageController::class, 'show'])
-        ->defaults('slug', 'terms-conditions')
-        ->name('legal.terms-conditions');
-
     // Public legal pages — no auth required
     Route::get('/privacy-policy', [LegalPageController::class, 'show'])
         ->defaults('slug', 'privacy-policy')

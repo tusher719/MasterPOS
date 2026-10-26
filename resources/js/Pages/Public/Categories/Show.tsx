@@ -13,6 +13,7 @@ import {
     PublicCategory,
     PublicSettings,
 } from "@/types/public";
+import { useCart } from "@/hooks/useCart";
 import { Head, Link, router } from "@inertiajs/react";
 import { ChevronRight, Filter, SlidersHorizontal, Tag, X } from "lucide-react";
 import { useState } from "react";
@@ -191,29 +192,16 @@ export default function CategoryShow({
     settings,
 }: CategoryShowProps) {
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-    const [cart, setCart] = useState<CartItem[]>([]);
+    const { addItem, cartCount } = useCart();
     const [modalProduct, setModalProduct] = useState<ProductCardProduct | null>(
         null,
     );
     const currency = settings.currency_symbol;
 
     const handleAddToCart = (item: CartItem) => {
-        setCart((prev) => {
-            const key = `${item.id}-${item.variantId ?? ""}`;
-            const existing = prev.find(
-                (c) => `${c.id}-${c.variantId ?? ""}` === key,
-            );
-            if (existing)
-                return prev.map((c) =>
-                    `${c.id}-${c.variantId ?? ""}` === key
-                        ? { ...c, qty: c.qty + item.qty }
-                        : c,
-                );
-            return [...prev, item];
-        });
+        addItem(item);
+        window.dispatchEvent(new CustomEvent("masterpos:open-cart"));
     };
-
-    const cartCount = cart.reduce((sum, c) => sum + c.qty, 0);
 
     const applyFilters = (overrides: Partial<CategoryFilters>) => {
         const merged = { ...filters, ...overrides };

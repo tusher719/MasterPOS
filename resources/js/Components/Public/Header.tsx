@@ -1,5 +1,7 @@
 // resources/js/Components/Public/Header.tsx
 
+import CartDrawer from "@/Components/Public/CartDrawer";
+import { useCart } from "@/hooks/useCart";
 import { PublicCategory, PublicSettings } from "@/types/public";
 import { Link, usePage } from "@inertiajs/react";
 import { ChevronRight, Menu, Search, ShoppingBag, Tag, X } from "lucide-react";
@@ -449,10 +451,21 @@ function MobileDrawer({
 export default function Header({
     settings,
     categories,
-    cartCount = 0,
+    cartCount: propCartCount = 0,
 }: HeaderProps) {
+    const { cartCount: liveCartCount } = useCart();
+    const effectiveCartCount = liveCartCount || propCartCount;
+
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
     const headerRef = useRef<HTMLElement>(null);
+
+    // Listen for custom open-cart event
+    useEffect(() => {
+        const handleOpenCart = () => setCartDrawerOpen(true);
+        window.addEventListener("masterpos:open-cart", handleOpenCart);
+        return () => window.removeEventListener("masterpos:open-cart", handleOpenCart);
+    }, []);
 
     // Close drawer on resize to desktop
     useEffect(() => {
@@ -517,11 +530,18 @@ export default function Header({
                             </Link>
 
                             {/* Cart */}
-                            <button className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition-colors">
+                            <button
+                                type="button"
+                                onClick={() => setCartDrawerOpen(true)}
+                                className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition-colors"
+                                aria-label="Open Cart"
+                            >
                                 <ShoppingBag size={20} />
-                                {cartCount > 0 && (
-                                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
-                                        {cartCount > 99 ? "99+" : cartCount}
+                                {effectiveCartCount > 0 && (
+                                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                                        {effectiveCartCount > 99
+                                            ? "99+"
+                                            : effectiveCartCount}
                                     </span>
                                 )}
                             </button>
@@ -558,12 +578,19 @@ export default function Header({
                 )}
             </header>
 
-            {/* Mobile drawer */}
+            {/* Mobile navigation drawer */}
             <MobileDrawer
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 categories={categories}
                 settings={settings}
+            />
+
+            {/* Cart Slide-Over Drawer */}
+            <CartDrawer
+                open={cartDrawerOpen}
+                onClose={() => setCartDrawerOpen(false)}
+                currencySymbol={settings?.currency_symbol ?? "৳"}
             />
         </>
     );
