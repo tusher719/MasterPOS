@@ -10,6 +10,8 @@ class ActivityLogController extends Controller
 {
     public function index()
     {
+        abort_unless(auth()->user()?->can('users.view'), 403);
+
         $logs = ActivityLog::with('user:id,name')
             ->when(request('module'), fn($q) => $q->where('module', request('module')))
             ->latest()

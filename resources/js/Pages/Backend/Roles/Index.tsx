@@ -102,10 +102,10 @@ export default function Index({
             <div className="space-y-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Roles & Permissions
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             Create roles and assign action-based permissions
                         </p>
                     </div>
@@ -119,23 +119,23 @@ export default function Index({
 
                 <div className="grid grid-cols-4 gap-5">
                     {/* Role list */}
-                    <div className="col-span-1 rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="col-span-1 rounded-lg border border-border bg-card p-3">
                         <div className="relative mb-3">
                             <Search
                                 size={14}
-                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                             />
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search roles..."
-                                className="w-full rounded-md border-gray-300 py-2 pl-9 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="w-full rounded-md border-border bg-input py-2 pl-9 text-sm text-foreground shadow-sm focus:border-primary focus:ring-primary"
                             />
                         </div>
 
                         <div className="max-h-[420px] space-y-1 overflow-y-auto pr-1">
                             {filteredRoles.length === 0 && (
-                                <p className="px-2 py-3 text-center text-xs text-gray-400">
+                                <p className="px-2 py-3 text-center text-xs text-muted-foreground">
                                     No roles found
                                 </p>
                             )}
@@ -147,8 +147,8 @@ export default function Index({
                                         onClick={() => setActiveRoleId(role.id)}
                                         className={`group flex cursor-pointer items-center justify-between rounded-md border-l-2 px-3 py-2.5 text-sm transition-colors ${
                                             isActive
-                                                ? "border-indigo-600 bg-indigo-50 font-medium text-indigo-700"
-                                                : "border-transparent text-gray-600 hover:bg-gray-50"
+                                                ? "border-primary bg-primary/10 font-medium text-primary"
+                                                : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
                                         }`}
                                     >
                                         <span className="truncate">
@@ -172,16 +172,16 @@ export default function Index({
                     </div>
 
                     {/* Permission matrix */}
-                    <div className="col-span-3 rounded-lg border border-gray-200 bg-white p-5">
+                    <div className="col-span-3 rounded-lg border border-border bg-card p-5">
                         {activeRole ? (
                             <>
-                                <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
+                                <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
                                     <div>
-                                        <h2 className="text-base font-semibold text-gray-800">
+                                        <h2 className="text-base font-semibold text-foreground">
                                             {activeRole.name} — Permissions
                                         </h2>
                                         {hasChanges && (
-                                            <p className="mt-0.5 text-xs text-amber-600">
+                                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
                                                 {changedCount} change
                                                 {changedCount > 1
                                                     ? "s"
@@ -193,7 +193,7 @@ export default function Index({
                                     <button
                                         onClick={savePermissions}
                                         disabled={!hasChanges}
-                                        className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+                                        className="flex items-center gap-2 rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                                     >
                                         <Save size={14} /> Save
                                     </button>
@@ -203,7 +203,7 @@ export default function Index({
                                     {Object.entries(permissionGroups).map(
                                         ([group, perms]) => (
                                             <div key={group}>
-                                                <h3 className="mb-2 text-sm font-semibold capitalize text-gray-600">
+                                                <h3 className="mb-2 text-sm font-semibold capitalize text-foreground/80">
                                                     {group}
                                                 </h3>
                                                 <div className="flex flex-wrap gap-3">
@@ -215,7 +215,11 @@ export default function Index({
                                                         return (
                                                             <label
                                                                 key={p.id}
-                                                                className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm"
+                                                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                                                                    isChecked
+                                                                        ? "border-primary/50 bg-primary/10 text-primary font-medium"
+                                                                        : "border-border bg-card text-foreground hover:bg-muted"
+                                                                }`}
                                                             >
                                                                 <input
                                                                     type="checkbox"
@@ -227,7 +231,7 @@ export default function Index({
                                                                             p.name,
                                                                         )
                                                                     }
-                                                                    className="rounded border-gray-300 text-indigo-600"
+                                                                    className="rounded border-border text-indigo-600 focus:ring-primary"
                                                                 />
                                                                 {
                                                                     p.name.split(
@@ -244,7 +248,7 @@ export default function Index({
                                 </div>
                             </>
                         ) : (
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-muted-foreground">
                                 No role selected
                             </p>
                         )}
@@ -259,13 +263,13 @@ export default function Index({
             >
                 <form onSubmit={submitCreate} className="space-y-3">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground">
                             Role Name
                         </label>
                         <input
                             value={data.name}
                             onChange={(e) => setData("name", e.target.value)}
-                            className="mt-1 w-full rounded-md border-gray-300 text-sm"
+                            className="mt-1 w-full rounded-md border-border bg-input text-sm text-foreground focus:border-primary focus:ring-primary"
                             placeholder="e.g. Cashier"
                         />
                         {errors.name && (
@@ -278,7 +282,7 @@ export default function Index({
                         <button
                             type="button"
                             onClick={() => setShowCreate(false)}
-                            className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                            className="rounded-md px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
                             Cancel
                         </button>

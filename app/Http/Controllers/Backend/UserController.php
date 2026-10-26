@@ -70,7 +70,10 @@ class UserController extends Controller
             ...($request->password ? ['password' => bcrypt($request->password)] : []),
         ]);
 
-        $user->syncRoles([$request->role]);
+        $rolesToSync = $request->role ? [$request->role] : ($request->roles ?? []);
+        if (!empty($rolesToSync)) {
+            $user->syncRoles($rolesToSync);
+        }
 
         ActivityLogService::log('users', 'updated', "User {$user->name} updated", $user);
 

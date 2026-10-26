@@ -89,7 +89,7 @@ function PresenceAvatar({
 
     return (
         <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 ${getRingClass(status)}`}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-sm font-semibold text-indigo-700 dark:text-indigo-400 ${getRingClass(status)}`}
         >
             {name.charAt(0)}
         </div>
@@ -150,7 +150,7 @@ export default function Index({
                     </div>
 
                     {/* Live indicator — shows polling is active */}
-                    <div className="flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                    <div className="flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-400">
                         <span className="relative flex h-2 w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />

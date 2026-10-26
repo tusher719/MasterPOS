@@ -10,6 +10,8 @@ class LoginHistoryController extends Controller
 {
     public function index()
     {
+        abort_unless(auth()->user()?->can('users.view'), 403);
+
         $histories = LoginHistory::with('user:id,name,email,last_seen_at')
             ->latest('logged_in_at')
             ->paginate(15);

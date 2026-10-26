@@ -59,12 +59,13 @@ Sprint 8 — Public Storefront (active)
 - Item 10.5 Checkout (pending)
 - Item 10.6 Order confirmation (pending)
 
-### Sprint 1 — Auth & Core ✅
+### Sprint 1 — Auth & Core ✅ (Audited & Tested)
 
-- Login, Registration, Email Verification
-- AuthenticatedLayout, GuestLayout
-- User Management (CRUD + roles)
-- Role Management (Spatie)
+- Login, Registration, Email Verification (All 25 Auth/Profile tests passing via `DatabaseTransactions`)
+- AuthenticatedLayout, GuestLayout (Light & Dark mode tokens verified)
+- User Management (CRUD + roles + UpdateUserRequest fix + Light/Dark mode verified + 7 Feature tests passing)
+- Role Management (Spatie + English flash message + Light/Dark mode matrix + 6 Feature tests passing)
+- Login Histories & Activity Logs (`users.view` permission guard added + Dark mode verified)
 
 ### Sprint 2 — Settings & Catalogue ✅
 

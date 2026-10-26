@@ -64,7 +64,7 @@ class RoleController extends Controller
         $this->authorize('delete', Role::class);
 
         if (in_array($role->name, ['Admin'])) {
-            return back()->with('error', 'এই Role ডিলিট করা যাবে না');
+            return back()->with('error', 'The Admin role cannot be deleted.');
         }
 
         $role->delete();

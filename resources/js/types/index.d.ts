@@ -5,13 +5,19 @@ export interface User {
     email_verified_at?: string;
 }
 
-export interface PageProps {
+export type PageProps<
+    T extends Record<string, unknown> = Record<string, unknown>,
+> = T & {
     auth: {
         user: User;
     };
     settings: Record<string, string | null>;
+    flash?: {
+        success?: string;
+        error?: string;
+    };
     [key: string]: unknown;
-}
+};
 
 // ─── User Preferences Types ──────────────────────────────────────────────────
 export interface UserTheme {

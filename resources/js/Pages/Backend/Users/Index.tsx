@@ -213,7 +213,7 @@ export default function Index({
                                         {u.email}
                                     </span>
                                     {u.email_verified_at ? (
-                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-950/50 dark:text-green-400">
                                             <svg
                                                 className="h-3 w-3"
                                                 fill="none"
@@ -230,7 +230,7 @@ export default function Index({
                                             Verified
                                         </span>
                                     ) : (
-                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
                                             <svg
                                                 className="h-3 w-3"
                                                 fill="none"
@@ -253,7 +253,7 @@ export default function Index({
                         {
                             header: "Role",
                             accessor: (u) => (
-                                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700">
+                                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 dark:bg-purple-950/50 dark:text-purple-400">
                                     {u.roles.map((r) => r.name).join(", ") ||
                                         "-"}
                                 </span>
@@ -265,8 +265,8 @@ export default function Index({
                                 <span
                                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                                         u.status === "active"
-                                            ? "bg-green-50 text-green-700"
-                                            : "bg-gray-100 text-gray-500"
+                                            ? "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400"
+                                            : "bg-muted text-muted-foreground"
                                     }`}
                                 >
                                     {u.status}
@@ -279,13 +279,13 @@ export default function Index({
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => openEdit(u)}
-                                        className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100"
+                                        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                                     >
                                         <Pencil size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleDelete(u)}
-                                        className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                                        className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
                                     >
                                         <Archive size={16} />
                                     </button>

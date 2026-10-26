@@ -9,9 +9,9 @@ interface Paginated<T> {
 }
 
 const actionColor: Record<string, string> = {
-    created: "bg-green-50 text-green-700",
-    updated: "bg-blue-50 text-blue-700",
-    deleted: "bg-red-50 text-red-700",
+    created: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400",
+    updated: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400",
+    deleted: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400",
 };
 
 export default function Index({
@@ -37,17 +37,17 @@ export default function Index({
             <div className="space-y-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-foreground">
                             Activity Log
                         </h1>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             History of who did what action in the system
                         </p>
                     </div>
                     <select
                         value={filters.module ?? ""}
                         onChange={(e) => filterByModule(e.target.value)}
-                        className="rounded-md border-gray-300 text-sm"
+                        className="rounded-md border-border bg-input text-foreground text-sm focus:border-primary focus:ring-primary"
                     >
                         <option value="">All Module</option>
                         {modules.map((m) => (
@@ -67,7 +67,7 @@ export default function Index({
                         {
                             header: "Module",
                             accessor: (l) => (
-                                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 capitalize">
+                                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground capitalize">
                                     {l.module}
                                 </span>
                             ),
@@ -76,7 +76,7 @@ export default function Index({
                             header: "Action",
                             accessor: (l) => (
                                 <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${actionColor[l.action] ?? "bg-gray-50 text-gray-600"}`}
+                                    className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${actionColor[l.action] ?? "bg-muted text-muted-foreground"}`}
                                 >
                                     {l.action}
                                 </span>
