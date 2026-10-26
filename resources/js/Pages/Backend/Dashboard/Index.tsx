@@ -247,11 +247,11 @@ export default function DashboardIndex() {
                 {/* ── Header ── */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                             Dashboard
                         </h1>
-                        <p className="mt-0.5 text-sm text-gray-500">
-                            Business overview and analytics
+                        <p className="mt-0.5 text-sm text-gray-500 dark:text-neutral-400">
+                            Real-time enterprise metrics, sales analytics & inventory telemetry
                         </p>
                     </div>
 
@@ -392,9 +392,9 @@ function Section({
     children: React.ReactNode;
 }) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white">
-            <div className="border-b border-gray-100 px-5 py-3">
-                <h2 className="text-sm font-medium text-gray-700">{title}</h2>
+        <div className="rounded-2xl border border-gray-200/80 bg-white shadow-2xs transition-all dark:border-neutral-800/80 dark:bg-neutral-900">
+            <div className="border-b border-gray-100/80 px-5 py-3.5 dark:border-neutral-800">
+                <h2 className="text-sm font-semibold tracking-tight text-gray-800 dark:text-neutral-200">{title}</h2>
             </div>
             <div className="p-5">{loading ? <Skeleton /> : children}</div>
         </div>
@@ -404,9 +404,9 @@ function Section({
 function Skeleton() {
     return (
         <div className="animate-pulse space-y-3">
-            <div className="h-4 w-3/4 rounded bg-gray-100" />
-            <div className="h-4 w-1/2 rounded bg-gray-100" />
-            <div className="h-4 w-2/3 rounded bg-gray-100" />
+            <div className="h-4 w-3/4 rounded-md bg-gray-100 dark:bg-neutral-800" />
+            <div className="h-4 w-1/2 rounded-md bg-gray-100 dark:bg-neutral-800" />
+            <div className="h-4 w-2/3 rounded-md bg-gray-100 dark:bg-neutral-800" />
         </div>
     );
 }

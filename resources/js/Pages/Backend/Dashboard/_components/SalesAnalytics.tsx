@@ -73,14 +73,14 @@ function PieTooltip({
     if (!active || !payload?.length) return null;
     const entry = payload[0];
     return (
-        <div className="rounded-xl border border-gray-100 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs">
-            <p className="mb-1 font-semibold text-gray-800">{entry.name}</p>
-            <p className="text-gray-500">
-                Amount: <span className="font-semibold text-gray-800">{fmtCurrency(Number(entry.payload.total))}</span>
+        <div className="rounded-xl border border-gray-100 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs dark:border-neutral-800 dark:bg-neutral-900/95">
+            <p className="mb-1 font-semibold text-gray-800 dark:text-neutral-200">{entry.name}</p>
+            <p className="text-gray-500 dark:text-neutral-400">
+                Amount: <span className="font-semibold text-gray-800 dark:text-neutral-200">{fmtCurrency(Number(entry.payload.total))}</span>
             </p>
             {entry.payload.count !== undefined && (
-                <p className="text-gray-500">
-                    Orders: <span className="font-semibold text-gray-800">{Number(entry.payload.count).toLocaleString()}</span>
+                <p className="text-gray-500 dark:text-neutral-400">
+                    Orders: <span className="font-semibold text-gray-800 dark:text-neutral-200">{Number(entry.payload.count).toLocaleString()}</span>
                 </p>
             )}
         </div>
@@ -124,8 +124,8 @@ function DonutWithCenter({
                 </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <p className="text-[10px] uppercase tracking-wide text-gray-400">{centerLabel}</p>
-                <p className="text-sm font-bold text-gray-800">{centerValue}</p>
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-neutral-500">{centerLabel}</p>
+                <p className="text-sm font-bold text-gray-800 dark:text-neutral-100">{centerValue}</p>
             </div>
         </div>
     );
@@ -152,25 +152,25 @@ function RankedBarList({
                         <div className="mb-1 flex items-center justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-1.5">
                                 {iconFor && (
-                                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500 group-hover:bg-white">
+                                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500 group-hover:bg-white dark:bg-neutral-800 dark:text-neutral-400 dark:group-hover:bg-neutral-700">
                                         {iconFor(r.label)}
                                     </span>
                                 )}
-                                <span className="truncate text-xs font-medium text-gray-700">{r.label}</span>
+                                <span className="truncate text-xs font-medium text-gray-700 dark:text-neutral-300">{r.label}</span>
                             </div>
                             <div className="flex flex-shrink-0 items-center gap-1.5">
-                                <span className="text-xs font-semibold text-gray-800">{fmtCurrency(r.total)}</span>
-                                <span className="w-9 text-right text-[10px] text-gray-400">{pct.toFixed(1)}%</span>
+                                <span className="text-xs font-semibold text-gray-800 dark:text-neutral-200">{fmtCurrency(r.total)}</span>
+                                <span className="w-9 text-right text-[10px] text-gray-400 dark:text-neutral-500">{pct.toFixed(1)}%</span>
                             </div>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-neutral-800">
                             <div
                                 className={`h-full rounded-full ${barColor} transition-all duration-500`}
                                 style={{ width: `${pct}%` }}
                             />
                         </div>
                         {r.count !== undefined && (
-                            <p className="mt-0.5 text-[10px] text-gray-400">{r.count.toLocaleString()} orders</p>
+                            <p className="mt-0.5 text-[10px] text-gray-400 dark:text-neutral-500">{r.count.toLocaleString()} orders</p>
                         )}
                     </div>
                 );
@@ -182,7 +182,7 @@ function RankedBarList({
 export default function SalesAnalytics({ analytics }: Props) {
     if (!analytics) {
         return (
-            <div className="flex h-48 items-center justify-center text-sm text-gray-400">
+            <div className="flex h-48 items-center justify-center text-sm text-gray-400 dark:text-neutral-500">
                 Loading...
             </div>
         );
@@ -199,12 +199,12 @@ export default function SalesAnalytics({ analytics }: Props) {
         <div className="space-y-6">
             {/* Payment methods */}
             <div>
-                <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                <p className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-neutral-500">
                     <Wallet className="h-3.5 w-3.5" />
                     Payment methods
                 </p>
                 {paymentData.length === 0 ? (
-                    <p className="text-xs text-gray-400">No sales in this period.</p>
+                    <p className="text-xs text-gray-400 dark:text-neutral-500">No sales in this period.</p>
                 ) : (
                     <div className="space-y-4">
                         <DonutWithCenter
@@ -224,24 +224,24 @@ export default function SalesAnalytics({ analytics }: Props) {
 
             {/* Payment status */}
             <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-neutral-500">
                     Payment status
                 </p>
                 <div className="space-y-1.5">
                     {analytics.status_breakdown.length === 0 ? (
-                        <p className="text-xs text-gray-400">No data.</p>
+                        <p className="text-xs text-gray-400 dark:text-neutral-500">No data.</p>
                     ) : (
                         analytics.status_breakdown.map((s) => (
                             <div
                                 key={s.payment_status}
-                                className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-xs"
+                                className="flex items-center justify-between rounded-xl border border-gray-100/80 px-3 py-2 text-xs transition-colors hover:bg-gray-50/50 dark:border-neutral-800/80 dark:hover:bg-neutral-800/30"
                             >
                                 <span className={["rounded-full px-2 py-0.5 font-medium", statusColor(s.payment_status)].join(" ")}>
                                     {statusLabel(s.payment_status)}
                                 </span>
-                                <div className="flex items-center gap-3 text-gray-600">
+                                <div className="flex items-center gap-3 text-gray-600 dark:text-neutral-400">
                                     <span>{Number(s.count).toLocaleString()} orders</span>
-                                    <span className="font-semibold text-gray-800">{fmtCurrency(Number(s.total))}</span>
+                                    <span className="font-semibold text-gray-900 dark:text-neutral-100">{fmtCurrency(Number(s.total))}</span>
                                 </div>
                             </div>
                         ))

@@ -3,22 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import CustomerTable from "./_components/CustomerTable";
-import CustomerModal from "./_components/CustomerModal";
+import CustomerModal, { Customer } from "./_components/CustomerModal";
 import { Users, UserCheck, UserX, Wallet } from "lucide-react";
-
-interface Customer {
-    id: number;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-    city: string | null;
-    country: string;
-    opening_balance: string;
-    is_active: boolean;
-    deleted_at: string | null;
-    created_at: string;
-}
 
 interface Stats {
     total: number;

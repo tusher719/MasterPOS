@@ -9,6 +9,7 @@ use App\Models\PurchaseReturn;
 use App\Models\PurchaseReturnItem;
 use App\Models\StockMovement;
 use App\Services\ActivityLogService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,11 +19,13 @@ use Inertia\Inertia;
 
 class PurchaseReturnController extends Controller
 {
+    use AuthorizesRequests;
+
     // ─── Index ────────────────────────────────────────────────────────────────
 
     public function index(Request $request): \Inertia\Response
     {
-        abort_unless(Gate::allows('purchase_return.view'), 403);
+        $this->authorize('viewAny', PurchaseReturn::class);
 
         $query = PurchaseReturn::with([
             'purchase:id,reference_no,supplier_id',
@@ -78,9 +81,9 @@ class PurchaseReturnController extends Controller
             'stats'    => $stats,
             'filters'  => $request->only(['search', 'status', 'return_type', 'date_from', 'date_to', 'trashed']),
             'can'      => [
-                'create'  => Gate::allows('purchase_return.create'),
-                'confirm' => Gate::allows('purchase_return.confirm'),
-                'delete'  => Gate::allows('purchase_return.delete'),
+                'create'  => Gate::allows('create', PurchaseReturn::class),
+                'confirm' => Gate::allows('confirm', PurchaseReturn::class),
+                'delete'  => Gate::allows('delete', PurchaseReturn::class),
             ],
         ]);
     }
@@ -91,7 +94,7 @@ class PurchaseReturnController extends Controller
 
     public function store(StorePurchaseReturnRequest $request): \Illuminate\Http\RedirectResponse
     {
-        abort_unless(Gate::allows('purchase_return.create'), 403);
+        $this->authorize('create', PurchaseReturn::class);
 
         // Validate return quantities do not exceed what was originally purchased
         $purchase = Purchase::with('items.product')->findOrFail($request->purchase_id);
@@ -152,7 +155,7 @@ class PurchaseReturnController extends Controller
 
     public function confirm(PurchaseReturn $purchaseReturn): RedirectResponse
     {
-        abort_unless(Gate::allows('purchase_return.confirm'), 403);
+        $this->authorize('confirm', PurchaseReturn::class);
 
         // Guard — only draft returns can be confirmed
         if ($purchaseReturn->isConfirmed()) {
@@ -222,7 +225,7 @@ class PurchaseReturnController extends Controller
 
     public function destroy(PurchaseReturn $purchaseReturn): RedirectResponse
     {
-        abort_unless(Gate::allows('purchase_return.delete'), 403);
+        $this->authorize('delete', PurchaseReturn::class);
 
         if ($purchaseReturn->isConfirmed()) {
             return back()->withErrors(['delete' => 'Confirmed returns cannot be deleted.']);
@@ -244,7 +247,7 @@ class PurchaseReturnController extends Controller
 
     public function restore(int $id): RedirectResponse
     {
-        abort_unless(Gate::allows('purchase_return.delete'), 403);
+        $this->authorize('restore', PurchaseReturn::class);
 
         // Rule 2 — always use onlyTrashed()->findOrFail() for restore
         $purchaseReturn = PurchaseReturn::onlyTrashed()->findOrFail($id);

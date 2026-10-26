@@ -28,10 +28,10 @@ function ChangeBadge({ pct }: { pct: number }) {
     return (
         <span
             className={[
-                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border",
                 positive
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700",
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60"
+                    : "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60",
             ].join(" ")}
         >
             {positive ? (
@@ -58,20 +58,20 @@ function KpiCard({
     accent: string;
 }) {
     return (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
             <div className="flex items-start justify-between">
                 <div>
-                    <p className="text-xs text-gray-500">{label}</p>
-                    <p className="mt-1 text-lg font-semibold text-gray-800">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+                    <p className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">
                         {value}
                     </p>
                 </div>
-                <div className={`rounded-md p-2 ${accent}`}>{icon}</div>
+                <div className={`rounded-xl p-2.5 ${accent}`}>{icon}</div>
             </div>
             {changePct !== undefined && (
-                <div className="mt-2">
+                <div className="mt-3 flex items-center gap-1.5">
                     <ChangeBadge pct={changePct} />
-                    <span className="ml-1.5 text-[11px] text-gray-400">
+                    <span className="text-[11px] text-slate-400">
                         vs previous period
                     </span>
                 </div>
@@ -89,28 +89,28 @@ export default function FinancialSummary({ financial }: Props) {
                     label="Total Revenue"
                     value={fmtCurrency(financial.revenue)}
                     changePct={financial.revenue_change_pct}
-                    icon={<Wallet className="h-4 w-4 text-indigo-600" />}
-                    accent="bg-indigo-50"
+                    icon={<Wallet className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />}
+                    accent="bg-indigo-50 dark:bg-indigo-950/50"
                 />
                 <KpiCard
                     label="Total Expenses"
                     value={fmtCurrency(financial.expenses)}
                     changePct={financial.expenses_change_pct}
-                    icon={<Receipt className="h-4 w-4 text-red-500" />}
-                    accent="bg-red-50"
+                    icon={<Receipt className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400" />}
+                    accent="bg-rose-50 dark:bg-rose-950/50"
                 />
                 <KpiCard
                     label="Net Profit"
                     value={fmtCurrency(financial.net_profit)}
                     changePct={financial.profit_change_pct}
-                    icon={<PiggyBank className="h-4 w-4 text-green-600" />}
-                    accent="bg-green-50"
+                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
+                    accent="bg-emerald-50 dark:bg-emerald-950/50"
                 />
                 <KpiCard
-                    label="Total Sales"
+                    label="Total Sales Orders"
                     value={financial.sales_count.toLocaleString()}
-                    icon={<ShoppingCart className="h-4 w-4 text-amber-600" />}
-                    accent="bg-amber-50"
+                    icon={<ShoppingCart className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />}
+                    accent="bg-amber-50 dark:bg-amber-950/50"
                 />
             </div>
 
@@ -119,26 +119,26 @@ export default function FinancialSummary({ financial }: Props) {
                 <KpiCard
                     label="Today's Revenue"
                     value={fmtCurrency(financial.today_revenue)}
-                    icon={<Wallet className="h-4 w-4 text-indigo-500" />}
-                    accent="bg-indigo-50"
+                    icon={<Wallet className="h-4.5 w-4.5 text-indigo-500 dark:text-indigo-400" />}
+                    accent="bg-indigo-50 dark:bg-indigo-950/50"
                 />
                 <KpiCard
                     label="Today's Profit"
                     value={fmtCurrency(financial.today_profit)}
-                    icon={<PiggyBank className="h-4 w-4 text-green-500" />}
-                    accent="bg-green-50"
+                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-500 dark:text-emerald-400" />}
+                    accent="bg-emerald-50 dark:bg-emerald-950/50"
                 />
                 <KpiCard
-                    label="Avg. Order Value"
+                    label="Avg. Order Value (AOV)"
                     value={fmtCurrency(financial.aov)}
-                    icon={<ShoppingCart className="h-4 w-4 text-gray-500" />}
-                    accent="bg-gray-100"
+                    icon={<ShoppingCart className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400" />}
+                    accent="bg-slate-100 dark:bg-slate-800"
                 />
                 <KpiCard
-                    label="Profit Margin"
+                    label="Gross Profit Margin"
                     value={`${financial.profit_margin.toFixed(1)}%`}
-                    icon={<TrendingUp className="h-4 w-4 text-amber-500" />}
-                    accent="bg-amber-50"
+                    icon={<TrendingUp className="h-4.5 w-4.5 text-amber-500 dark:text-amber-400" />}
+                    accent="bg-amber-50 dark:bg-amber-950/50"
                 />
             </div>
 
@@ -147,26 +147,26 @@ export default function FinancialSummary({ financial }: Props) {
                 <KpiCard
                     label="Sales Due"
                     value={fmtCurrency(financial.sales_due)}
-                    icon={<Receipt className="h-4 w-4 text-amber-600" />}
-                    accent="bg-amber-50"
+                    icon={<Receipt className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />}
+                    accent="bg-amber-50 dark:bg-amber-950/50"
                 />
                 <KpiCard
                     label="Purchase Due"
                     value={fmtCurrency(financial.purchase_due)}
-                    icon={<Receipt className="h-4 w-4 text-red-500" />}
-                    accent="bg-red-50"
+                    icon={<Receipt className="h-4.5 w-4.5 text-rose-500 dark:text-rose-400" />}
+                    accent="bg-rose-50 dark:bg-rose-950/50"
                 />
                 <KpiCard
-                    label="Total Investment"
+                    label="Total Capital Investment"
                     value={fmtCurrency(financial.total_investment)}
-                    icon={<PiggyBank className="h-4 w-4 text-indigo-600" />}
-                    accent="bg-indigo-50"
+                    icon={<PiggyBank className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />}
+                    accent="bg-indigo-50 dark:bg-indigo-950/50"
                 />
                 <KpiCard
-                    label="Total Distributed"
+                    label="Distributed Profit"
                     value={fmtCurrency(financial.total_distributed)}
-                    icon={<PiggyBank className="h-4 w-4 text-green-600" />}
-                    accent="bg-green-50"
+                    icon={<PiggyBank className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />}
+                    accent="bg-emerald-50 dark:bg-emerald-950/50"
                 />
             </div>
         </div>

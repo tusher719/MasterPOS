@@ -2,20 +2,7 @@ import { router } from "@inertiajs/react";
 import { useCallback, useState } from "react";
 import Swal from "sweetalert2";
 import { Pencil, Trash2, RotateCcw, Search, Filter } from "lucide-react";
-
-interface Customer {
-    id: number;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    address: string | null;
-    city: string | null;
-    country: string;
-    opening_balance: string;
-    is_active: boolean;
-    deleted_at: string | null;
-    created_at: string;
-}
+import { Customer } from "./CustomerModal";
 
 interface Filters {
     search?: string;

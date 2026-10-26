@@ -616,7 +616,7 @@ export default function FraudFlagsIndex({
                         <select
                             value={triggerType}
                             onChange={(e) => {
-                                setTriggerType(e.target.value);
+                                setTriggerType(e.target.value as any);
                                 applyFilters({ trigger_type: e.target.value });
                             }}
                             className="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -632,7 +632,7 @@ export default function FraudFlagsIndex({
                         <select
                             value={reason}
                             onChange={(e) => {
-                                setReason(e.target.value);
+                                setReason(e.target.value as any);
                                 applyFilters({ reason: e.target.value });
                             }}
                             className="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -749,7 +749,7 @@ export default function FraudFlagsIndex({
                                                 {formatDate(flag.flagged_at)}
                                             </td>
                                             <td className="px-4 py-3 text-xs text-gray-500">
-                                                {flag.flaggedBy?.name ?? (
+                                                {(flag.flagged_by_user ?? (flag as any).flaggedBy)?.name ?? (
                                                     <span className="italic text-gray-400">
                                                         System
                                                     </span>

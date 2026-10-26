@@ -396,7 +396,6 @@ export default function PreOrdersIndex({
                                                     {can.manage &&
                                                         !preOrder.deleted_at &&
                                                         !preOrder.linked_sale_id &&
-                                                        !preOrder.isCancelled &&
                                                         preOrder.status !== "cancelled" && (
                                                         <button
                                                             onClick={() => setConvertTarget(preOrder)}

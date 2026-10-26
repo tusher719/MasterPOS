@@ -48,15 +48,15 @@ function ProductCard({
     const maxVal = Math.max(...rows.map((r) => Number(r[valueKey]) || 0), 1);
 
     return (
-        <div className="rounded-xl border border-gray-100 p-4">
+        <div className="rounded-xl border border-gray-100/80 bg-gray-50/30 p-4 dark:border-neutral-800/80 dark:bg-neutral-800/20">
             <p
-                className={`mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider ${accent}`}
+                className={`mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${accent}`}
             >
                 {icon}
                 {title}
             </p>
             {rows.length === 0 ? (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 dark:text-neutral-500">
                     No data for this period.
                 </p>
             ) : (
@@ -70,33 +70,33 @@ function ProductCard({
                             >
                                 <span
                                     className={[
-                                        "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white",
+                                        "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-2xs",
                                         i < 3
                                             ? RANK_COLORS[i]
-                                            : "bg-gray-200 text-gray-500",
+                                            : "bg-gray-200 text-gray-500 dark:bg-neutral-800 dark:text-neutral-400",
                                     ].join(" ")}
                                 >
                                     {i + 1}
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-2">
-                                        <p className="truncate text-xs font-medium text-gray-700">
+                                        <p className="truncate text-xs font-medium text-gray-700 dark:text-neutral-300">
                                             {r.name}
                                         </p>
-                                        <p className="flex-shrink-0 text-xs font-semibold text-gray-800">
+                                        <p className="flex-shrink-0 text-xs font-semibold text-gray-900 dark:text-neutral-100">
                                             {fmtCurrency(val)}
                                         </p>
                                     </div>
                                     <div className="mt-1 flex items-center gap-2">
-                                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-neutral-800">
                                             <div
-                                                className="h-full rounded-full bg-indigo-400"
+                                                className="h-full rounded-full bg-indigo-500 dark:bg-indigo-400"
                                                 style={{
                                                     width: `${(val / maxVal) * 100}%`,
                                                 }}
                                             />
                                         </div>
-                                        <span className="flex-shrink-0 text-[10px] text-gray-400">
+                                        <span className="flex-shrink-0 text-[10px] text-gray-400 dark:text-neutral-500">
                                             {r.total_qty} sold
                                         </span>
                                     </div>

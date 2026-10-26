@@ -66,18 +66,18 @@ export default function NeedsAttention({ data }: Props) {
     if (active.length === 0) return null;
 
     return (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4">
-            <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-700">
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 shadow-2xs backdrop-blur-xs dark:border-amber-900/40 dark:bg-amber-950/20">
+            <p className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                Needs your attention
+                Action Required
             </p>
             <div className="flex flex-wrap gap-2">
                 {active.map((item) => {
                     const content = (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100">
-                            {item.icon}
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200/80 bg-white/90 px-3 py-1.5 text-xs font-medium text-amber-900 shadow-2xs transition hover:bg-amber-100/60 dark:border-amber-800/40 dark:bg-neutral-900 dark:text-amber-200 dark:hover:bg-amber-950/40">
+                            <span className="text-amber-600 dark:text-amber-400">{item.icon}</span>
                             {item.label}
-                            <span className="rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            <span className="rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-xs dark:bg-amber-500">
                                 {data[item.key]}
                             </span>
                         </span>

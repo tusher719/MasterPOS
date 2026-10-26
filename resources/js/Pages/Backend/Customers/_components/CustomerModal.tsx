@@ -1,7 +1,7 @@
 import { useForm } from "@inertiajs/react";
 import { X } from "lucide-react";
 
-interface Customer {
+export interface Customer {
     id: number;
     name: string;
     email: string | null;

@@ -58,6 +58,16 @@ class DatabaseSeeder extends Seeder
             Step17Phase4GPermissionSeeder::class,
             Step17Gap22PermissionSeeder::class,
 
+            // Purchase Returns, Pre-Orders, Tasks & Features
+            PurchaseReturnSeeder::class,
+            FeatureAnnouncementSeeder::class,
+            FraudFlagSeeder::class,
+            OrderTaskSeeder::class,
+            PreOrderSeeder::class,
+            LegalPageSeeder::class,
+            ProductPlanningTaskSeeder::class,
+            QuickLinkSeeder::class,
+
             // System notifications
             NotificationSeeder::class,
         ]);

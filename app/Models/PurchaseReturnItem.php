@@ -38,6 +38,6 @@ class PurchaseReturnItem extends Model
 
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'variant_id')->withTrashed();
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 }

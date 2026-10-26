@@ -2,7 +2,7 @@ import { PageProps } from "@/types";
 import { usePage } from "@inertiajs/react";
 
 export function useSettings() {
-    const { settings } = usePage<PageProps>().props;
+    const settings = usePage<PageProps>().props.settings ?? {};
 
     return {
         currency: settings.currency_symbol ?? "৳",

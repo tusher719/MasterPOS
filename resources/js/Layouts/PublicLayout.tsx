@@ -7,19 +7,19 @@ import { Head, usePage } from "@inertiajs/react";
 import { PropsWithChildren } from "react";
 
 interface PublicLayoutProps extends PropsWithChildren {
+    settings?: PublicSettings;
     categories?: PublicCategory[];
     cartCount?: number;
 }
 
 export default function PublicLayout({
     children,
+    settings: propSettings,
     categories = [],
     cartCount = 0,
 }: PublicLayoutProps) {
-    // settings globally shared via HandleInertiaRequests — never pass as prop
-    const { settings } = usePage().props as unknown as {
-        settings: PublicSettings;
-    };
+    const pageSettings = (usePage().props as unknown as { settings?: PublicSettings })?.settings;
+    const settings = propSettings ?? pageSettings ?? ({} as PublicSettings);
 
     return (
         <>

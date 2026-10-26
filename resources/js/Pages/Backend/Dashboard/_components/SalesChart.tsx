@@ -55,8 +55,8 @@ function CustomTooltip({
     if (!active || !payload?.length || !label) return null;
 
     return (
-        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm text-xs">
-            <p className="mb-1.5 font-medium text-gray-700">
+        <div className="rounded-xl border border-gray-200/80 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm text-xs dark:border-neutral-800 dark:bg-neutral-900/95">
+            <p className="mb-1.5 font-semibold text-gray-800 dark:text-neutral-200">
                 {fmtLabel(label, granularity)}
             </p>
             {payload.map((entry) => (
@@ -65,10 +65,10 @@ function CustomTooltip({
                         className="inline-block h-2 w-2 rounded-full"
                         style={{ background: entry.color }}
                     />
-                    <span className="text-gray-500 capitalize">
+                    <span className="text-gray-500 capitalize dark:text-neutral-400">
                         {entry.name}:
                     </span>
-                    <span className="font-medium text-gray-700">
+                    <span className="font-semibold text-gray-800 dark:text-neutral-200">
                         {entry.name === "count"
                             ? entry.value.toLocaleString()
                             : fmtCurrency(Number(entry.value))}

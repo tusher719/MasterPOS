@@ -14,6 +14,11 @@ class PurchaseReturnPolicy
         return $user->hasPermissionTo('purchase_return.view');
     }
 
+    public function view(User $user): bool
+    {
+        return $user->hasPermissionTo('purchase_return.view');
+    }
+
     public function create(User $user): bool
     {
         return $user->hasPermissionTo('purchase_return.create');
