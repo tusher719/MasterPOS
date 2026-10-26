@@ -303,8 +303,6 @@ Route::middleware(['auth', 'verified', 'maintenance'])
                 ->name('pos.sales.update-order-status');
 
             Route::get('/sales', [SaleController::class, 'salesList'])->name('pos.sales.index');
-
-            Route::get('/sales', [SaleController::class, 'salesList'])->name('pos.sales.index');
             Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('pos.sales.show');
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('pos.sales.destroy');
         });

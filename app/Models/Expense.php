@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\HasCustomUuid;
 
 class Expense extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasCustomUuid;
 
     protected $fillable = [
+        'uuid',
         'reference_no',
         'title',
         'expense_category_id',

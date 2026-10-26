@@ -523,15 +523,15 @@ export default function HoldOrdersDrawer({
     const statusBadge = (status: "active" | "processing") =>
         status === "processing" ? (
             <span
-                className="rounded-full bg-amber-100 px-2 py-0.5 text-xs
-                             font-medium text-amber-700"
+                className="rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-xs
+                             font-medium text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60"
             >
                 Processing
             </span>
         ) : (
             <span
-                className="rounded-full bg-green-100 px-2 py-0.5 text-xs
-                             font-medium text-green-700"
+                className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-xs
+                             font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60"
             >
                 Active
             </span>
@@ -549,42 +549,42 @@ export default function HoldOrdersDrawer({
                 />
 
                 {/* Panel */}
-                <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-xl">
+                <div className="relative flex h-full w-full max-w-sm flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transition-colors">
                     {/* Header */}
-                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-3">
                         <div>
-                            <h2 className="font-semibold text-gray-800">
+                            <h2 className="font-semibold text-slate-800 dark:text-slate-100">
                                 Held Orders
                             </h2>
                             {total > 0 && (
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-slate-400">
                                     {total} order{total !== 1 ? "s" : ""}
                                 </p>
                             )}
                         </div>
                         <button
                             onClick={onClose}
-                            className="rounded p-1 text-gray-400 hover:bg-gray-100
-                                       hover:text-gray-600"
+                            className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800
+                                       hover:text-slate-600 dark:hover:text-slate-200"
                         >
                             <X size={18} />
                         </button>
                     </div>
 
                     {/* Filters */}
-                    <div className="border-b border-gray-100 px-4 py-3 space-y-2">
+                    <div className="border-b border-slate-100 dark:border-slate-800 px-4 py-3 space-y-2">
                         <div className="relative">
                             <Search
                                 size={14}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                             />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search reference or customer…"
-                                className="w-full rounded-md border border-gray-300 py-1.5
-                                           pl-8 pr-3 text-sm focus:border-indigo-500
+                                className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1.5
+                                           pl-8 pr-3 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500
                                            focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                         </div>
@@ -592,8 +592,8 @@ export default function HoldOrdersDrawer({
                             type="date"
                             value={date}
                             onChange={(e) => setDate(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 px-3 py-1.5
-                                       text-sm text-gray-600 focus:border-indigo-500
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5
+                                       text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500
                                        focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                     </div>
@@ -624,27 +624,27 @@ export default function HoldOrdersDrawer({
                                     return (
                                         <div
                                             key={order.id}
-                                            className={`rounded-lg border p-3 transition-colors ${
+                                            className={`rounded-xl border p-3.5 transition-all ${
                                                 isResumed
-                                                    ? "border-amber-400 bg-amber-50"
+                                                    ? "border-amber-400 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-600 shadow-sm"
                                                     : isProcessing
-                                                      ? "border-gray-200 bg-gray-50 opacity-75"
-                                                      : "border-gray-200 bg-white"
+                                                      ? "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 opacity-75"
+                                                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm"
                                             }`}
                                         >
                                             {/* Top row */}
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0">
-                                                    <p className="font-mono text-xs font-semibold text-indigo-600">
+                                                    <p className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
                                                         {order.reference_no}
                                                     </p>
-                                                    <p className="mt-0.5 truncate text-sm font-medium text-gray-800">
+                                                    <p className="mt-0.5 truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                                                         {order.customer?.name ??
                                                             "Walk-in Customer"}
                                                     </p>
                                                 </div>
                                                 <div className="shrink-0 text-right">
-                                                    <p className="text-sm font-semibold text-gray-800">
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                                                         ৳
                                                         {Number(
                                                             order.grand_total,
@@ -720,11 +720,11 @@ export default function HoldOrdersDrawer({
                                                         setEditingOrder(order)
                                                     }
                                                     disabled={isProcessing}
-                                                    className="flex items-center justify-center rounded-md
-                                                               border border-gray-200 px-2.5 py-1.5
-                                                               text-gray-400 hover:bg-gray-100
-                                                               hover:text-gray-600 disabled:cursor-not-allowed
-                                                               disabled:opacity-40"
+                                                    className="flex items-center justify-center rounded-lg
+                                                               border border-slate-200 dark:border-slate-700 px-2.5 py-1.5
+                                                               text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700
+                                                               hover:text-slate-600 dark:hover:text-slate-200 disabled:cursor-not-allowed
+                                                               disabled:opacity-40 transition-colors"
                                                 >
                                                     <Pencil size={13} />
                                                 </button>
@@ -736,10 +736,10 @@ export default function HoldOrdersDrawer({
                                                     disabled={
                                                         deletingId === order.id
                                                     }
-                                                    className="flex items-center justify-center rounded-md
-                                                               border border-gray-200 px-2.5 py-1.5
-                                                               text-gray-400 hover:bg-red-50
-                                                               hover:text-red-500 disabled:opacity-50"
+                                                    className="flex items-center justify-center rounded-lg
+                                                               border border-slate-200 dark:border-slate-700 px-2.5 py-1.5
+                                                               text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40
+                                                               hover:text-rose-500 disabled:opacity-50 transition-colors"
                                                 >
                                                     {deletingId === order.id ? (
                                                         <Loader2

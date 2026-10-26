@@ -8,6 +8,7 @@ use App\Http\Requests\Backend\StoreAdditionalPaymentRequest;
 use App\Http\Requests\Backend\UpdateCourierRequest;
 use App\Http\Requests\Backend\UpdateOrderStatusRequest as BackendUpdateOrderStatusRequest;
 use App\Models\Customer;
+use App\Models\HoldOrder;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
@@ -304,6 +305,10 @@ class SaleController extends Controller
             $sale->load('items');
             $this->stockService->applyStock($sale);
 
+            if (! empty($data['hold_order_id'])) {
+                HoldOrder::find($data['hold_order_id'])?->delete();
+            }
+
             ActivityLogService::log(
                 'sales', 'create',
                 'Sale created: ' . $sale->reference_no,
@@ -348,6 +353,7 @@ class SaleController extends Controller
 
         return response()->json([
             'id'           => $sale?->id,
+            'uuid'         => $sale?->uuid,
             'reference_no' => $sale?->reference_no,
         ]);
     }

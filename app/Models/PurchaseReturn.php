@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\HasCustomUuid;
 
 class PurchaseReturn extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasCustomUuid;
 
     protected $fillable = [
+        'uuid',
         'purchase_id',
         'return_date',
         'return_type',

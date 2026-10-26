@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,30 +16,58 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(RolePermissionSeeder::class);
-        $this->call(BusinessSettingSeeder::class);
-        $this->call(PaymentMethodSeeder::class);
-        $this->call(ExpenseCategorySeeder::class);
-        $this->call(InvestmentTypeSeeder::class);
-        $this->call(Step03PermissionSeeder::class);
+        // Reset cached roles and permissions
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Step 04
-        $this->call(UnitSeeder::class);
-        $this->call(ProductCategorySeeder::class);
-        $this->call(Step04PermissionSeeder::class);
+        $this->call([
+            RolePermissionSeeder::class,
+            BusinessSettingSeeder::class,
+            PaymentMethodSeeder::class,
+            ExpenseCategorySeeder::class,
+            InvestmentTypeSeeder::class,
+            Step03PermissionSeeder::class,
 
-        $this->call(Step17Phase2PermissionSeeder::class);
-        $this->call(Step17Phase4GPermissionSeeder::class);
+            // Step 04 — Catalogue
+            UnitSeeder::class,
+            ProductCategorySeeder::class,
+            Step04PermissionSeeder::class,
 
-        // Notification
-        $this->call(NotificationSeeder::class);
+            // Core CRM, Inventory, POS & Finance permissions
+            Step05PermissionSeeder::class,
+            Step06PermissionSeeder::class,
+            Step07PermissionSeeder::class,
+            Step08PermissionSeeder::class,
+            Step09PermissionSeeder::class,
+            Step10PermissionSeeder::class,
+            Step11PermissionSeeder::class,
+            Step12PermissionSeeder::class,
+            Step13PermissionSeeder::class,
+            Step14PermissionSeeder::class,
+            Step16PermissionSeeder::class,
+
+            // Step 17 — Partner & Capital permissions
+            Step17PermissionSeeder::class,
+            Step17Phase2PermissionSeeder::class,
+            Step17Phase3PermissionSeeder::class,
+            Step17Phase4APermissionSeeder::class,
+            Step17Phase4BPermissionSeeder::class,
+            Step17Phase4CPermissionSeeder::class,
+            Step17Phase4DPermissionSeeder::class,
+            Step17Phase4EPermissionSeeder::class,
+            Step17Phase4FPermissionSeeder::class,
+            Step17Phase4GPermissionSeeder::class,
+            Step17Gap22PermissionSeeder::class,
+
+            // System notifications
+            NotificationSeeder::class,
+        ]);
 
         $admin = User::firstOrCreate(
             ['email' => 'admin@masterpos.test'],
             [
-                'name' => 'Super Admin',
+                'name'     => 'Super Admin',
                 'password' => bcrypt('password'),
-                'status' => 'active',
+                'status'   => 'active',
             ]
         );
         $admin->assignRole('Admin');

@@ -531,6 +531,7 @@ export default function POSIndex({
 
             const payload = {
                 customer_id: customerId,
+                hold_order_id: resumedHoldOrderId ?? null,
                 // Pass the registered customer's phone so Layer1ValidationService
                 // can validate it on the backend (walk-in phone not collected in POS UI)
                 customer_phone: selectedCustomer?.phone ?? null,
@@ -564,6 +565,7 @@ export default function POSIndex({
 
             setReceiptSale({
                 id: response.data?.id ?? 0,
+                uuid: response.data?.uuid ?? null,
                 reference_no: response.data?.reference_no ?? "",
                 sale_date: payload.sale_date,
                 customer_name: selectedCustomer?.name ?? null,

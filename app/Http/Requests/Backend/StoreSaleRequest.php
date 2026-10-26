@@ -16,6 +16,7 @@ class StoreSaleRequest extends FormRequest
         return [
             // ─── Sale Fields ───────────────────────────────────────────────────
             'customer_id'             => ['nullable', 'integer', 'exists:customers,id'],
+            'hold_order_id'           => ['nullable', 'integer', 'exists:hold_orders,id'],
             'send_email_confirmation' => ['nullable', 'boolean'],
             'sale_date'               => ['required', 'date'],
             'payment_method_id'       => ['nullable', 'integer', 'exists:payment_methods,id'],

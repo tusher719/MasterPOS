@@ -9,12 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
+use App\Traits\HasCustomUuid;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasCustomUuid;
 
     protected $fillable = [
+        'uuid',
         'name',
         'sku',
         'barcode',
