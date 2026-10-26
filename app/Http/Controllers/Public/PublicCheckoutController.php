@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
 use App\Models\Product;
@@ -12,8 +13,10 @@ use App\Models\SaleItem;
 use App\Models\SaleStatusHistory;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\CouponService;
 use App\Services\SaleStockService;
 use App\Services\SettingsService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +67,7 @@ class PublicCheckoutController extends Controller
             'customer_name'     => ['required', 'string', 'max:150'],
             'customer_phone'    => ['required', 'string', 'max:30'],
             'customer_email'    => ['nullable', 'email', 'max:150'],
+            'coupon_code'       => ['nullable', 'string', 'max:50'],
             'delivery_type'     => ['required', 'in:inside_dhaka,outside_dhaka,store_pickup'],
             'delivery_address'  => ['required_unless:delivery_type,store_pickup', 'nullable', 'string', 'max:500'],
             'payment_type'      => ['required', 'in:cash_on_delivery,full_paid'],
@@ -142,9 +146,6 @@ class PublicCheckoutController extends Controller
                 default         => 0.0,
             };
 
-            $grandTotal = $subtotal + $deliveryCharge;
-            $isCOD = $validated['payment_type'] === 'cash_on_delivery';
-
             // 3. Find or create Customer record
             $customer = Customer::firstOrCreate(
                 ['phone' => $validated['customer_phone']],
@@ -163,13 +164,53 @@ class PublicCheckoutController extends Controller
                 $customer->update(['address' => $validated['delivery_address']]);
             }
 
-            // 4. Create Sale
+            // 4. Validate & calculate coupon discount
+            $couponId       = null;
+            $couponCode     = null;
+            $couponDiscount = 0.0;
+            $appliedCoupon  = null;
+
+            if (! empty($validated['coupon_code'])) {
+                $couponService = app(CouponService::class);
+                $cartItemsFormatted = collect($itemsToCreate)->map(fn ($item) => [
+                    'product_id' => $item['product_id'],
+                    'quantity'   => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                ])->all();
+
+                $validation = $couponService->validate(
+                    $validated['coupon_code'],
+                    $subtotal,
+                    $customer->id,
+                    $validated['customer_phone'],
+                    $cartItemsFormatted
+                );
+
+                if (! $validation['valid']) {
+                    throw ValidationException::withMessages([
+                        'coupon_code' => $validation['message'],
+                    ]);
+                }
+
+                $appliedCoupon  = Coupon::find($validation['coupon_id']);
+                $couponId       = $appliedCoupon?->id;
+                $couponCode     = $appliedCoupon?->code;
+                $couponDiscount = (float) $validation['discount_amount'];
+            }
+
+            $grandTotal = max(0, $subtotal - $couponDiscount + $deliveryCharge);
+            $isCOD = $validated['payment_type'] === 'cash_on_delivery';
+
+            // 5. Create Sale
             $sale = Sale::create([
                 'reference_no'           => Sale::generateReference(),
                 'customer_id'            => $customer->id,
                 'sale_date'              => today(),
                 'subtotal'               => $subtotal,
                 'discount'               => 0,
+                'coupon_id'              => $couponId,
+                'coupon_code'            => $couponCode,
+                'coupon_discount'        => $couponDiscount,
                 'tax'                    => 0,
                 'grand_total'            => $grandTotal,
                 'paid_amount'            => $isCOD ? 0 : $grandTotal,
@@ -187,6 +228,16 @@ class PublicCheckoutController extends Controller
                 'note'                   => $validated['note'] ?? null,
                 'created_by'             => $adminId,
             ]);
+
+            if ($appliedCoupon && $couponDiscount > 0) {
+                app(CouponService::class)->recordUsage(
+                    $appliedCoupon,
+                    $sale,
+                    $couponDiscount,
+                    $customer->id,
+                    $validated['customer_phone']
+                );
+            }
 
             // 5. Create SaleItems
             foreach ($itemsToCreate as $itemData) {
@@ -274,5 +325,28 @@ class PublicCheckoutController extends Controller
                 'currency_symbol' => $settings['currency_symbol'] ?? '৳',
             ],
         ]);
+    }
+
+    /**
+     * Live AJAX validation endpoint for storefront checkout promo codes.
+     */
+    public function validateCoupon(Request $request, CouponService $couponService): JsonResponse
+    {
+        $validated = $request->validate([
+            'code'           => ['required', 'string'],
+            'subtotal'       => ['required', 'numeric', 'min:0'],
+            'customer_phone' => ['nullable', 'string'],
+            'items'          => ['nullable', 'array'],
+        ]);
+
+        $result = $couponService->validate(
+            $validated['code'],
+            (float) $validated['subtotal'],
+            null,
+            $validated['customer_phone'] ?? null,
+            $validated['items'] ?? []
+        );
+
+        return response()->json($result, $result['valid'] ? 200 : 422);
     }
 }

@@ -21,6 +21,8 @@ class StoreSaleRequest extends FormRequest
             'sale_date'               => ['required', 'date'],
             'payment_method_id'       => ['nullable', 'integer', 'exists:payment_methods,id'],
             'discount'                => ['nullable', 'numeric', 'min:0'],
+            'coupon_code'             => ['nullable', 'string', 'max:50'],
+            'coupon_discount'         => ['nullable', 'numeric', 'min:0'],
             'tax'                     => ['nullable', 'numeric', 'min:0'],
             'paid_amount'             => ['required', 'numeric', 'min:0'],
             'note'                    => ['nullable', 'string', 'max:1000'],

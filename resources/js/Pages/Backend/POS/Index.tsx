@@ -261,9 +261,12 @@ export default function POSIndex({
     const [orderBlocked, setOrderBlocked] = useState(false);
 
     // grandTotal includes paymentCharge
+    const [couponCode, setCouponCode] = useState("");
+    const [couponDiscount, setCouponDiscount] = useState(0);
+
     const grandTotal = useMemo(
-        () => Math.max(0, subtotal - discount + tax + paymentCharge),
-        [subtotal, discount, tax, paymentCharge],
+        () => Math.max(0, subtotal - discount - couponDiscount + tax + paymentCharge),
+        [subtotal, discount, couponDiscount, tax, paymentCharge],
     );
 
     const dueAmount = useMemo(
@@ -359,6 +362,34 @@ export default function POSIndex({
 
     const [receiptSale, setReceiptSale] = useState<any>(null);
 
+    const handleApplyCoupon = async (code: string) => {
+        try {
+            const res = await axios.post(route("backend.pos.coupons.validate"), {
+                code,
+                subtotal,
+                customer_id: customerId,
+                items: cartItems.map((i) => ({
+                    product_id: i.product_id,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                })),
+            });
+            if (res.data.valid) {
+                setCouponCode(res.data.coupon_code);
+                setCouponDiscount(Number(res.data.discount_amount));
+                toast.success(res.data.message);
+            }
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Invalid or ineligible coupon code.");
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode("");
+        setCouponDiscount(0);
+        toast.info("Coupon removed.");
+    };
+
     // ── Hold Orders state ─────────────────────────────────────────────────────
     const [showHoldDrawer, setShowHoldDrawer] = useState(false);
     const [resumedHoldOrderId, setResumedHoldOrderId] = useState<number | null>(
@@ -408,6 +439,8 @@ export default function POSIndex({
         setTransactionId("");
         setPaymentReference("");
         setDiscount(0);
+        setCouponCode("");
+        setCouponDiscount(0);
         setTax(0);
         setPaidAmount(0);
         setNote("");
@@ -575,6 +608,8 @@ export default function POSIndex({
                 payment_type: paymentType,
                 subtotal,
                 discount,
+                coupon_code: couponCode || null,
+                coupon_discount: couponDiscount,
                 tax,
                 payment_charge: isCOD ? 0 : paymentCharge,
                 grand_total: grandTotal,
@@ -726,6 +761,10 @@ export default function POSIndex({
                             transactionId={transactionId}
                             paymentReference={paymentReference}
                             discount={discount}
+                            couponCode={couponCode}
+                            couponDiscount={couponDiscount}
+                            onApplyCoupon={handleApplyCoupon}
+                            onRemoveCoupon={handleRemoveCoupon}
                             tax={tax}
                             paidAmount={paidAmount}
                             note={note}

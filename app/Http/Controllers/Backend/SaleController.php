@@ -7,6 +7,7 @@ use App\Http\Requests\Backend\StoreSaleRequest;
 use App\Http\Requests\Backend\StoreAdditionalPaymentRequest;
 use App\Http\Requests\Backend\UpdateCourierRequest;
 use App\Http\Requests\Backend\UpdateOrderStatusRequest as BackendUpdateOrderStatusRequest;
+use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\HoldOrder;
 use App\Models\PaymentMethod;
@@ -17,6 +18,7 @@ use App\Models\SalePayment;
 use App\Models\SaleStatusHistory;
 use App\Notifications\NewSaleNotification;
 use App\Services\ActivityLogService;
+use App\Services\CouponService;
 use App\Services\Fraud\Layer1ValidationService;
 use App\Services\Fraud\Layer2IpOrderLimitService;
 use App\Services\Fraud\Layer3SuccessRatioService;
@@ -203,7 +205,7 @@ class SaleController extends Controller
 
         $saleId = null;
 
-        DB::transaction(function () use ($data, &$saleId) {
+        DB::transaction(function () use ($data, &$saleId, $phoneToCheck) {
             $subtotal = collect($data['items'])->sum(function ($item) {
                 return ($item['unit_price'] * $item['quantity']) - ($item['discount'] ?? 0);
             });
@@ -219,7 +221,34 @@ class SaleController extends Controller
                 $deliveryCharge = (float) ($data['delivery_charge'] ?? 0);
             }
 
-            $grandTotal    = $subtotal - $discount + $tax + $deliveryCharge;
+            $couponId       = null;
+            $couponCode     = null;
+            $couponDiscount = 0.0;
+            $appliedCoupon  = null;
+
+            if (! empty($data['coupon_code'])) {
+                $couponService = app(CouponService::class);
+                $validation = $couponService->validate(
+                    $data['coupon_code'],
+                    $subtotal,
+                    $data['customer_id'] ?? null,
+                    $phoneToCheck,
+                    $data['items']
+                );
+
+                if (! $validation['valid']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'coupon_code' => $validation['message'],
+                    ]);
+                }
+
+                $appliedCoupon  = Coupon::find($validation['coupon_id']);
+                $couponId       = $appliedCoupon?->id;
+                $couponCode     = $appliedCoupon?->code;
+                $couponDiscount = (float) $validation['discount_amount'];
+            }
+
+            $grandTotal    = max(0, $subtotal - $discount - $couponDiscount + $tax + $deliveryCharge);
             $paymentCharge = (float) ($data['payment_charge'] ?? 0);
 
             $paymentType       = $data['payment_type'] ?? null;
@@ -244,6 +273,9 @@ class SaleController extends Controller
                 'sale_date'              => $data['sale_date'],
                 'subtotal'               => $subtotal,
                 'discount'               => $discount,
+                'coupon_id'              => $couponId,
+                'coupon_code'            => $couponCode,
+                'coupon_discount'        => $couponDiscount,
                 'tax'                    => $tax,
                 'grand_total'            => $grandTotal,
                 'paid_amount'            => $initialPaidAmount,
@@ -261,6 +293,16 @@ class SaleController extends Controller
                 'note'                   => $data['note'] ?? null,
                 'created_by'             => Auth::id(),
             ]);
+
+            if ($appliedCoupon && $couponDiscount > 0) {
+                app(CouponService::class)->recordUsage(
+                    $appliedCoupon,
+                    $sale,
+                    $couponDiscount,
+                    $data['customer_id'] ?? null,
+                    $phoneToCheck
+                );
+            }
 
             foreach ($data['items'] as $item) {
                 SaleItem::create([

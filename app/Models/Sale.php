@@ -40,6 +40,9 @@ class Sale extends Model
         'courier_note',
         // ─────────────────────────────────────────────────────────
         'note',
+        'coupon_id',
+        'coupon_code',
+        'coupon_discount',
         'email_sent_at',
         'created_by',
     ];
@@ -48,6 +51,7 @@ class Sale extends Model
         'sale_date'            => 'date',
         'subtotal'             => 'decimal:2',
         'discount'             => 'decimal:2',
+        'coupon_discount'      => 'decimal:2',
         'tax'                  => 'decimal:2',
         'grand_total'          => 'decimal:2',
         'paid_amount'          => 'decimal:2',
@@ -57,6 +61,11 @@ class Sale extends Model
     ];
 
     // ─── Relationships ────────────────────────────────────────────
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class)->withTrashed();
+    }
 
     public function customer(): BelongsTo
     {

@@ -1,5 +1,6 @@
+import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
-import { CreditCard, Landmark, Phone, Truck } from "lucide-react";
+import { CreditCard, Landmark, Phone, Truck, Ticket, X } from "lucide-react";
 import {
     PaymentMethod,
     PaymentMethodBank,
@@ -27,6 +28,10 @@ interface Props {
     transactionId: string;
     paymentReference: string;
     discount: number;
+    couponCode?: string;
+    couponDiscount?: number;
+    onApplyCoupon?: (code: string) => Promise<void>;
+    onRemoveCoupon?: () => void;
     tax: number;
     paidAmount: number;
     note: string;
@@ -104,6 +109,10 @@ export default function CheckoutPanel({
     transactionId,
     paymentReference,
     discount,
+    couponCode = "",
+    couponDiscount = 0,
+    onApplyCoupon,
+    onRemoveCoupon,
     tax,
     paidAmount,
     note,
@@ -129,6 +138,8 @@ export default function CheckoutPanel({
     onCheckout,
     layer1Errors,
 }: Props) {
+    const [inputCoupon, setInputCoupon] = useState("");
+    const [applyingCoupon, setApplyingCoupon] = useState(false);
     const { settings } = usePage().props as any;
     const currency = settings?.currency_symbol ?? "৳";
 
@@ -412,6 +423,63 @@ export default function CheckoutPanel({
                 </div>
             </div>
 
+            {/* ── Coupon / Promo Code ────────────────────────────────────────── */}
+            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-2.5 space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Ticket size={13} className="text-indigo-600 dark:text-indigo-400" />
+                    Promo / Coupon Code
+                </label>
+                {couponCode && couponDiscount > 0 ? (
+                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1.5 text-xs">
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 tracking-wide text-[11px]">
+                                {couponCode}
+                            </span>
+                            <span className="text-emerald-700 dark:text-emerald-400 font-bold font-mono text-[11px]">
+                                -{currency}{couponDiscount.toFixed(2)} OFF
+                            </span>
+                        </div>
+                        {onRemoveCoupon && (
+                            <button
+                                type="button"
+                                onClick={onRemoveCoupon}
+                                className="text-emerald-600 hover:text-rose-600 dark:text-emerald-400 p-0.5 transition-colors"
+                                title="Remove coupon"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex gap-1.5">
+                        <input
+                            type="text"
+                            value={inputCoupon}
+                            onChange={(e) => setInputCoupon(e.target.value.toUpperCase())}
+                            placeholder="Enter coupon code..."
+                            className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs font-mono uppercase text-slate-800 dark:text-slate-200 focus:border-indigo-500"
+                        />
+                        <button
+                            type="button"
+                            disabled={!inputCoupon.trim() || applyingCoupon || !onApplyCoupon}
+                            onClick={async () => {
+                                if (!onApplyCoupon || !inputCoupon.trim()) return;
+                                setApplyingCoupon(true);
+                                try {
+                                    await onApplyCoupon(inputCoupon.trim());
+                                    setInputCoupon("");
+                                } finally {
+                                    setApplyingCoupon(false);
+                                }
+                            }}
+                            className="rounded-lg bg-slate-800 hover:bg-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white px-3 py-1.5 text-xs font-semibold disabled:opacity-50 transition-colors shrink-0"
+                        >
+                            {applyingCoupon ? "..." : "Apply"}
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {/* ── Totals Breakdown ─────────────────────────────────────────────── */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
                 <div className="flex justify-between text-sm text-gray-600">
@@ -427,6 +495,15 @@ export default function CheckoutPanel({
                         <span>
                             − {currency}
                             {discountNum.toFixed(2)}
+                        </span>
+                    </div>
+                )}
+                {couponDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-emerald-600 font-semibold">
+                        <span>Coupon ({couponCode})</span>
+                        <span>
+                            − {currency}
+                            {couponDiscount.toFixed(2)}
                         </span>
                     </div>
                 )}

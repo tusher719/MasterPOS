@@ -15,6 +15,8 @@ interface SaleResult {
     payment_type?: string | null;
     subtotal: number;
     discount: number;
+    coupon_code?: string | null;
+    coupon_discount?: number | null;
     tax: number;
     grand_total: number;
     paid_amount: number;
@@ -282,6 +284,12 @@ export default function ReceiptModal({
                                 <div className="flex justify-between">
                                     <span>Discount:</span>
                                     <span>-{currency}{sale.discount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            {Number(sale.coupon_discount || 0) > 0 && (
+                                <div className="flex justify-between font-semibold">
+                                    <span>Coupon ({sale.coupon_code || "PROMO"}):</span>
+                                    <span>-{currency}{Number(sale.coupon_discount).toFixed(2)}</span>
                                 </div>
                             )}
                             {sale.tax > 0 && (

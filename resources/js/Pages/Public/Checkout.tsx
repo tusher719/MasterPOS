@@ -4,18 +4,22 @@ import { formatPrice } from "@/Components/Public/ProductCard";
 import { useCart } from "@/hooks/useCart";
 import PublicLayout from "@/Layouts/PublicLayout";
 import { Head, Link, router } from "@inertiajs/react";
+import axios from "axios";
 import {
     ArrowLeft,
     CheckCircle2,
     CreditCard,
     Home,
+    Loader2,
     MapPin,
     Package,
     Phone,
     ShieldCheck,
     ShoppingBag,
+    Tag,
     Truck,
     User,
+    X,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -62,11 +66,65 @@ export default function Checkout({
     );
     const [note, setNote] = useState("");
 
+    // Coupon & Promo Code State
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState<{
+        code: string;
+        discount_amount: number;
+        description?: string;
+    } | null>(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState<string | null>(null);
+
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const currentDeliveryCharge = deliveryCharges[deliveryType] ?? 0;
-    const grandTotal = subtotal + currentDeliveryCharge;
+    const couponDiscount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+    const grandTotal = Math.max(0, subtotal - couponDiscount + currentDeliveryCharge);
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setCouponLoading(true);
+        setCouponError(null);
+        try {
+            const res = await axios.post(route("public.checkout.coupon.validate"), {
+                code: couponCode.trim(),
+                subtotal,
+                customer_phone: customerPhone || null,
+                items: items.map((i) => ({
+                    id: i.id,
+                    qty: i.qty,
+                    price: i.price,
+                })),
+            });
+
+            if (res.data.valid) {
+                setAppliedCoupon({
+                    code: res.data.coupon.code,
+                    discount_amount: Number(res.data.discount_amount),
+                    description: res.data.coupon.description,
+                });
+                setCouponError(null);
+            } else {
+                setAppliedCoupon(null);
+                setCouponError(res.data.message || "Invalid coupon code");
+            }
+        } catch (err: any) {
+            setAppliedCoupon(null);
+            setCouponError(
+                err.response?.data?.message || "Failed to validate coupon"
+            );
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode("");
+        setCouponError(null);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -81,6 +139,7 @@ export default function Checkout({
                 customer_name: customerName,
                 customer_phone: customerPhone,
                 customer_email: customerEmail || null,
+                coupon_code: appliedCoupon?.code || null,
                 delivery_type: deliveryType,
                 delivery_address:
                     deliveryType === "store_pickup" ? null : deliveryAddress,
@@ -539,6 +598,73 @@ export default function Checkout({
                                 ))}
                             </div>
 
+                            {/* Promo Code Input */}
+                            <div className="border-t border-gray-100 pt-4 pb-1">
+                                <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                                    <Tag size={13} className="text-indigo-600" />
+                                    <span>Have a Promo Code?</span>
+                                </label>
+                                {appliedCoupon ? (
+                                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-xs font-bold text-emerald-800 uppercase tracking-wide bg-emerald-100 px-2 py-0.5 rounded">
+                                                {appliedCoupon.code}
+                                            </span>
+                                            <span className="text-xs text-emerald-700 font-medium">
+                                                (-{formatPrice(currency, appliedCoupon.discount_amount)})
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveCoupon}
+                                            className="text-gray-400 hover:text-red-500 p-1 transition rounded-lg hover:bg-emerald-100/50"
+                                            title="Remove coupon"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) =>
+                                                setCouponCode(e.target.value.toUpperCase())
+                                            }
+                                            placeholder="PROMO CODE"
+                                            className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-xs font-mono uppercase text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    handleApplyCoupon();
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyCoupon}
+                                            disabled={
+                                                couponLoading || !couponCode.trim()
+                                            }
+                                            className="rounded-xl bg-gray-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-gray-800 disabled:opacity-50 transition flex items-center gap-1.5 shrink-0"
+                                        >
+                                            {couponLoading && (
+                                                <Loader2
+                                                    size={12}
+                                                    className="animate-spin"
+                                                />
+                                            )}
+                                            Apply
+                                        </button>
+                                    </div>
+                                )}
+                                {couponError && (
+                                    <p className="mt-1.5 text-xs text-red-600 font-medium">
+                                        {couponError}
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Subtotals & Grand Total */}
                             <div className="space-y-2 border-t border-gray-100 pt-4 text-sm">
                                 <div className="flex justify-between text-gray-600">
@@ -547,6 +673,20 @@ export default function Checkout({
                                         {formatPrice(currency, subtotal)}
                                     </span>
                                 </div>
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-emerald-600 font-medium">
+                                        <span className="flex items-center gap-1">
+                                            <Tag size={12} />
+                                            Coupon ({appliedCoupon.code})
+                                        </span>
+                                        <span>
+                                            -{formatPrice(
+                                                currency,
+                                                appliedCoupon.discount_amount,
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-gray-600">
                                     <span>Delivery Charge</span>
                                     <span className="font-semibold text-gray-900">
@@ -567,6 +707,11 @@ export default function Checkout({
                             </div>
 
                             {/* Error notices */}
+                            {errors.coupon_code && (
+                                <div className="mt-4 rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100">
+                                    {errors.coupon_code}
+                                </div>
+                            )}
                             {errors.items && (
                                 <div className="mt-4 rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100">
                                     {errors.items}

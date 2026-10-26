@@ -5,6 +5,7 @@ use App\Http\Controllers\Backend\AuditTrailController;
 use App\Http\Controllers\Backend\CapitalLedgerController;
 use App\Http\Controllers\Backend\CapitalWithdrawalController;
 use App\Http\Controllers\Backend\CustomerController;
+use App\Http\Controllers\Backend\CouponController;
 use App\Http\Controllers\Backend\DashboardController;
 use App\Http\Controllers\Backend\DeletePreviewController;
 use App\Http\Controllers\Backend\FraudFlagController;
@@ -75,6 +76,7 @@ Route::middleware(['coming.soon'])->group(function () {
     Route::get('/track-order', [PublicOrderTrackingController::class, 'index'])->name('public.track-order');
     Route::get('/checkout', [PublicCheckoutController::class, 'index'])->name('public.checkout.index');
     Route::post('/checkout', [PublicCheckoutController::class, 'store'])->name('public.checkout.store');
+    Route::post('/checkout/coupon/validate', [PublicCheckoutController::class, 'validateCoupon'])->name('public.checkout.coupon.validate');
     Route::get('/order-confirmed/{reference}', [PublicCheckoutController::class, 'confirmed'])->name('public.order-confirmed');
     Route::get('/products', [PublicProductController::class, 'index'])->name('public.products.index');
     Route::get('/products/{slug}', [PublicProductController::class, 'show'])->name('public.products.show');
@@ -283,6 +285,9 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             Route::post('/sales', [SaleController::class, 'store'])
                 ->middleware('throttle:30,1')
                 ->name('pos.sales.store');
+
+            Route::post('coupons/validate', [CouponController::class, 'validateCoupon'])
+                ->name('pos.coupons.validate');
 
             // ── declared BEFORE resource wildcard ────────────────────────
             Route::post('/sales/{id}/restore', [SaleController::class, 'restore'])
@@ -721,12 +726,20 @@ Route::middleware(['auth', 'verified', 'maintenance'])
             Route::delete('/{purchaseReturn}',                [PurchaseReturnController::class, 'destroy'])->name('destroy');
         });
 
+        // ── Coupons & Promo Codes ────────────────────────────────────────────────
+        Route::prefix('coupons')->name('coupons.')->group(function () {
+            Route::post('{id}/restore', [CouponController::class, 'restore'])->name('restore');
+            Route::patch('{coupon}/toggle-status', [CouponController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('{coupon}/usages', [CouponController::class, 'usages'])->name('usages');
+        });
+        Route::resource('coupons', CouponController::class);
+
         // GET /backend/delete-preview/{type}/{id}
         Route::get('delete-preview/{type}/{id}', [DeletePreviewController::class, 'show'])
             ->name('delete-preview')
             ->whereIn('type', [
                 'investment', 'partner', 'sale', 'purchase', 'distribution',
-                'category', 'unit', 'expense-category', 'supplier', 'customer', 'user',
+                'category', 'unit', 'expense-category', 'supplier', 'customer', 'user', 'coupon',
             ])
             ->whereNumber('id');
     });
