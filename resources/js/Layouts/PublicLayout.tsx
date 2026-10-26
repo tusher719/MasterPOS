@@ -3,26 +3,28 @@
 import Footer from "@/Components/Public/Footer";
 import Header from "@/Components/Public/Header";
 import { PublicCategory, PublicSettings } from "@/types/public";
-import { Head } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 import { PropsWithChildren } from "react";
 
 interface PublicLayoutProps extends PropsWithChildren {
-    settings: PublicSettings;
     categories?: PublicCategory[];
     cartCount?: number;
 }
 
 export default function PublicLayout({
     children,
-    settings,
     categories = [],
     cartCount = 0,
 }: PublicLayoutProps) {
+    // settings globally shared via HandleInertiaRequests — never pass as prop
+    const { settings } = usePage().props as unknown as {
+        settings: PublicSettings;
+    };
+
     return (
         <>
-            {/* Favicon — business logo থেকে, per-page <Head title> আলাদা */}
             <Head>
-                {settings.logo_image_path && (
+                {settings?.logo_image_path && (
                     <link
                         rel="icon"
                         type="image/png"

@@ -53,7 +53,7 @@ Full-stack POS + ERP system
 Sprint 8 — Public Storefront (active)
 
 - Item 10.1 Public Product Catalog ✅
-- Item 10.2 Search page (pending)
+- Item 10.2 Search page ✅
 - Item 10.3 Coming Soon public page (pending)
 - Item 10.4 Cart page + localStorage persist (pending)
 - Item 10.5 Checkout (pending)

@@ -2,6 +2,46 @@
 
 ---
 
+### Item 10.2 — Public Search Page ✅ (2026-09-20)
+
+**New Files:**
+
+- app/Http/Controllers/Public/PublicSearchController.php
+- resources/js/Pages/Public/Search.tsx
+
+**Modified Files:**
+
+- routes/web.php — GET /search route + PublicSearchController use
+- resources/js/Components/Public/Header.tsx — live search dropdown
+  (grid layout, debounced fetch, related/top products, currency-aware)
+- resources/js/Layouts/PublicLayout.tsx — settings via usePage() instead
+  of prop (fixes undefined error on pages that don't pass settings)
+
+**Features:**
+
+- Full page search: name + SKU + description LIKE query
+- Filters: category (with subcategory inclusion), price min/max, sort
+- Sort options: latest, price asc/desc, name asc
+- Pagination: manual $paginatedData (never ->through())
+- Empty state: featured products fallback
+- Live dropdown: debounced 300ms, grid layout (3 cols)
+- Related section: same-category products excluding hits
+- Fallback: top/featured products when no related found
+- JSON endpoint: same route, X-Requested-With header detection
+- mapProduct() private helper: DRY image + field resolution
+
+**Technical notes:**
+
+- PublicSearchController handles both full-page (Inertia) and
+  JSON (Ajax) from same index() method via wantsJson() check
+- Category product count: manual childIds query (never withCount)
+- PublicLayout: settings now read via usePage().props — never pass
+  as prop from individual pages
+- currencySymbol: read from usePage().props.settings in SearchBar
+  and Search.tsx
+
+---
+
 ## Sprint 8 — Public Storefront
 
 ### Item 10.1 — Public Product Catalog ✅ (2026-09-19)

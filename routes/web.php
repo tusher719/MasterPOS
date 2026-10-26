@@ -55,9 +55,10 @@ use App\Http\Controllers\Backend\InventoryDashboardController;
 use App\Http\Controllers\Backend\InvestmentDashboardController;
 use App\Http\Controllers\Backend\QuickLinkController;
 use App\Http\Controllers\Backend\LegalPageController;
+use App\Http\Controllers\Public\PublicCategoryController;
 use App\Http\Controllers\Public\PublicHomeController;
 use App\Http\Controllers\Public\PublicProductController;
-use App\Http\Controllers\Public\PublicCategoryController;
+use App\Http\Controllers\Public\PublicSearchController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -67,17 +68,10 @@ use Inertia\Inertia;
 // No auth required. CheckComingSoon middleware applied (Sprint 8).
 // Route order: specific routes BEFORE wildcard {slug} to prevent swallowing.
 Route::middleware(['coming.soon'])->group(function () {
-
-    // Homepage
     Route::get('/', [PublicHomeController::class, 'index'])->name('public.home');
-
-    // Product catalog
+    Route::get('/search', [PublicSearchController::class, 'index'])->name('public.search'); // ← NEW
     Route::get('/products', [PublicProductController::class, 'index'])->name('public.products.index');
-
-    // Product detail — slug based (BEFORE category slug to avoid conflict)
     Route::get('/products/{slug}', [PublicProductController::class, 'show'])->name('public.products.show');
-
-    // Category page
     Route::get('/categories/{slug}', [PublicCategoryController::class, 'show'])->name('public.categories.show');
 });
 

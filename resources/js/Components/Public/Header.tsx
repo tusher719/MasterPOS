@@ -1,8 +1,8 @@
 // resources/js/Components/Public/Header.tsx
 
 import { PublicCategory, PublicSettings } from "@/types/public";
-import { Link } from "@inertiajs/react";
-import { ChevronRight, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Link, usePage } from "@inertiajs/react";
+import { ChevronRight, Menu, Search, ShoppingBag, Tag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface HeaderProps {
@@ -81,32 +81,275 @@ function StorefrontLogo({ settings }: { settings: PublicSettings }) {
 }
 
 function SearchBar({ className = "" }: { className?: string }) {
+    const { settings } = usePage().props as any;
+    const currencySymbol = settings?.currency_symbol ?? "৳";
+
     const [query, setQuery] = useState("");
+    const [results, setResults] = useState<any[]>([]);
+    const [related, setRelated] = useState<any[]>([]);
+    const [relatedLabel, setRelatedLabel] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [showDrop, setShowDrop] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (
+                wrapperRef.current &&
+                !wrapperRef.current.contains(e.target as Node)
+            ) {
+                setShowDrop(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    const handleChange = (val: string) => {
+        setQuery(val);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (val.trim().length < 2) {
+            setResults([]);
+            setRelated([]);
+            setShowDrop(false);
+            return;
+        }
+        setLoading(true);
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    route("public.search") +
+                        `?q=${encodeURIComponent(val.trim())}`,
+                    {
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                    },
+                );
+                const data = await res.json();
+                const hits = data.products?.data ?? [];
+                setResults(hits);
+                setRelated(data.related ?? []);
+                setRelatedLabel(data.related_label ?? "");
+                setShowDrop(true);
+            } catch {
+                setResults([]);
+                setRelated([]);
+            } finally {
+                setLoading(false);
+            }
+        }, 300);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const q = query.trim();
+        setShowDrop(false);
         if (!q) return;
         window.location.href =
-            route("public.products.index") + `?q=${encodeURIComponent(q)}`;
+            route("public.search") + `?q=${encodeURIComponent(q)}`;
     };
 
+    const goTo = (slug: string) => {
+        setShowDrop(false);
+        setQuery("");
+        window.location.href = route("public.products.show", slug);
+    };
+
+    const formatPrice = (price: number) =>
+        `${currencySymbol}${Number(price).toLocaleString("en-BD", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+    const hasResults = results.length > 0;
+    const hasRelated = related.length > 0;
+    const showDropdown = showDrop && (hasResults || hasRelated || loading);
+
     return (
-        <form onSubmit={handleSubmit} className={`relative ${className}`}>
-            <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products..."
-                className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-5 pr-12 text-sm text-gray-800 placeholder-gray-400 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-            />
-            <button
-                type="submit"
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
-            >
-                <Search size={16} />
-            </button>
-        </form>
+        <div ref={wrapperRef} className={`relative ${className}`}>
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => handleChange(e.target.value)}
+                    onFocus={() =>
+                        (results.length > 0 || related.length > 0) &&
+                        setShowDrop(true)
+                    }
+                    placeholder="Search products..."
+                    className="w-full rounded-full border border-gray-200 bg-gray-50 py-2.5 pl-5 pr-12
+                               text-sm text-gray-800 placeholder-gray-400 outline-none transition
+                               focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                />
+                <button
+                    type="submit"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                >
+                    {loading ? (
+                        <span className="block w-4 h-4 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+                    ) : (
+                        <Search size={16} />
+                    )}
+                </button>
+            </form>
+
+            {/* ── Dropdown ── */}
+            {showDropdown && (
+                <div
+                    className="absolute left-0 right-0 top-full mt-2 z-50 bg-white rounded-2xl
+                                border border-gray-100 shadow-xl overflow-hidden"
+                >
+                    {/* Direct matches — grid */}
+                    {hasResults && (
+                        <div className="p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                                Results for "{query}"
+                            </p>
+                            <div className="grid grid-cols-6 gap-3">
+                                {results.slice(0, 6).map((p: any) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => goTo(p.slug)}
+                                        className="flex flex-col rounded-xl border border-gray-100
+                                                   hover:border-indigo-200 hover:shadow-sm transition-all
+                                                   overflow-hidden text-left group"
+                                    >
+                                        {/* Image */}
+                                        <div
+                                            className="relative w-full bg-gray-50"
+                                            style={{ paddingBottom: "80%" }}
+                                        >
+                                            <div className="absolute inset-0">
+                                                {p.primary_image ? (
+                                                    <img
+                                                        src={`/storage/${p.primary_image}`}
+                                                        alt={p.name}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Tag
+                                                            size={20}
+                                                            className="text-gray-200"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* Info */}
+                                        <div className="p-2">
+                                            <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug">
+                                                {p.name}
+                                            </p>
+                                            <p className="mt-1 text-xs font-bold text-indigo-600">
+                                                {formatPrice(
+                                                    Number(p.sale_price),
+                                                )}
+                                            </p>
+                                            {p.stock_qty <= 0 && (
+                                                <p className="text-[10px] text-red-400 mt-0.5">
+                                                    Out of stock
+                                                </p>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Divider */}
+                    {hasResults && hasRelated && (
+                        <div className="border-t border-gray-100 mx-4" />
+                    )}
+
+                    {/* Related / Top products — grid */}
+                    {hasRelated && (
+                        <div className="p-4">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                                {relatedLabel || "You might also like"}
+                            </p>
+                            <div className="grid grid-cols-6 gap-3">
+                                {related.slice(0, 6).map((p: any) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => goTo(p.slug)}
+                                        className="flex flex-col rounded-xl border border-gray-100
+                                                   hover:border-indigo-200 hover:shadow-sm transition-all
+                                                   overflow-hidden text-left group"
+                                    >
+                                        <div
+                                            className="relative w-full bg-gray-50"
+                                            style={{ paddingBottom: "80%" }}
+                                        >
+                                            <div className="absolute inset-0">
+                                                {p.primary_image ? (
+                                                    <img
+                                                        src={`/storage/${p.primary_image}`}
+                                                        alt={p.name}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Tag
+                                                            size={20}
+                                                            className="text-gray-200"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="p-2">
+                                            <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug">
+                                                {p.name}
+                                            </p>
+                                            <p className="mt-1 text-xs font-bold text-indigo-600">
+                                                {formatPrice(
+                                                    Number(p.sale_price),
+                                                )}
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* No results */}
+                    {!loading && !hasResults && !hasRelated && (
+                        <div className="px-4 py-8 text-center">
+                            <p className="text-sm text-gray-500">
+                                No products found for "
+                                <span className="font-medium text-gray-700">
+                                    {query}
+                                </span>
+                                "
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Footer — view all */}
+                    {hasResults && (
+                        <div className="border-t border-gray-100">
+                            <a
+                                href={
+                                    route("public.search") +
+                                    `?q=${encodeURIComponent(query)}`
+                                }
+                                className="flex items-center justify-center gap-1.5 py-3 text-xs
+                                           font-semibold text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            >
+                                View all results for "{query}"
+                                <span className="text-gray-400">→</span>
+                            </a>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -267,7 +510,7 @@ export default function Header({
                         <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
                             {/* Mobile search link */}
                             <Link
-                                href={route("public.products.index")}
+                                href={route("public.search")}
                                 className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 transition-colors md:hidden"
                             >
                                 <Search size={20} />
